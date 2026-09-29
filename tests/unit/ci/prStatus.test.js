@@ -65,6 +65,29 @@ describe('syncPullRequest', () => {
     expect([...github.prLabels]).toEqual(['work-in-progress']);
   });
 
+  it('tolerates another run creating the same label at the same moment', async () => {
+    const github = fakeGithub({ existingRepoLabels: [] });
+    // Both runs saw the label missing; the other one created it first.
+    github.rest.issues.createLabel.mockRejectedValueOnce(Object.assign(new Error('Validation Failed'), {
+      status: 422,
+      response: { data: { errors: [{ resource: 'Label', code: 'already_exists', field: 'name' }] } }
+    }));
+
+    await syncPullRequest({ github, ...repo, pr: pr(), ciConclusion: 'success' });
+
+    expect([...github.prLabels]).toEqual(['ready-to-test']);
+  });
+
+  it('still fails on other label errors', async () => {
+    const github = fakeGithub({ existingRepoLabels: [] });
+    github.rest.issues.createLabel.mockRejectedValueOnce(Object.assign(new Error('Validation Failed'), {
+      status: 422,
+      response: { data: { errors: [{ resource: 'Label', code: 'invalid', field: 'color' }] } }
+    }));
+
+    await expect(syncPullRequest({ github, ...repo, pr: pr(), ciConclusion: 'success' })).rejects.toThrow('Validation Failed');
+  });
+
   it('clears status labels while CI is still running', async () => {
     const github = fakeGithub({ labelsOnPr: ['ready-to-test'] });
 
