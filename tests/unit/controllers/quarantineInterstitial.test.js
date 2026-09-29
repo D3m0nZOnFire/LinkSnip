@@ -44,7 +44,7 @@ describe('quarantined links (visitor side)', () => {
 
     await UrlController.redirect(visit('dead', { confirmed: '1' }), res);
 
-    expect(res.statusCode).toBe(410);
+    expect(res.statusCode).toBe(403);
     expect(res.redirect).not.toHaveBeenCalled();
   });
 
