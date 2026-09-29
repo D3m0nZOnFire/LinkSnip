@@ -6,6 +6,7 @@ const Tag = require('../models/Tag');
 const User = require('../models/User');
 const { logAdminAction, logAccountChange, ACTIONS } = require('../services/auditService');
 const { UPLOADS_DIR } = require('../config/paths');
+const { checkAccess, sendAccessDenied, sendIfUnavailable, withAccessStatus } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 
 // Ensure uploads directory exists
@@ -195,42 +196,6 @@ exports.updateSettings = async (req, res) => {
   }
 };
 
-// ─── Access control helper ────────────────────────────────────────────────────
-
-async function checkAccess(req, res, file) {
-  const { valid, reason, status } = File.isValid(file);
-  if (!valid) {
-    return { allowed: false, renderExpired: true, reason, status };
-  }
-
-  if (file.sharingMode === 'restricted') {
-    if (!req.user) {
-      return { allowed: false, redirect: `/login?next=${encodeURIComponent(req.originalUrl)}` };
-    }
-    const allowedIds = (() => { try { return JSON.parse(file.allowedUsers); } catch (_) { return []; } })();
-    if (req.user.id !== file.userId && !allowedIds.includes(req.user.id) && !req.user.isAdmin) {
-      return { allowed: false, renderAccessDenied: true };
-    }
-  }
-
-  if (file.password) {
-    const unlockedFiles = req.session.unlockedFiles || [];
-    const tempUnlock = req.session.tempUnlockFile;
-    const isUnlocked = unlockedFiles.includes(file.id) || tempUnlock === file.id;
-
-    // Clear temp unlock after use
-    if (req.session.tempUnlockFile === file.id) {
-      delete req.session.tempUnlockFile;
-    }
-
-    if (!isUnlocked) {
-      return { allowed: false, redirect: `/unlock-file/${file.slug}` };
-    }
-  }
-
-  return { allowed: true };
-}
-
 // ─── Public routes ────────────────────────────────────────────────────────────
 
 /**
@@ -240,18 +205,8 @@ exports.preview = async (req, res) => {
   const file = File.findBySlug(req.params.slug);
   if (!file) return res.status(404).render('error', { message: 'File not found', statusCode: 404 });
 
-  const access = await checkAccess(req, res, file);
-
-  if (!access.allowed) {
-    if (access.redirect) return res.redirect(access.redirect);
-    if (access.renderExpired) {
-      const code = access.status === 'blocked' ? 403 : 410;
-      return res.status(code).render('error', { message: access.reason, statusCode: code });
-    }
-    if (access.renderAccessDenied) {
-      return res.status(403).render('error', { message: 'You do not have permission to access this file.', statusCode: 403 });
-    }
-  }
+  const access = checkAccess(req, 'file', file);
+  if (!access.allowed) return sendAccessDenied(req, res, 'file', file, access);
 
   const owner = User.findById(file.userId);
   const allowedUserIds = (() => { try { return JSON.parse(file.allowedUsers); } catch (_) { return []; } })();
@@ -282,18 +237,8 @@ exports.download = async (req, res) => {
   const file = File.findBySlug(req.params.slug);
   if (!file) return res.status(404).render('error', { message: 'File not found', statusCode: 404 });
 
-  const access = await checkAccess(req, res, file);
-
-  if (!access.allowed) {
-    if (access.redirect) return res.redirect(access.redirect);
-    if (access.renderExpired) {
-      const code = access.status === 'blocked' ? 403 : 410;
-      return res.status(code).render('error', { message: access.reason, statusCode: code });
-    }
-    if (access.renderAccessDenied) {
-      return res.status(403).render('error', { message: 'Access denied', statusCode: 403 });
-    }
-  }
+  const access = checkAccess(req, 'file', file);
+  if (!access.allowed) return sendAccessDenied(req, res, 'file', file, access);
 
   const filePath = path.join(UPLOADS_DIR, file.storedName);
   if (!fs.existsSync(filePath)) {
@@ -321,6 +266,7 @@ exports.showUnlockFilePage = (req, res) => {
   if (!file) return res.status(404).render('error', { message: 'File not found', statusCode: 404 });
 
   if (!file.password) return res.redirect(`/f/${file.slug}`);
+  if (sendIfUnavailable(req, res, 'file', file)) return;
 
   return res.render('unlock-file', {
     user: req.user || null,
@@ -338,6 +284,7 @@ exports.unlockFile = async (req, res) => {
   if (!file) return res.status(404).render('error', { message: 'File not found', statusCode: 404 });
 
   if (!file.password) return res.redirect(`/f/${file.slug}`);
+  if (sendIfUnavailable(req, res, 'file', file)) return;
 
   const { password, remember } = req.body;
 
@@ -383,7 +330,7 @@ exports.adminList = (req, res) => {
 
   return res.render('admin-files', {
     user: req.user,
-    files: files.map(f => ({ ...f, sizeFormatted: formatBytes(f.size) })),
+    files: withAccessStatus('file', files).map(f => ({ ...f, sizeFormatted: formatBytes(f.size) })),
     search,
     pagination: { page, totalPages, total, limit }
   });

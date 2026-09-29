@@ -41,22 +41,19 @@
         </div>
       <% } %>
 
-      <!-- Short URL Display -->
-      <% if (slug) { %>
+      <!-- Short link display -->
+      <% if (locals.path) { %>
         <div style="margin: 1.5rem 0; padding: 0.75rem; background: var(--muted); border-radius: 0.5rem;">
-          <p style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">Short URL:</p>
+          <p style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">Short link:</p>
           <p style="margin: 0.25rem 0 0 0; font-family: monospace; font-weight: bold; color: var(--foreground); word-break: break-all;">
-            /s/<%= slug %>
+            <%= path %>
           </p>
         </div>
       <% } %>
 
-      <!-- Action Buttons -->
+      <!-- Action Buttons (no info link: info pages hide scheduled items) -->
       <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
         <a href="/" class="btn" style="color: var(--primary-foreground);">Go Back Home</a>
-        <% if (slug) { %>
-          <a href="/info/<%= slug %>" class="btn btn-secondary">View Info</a>
-        <% } %>
       </div>
     </div>
   </div>

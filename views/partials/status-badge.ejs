@@ -1,0 +1,14 @@
+<%# Status badge for list rows. Takes { status }: a row's accessStatus (services/accessService.js). %>
+<% if (status === 'blocked') { %>
+  <span class="badge" style="background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border);">⛔ Blocked</span>
+<% } else if (status === 'quarantined') { %>
+  <span class="badge" title="Reported by several visitors. Visitors see a warning until an admin reviews it." style="background-color: var(--status-error-bg); color: var(--status-warning-text); border: 1px solid var(--status-error-border);">⚠ Under review</span>
+<% } else if (status === 'scheduled') { %>
+  <span class="badge" style="background-color: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3);">⏰ Scheduled</span>
+<% } else if (status === 'expired') { %>
+  <span class="badge badge-expired">Expired</span>
+<% } else if (status === 'limit_reached') { %>
+  <span class="badge badge-max">Limit reached</span>
+<% } else { %>
+  <span class="badge badge-active">Active</span>
+<% } %>

@@ -1,5 +1,16 @@
 const db = require('../config/database');
 const Tag = require('./Tag');
+const { statusSql } = require('../services/accessService');
+
+// Status filter values (?status= and @status:) → access status; max-uses keeps its old name
+const STATUS_FILTERS = {
+  active: 'active',
+  blocked: 'blocked',
+  expired: 'expired',
+  scheduled: 'scheduled',
+  'max-uses': 'limit_reached',
+  quarantined: 'quarantined'
+};
 
 class Url {
   /**
@@ -266,29 +277,13 @@ class Url {
     if (isProtected) conditions.push(`urls.password IS NOT NULL`);
 
     const effectiveStatus = groupStatus || globalStatus || '';
-    if (effectiveStatus) {
+    if (STATUS_FILTERS[effectiveStatus]) {
+      // Same status the visitor gets (accessService), computed in SQL
+      const { sql, params: statusParams } = statusSql('url', { now });
+      conditions.push(`(${sql}) = ?`);
+      params.push(...statusParams, STATUS_FILTERS[effectiveStatus]);
+    } else if (effectiveStatus) {
       switch (effectiveStatus) {
-        case 'active':
-          conditions.push(`urls.isBlocked = 0`);
-          conditions.push(`(urls.expiresAt IS NULL OR urls.expiresAt > ?)`);
-          conditions.push(`(urls.activateAt IS NULL OR urls.activateAt <= ?)`);
-          conditions.push(`(urls.deactivateAt IS NULL OR urls.deactivateAt > ?)`);
-          params.push(now, now, now);
-          break;
-        case 'blocked':
-          conditions.push(`urls.isBlocked = 1`);
-          break;
-        case 'expired':
-          conditions.push(`((urls.expiresAt IS NOT NULL AND urls.expiresAt < ?) OR (urls.deactivateAt IS NOT NULL AND urls.deactivateAt < ?))`);
-          params.push(now, now);
-          break;
-        case 'scheduled':
-          conditions.push(`urls.activateAt IS NOT NULL AND urls.activateAt > ?`);
-          params.push(now);
-          break;
-        case 'max-uses':
-          conditions.push(`urls.maxUses IS NOT NULL AND urls.clicks >= urls.maxUses`);
-          break;
         case 'anonymous':
           conditions.push(`urls.creatorId IS NULL`);
           break;
@@ -559,50 +554,6 @@ class Url {
     const stmt = db.prepare('DELETE FROM urls WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
-  }
-
-  /**
-   * Check if URL is valid (not expired, not exceeded max uses, and within activation schedule)
-   * @param {object} url - URL record
-   * @returns {object} { valid, reason, status }
-   */
-  static isValid(url) {
-    const now = new Date();
-
-    // Check if blocked
-    if (url.isBlocked) {
-      return { valid: false, reason: 'This URL has been blocked due to reports of malicious content.', status: 'blocked' };
-    }
-
-    // Check if not yet activated
-    if (url.activateAt) {
-      const activationDate = new Date(url.activateAt);
-      if (activationDate > now) {
-        return { valid: false, reason: 'This short URL is not yet active.', status: 'scheduled' };
-      }
-    }
-
-    // Check if deactivated or expired (both mean the link is permanently done)
-    if (url.deactivateAt) {
-      const deactivationDate = new Date(url.deactivateAt);
-      if (deactivationDate < now) {
-        return { valid: false, reason: 'This short URL has expired.', status: 'expired' };
-      }
-    }
-
-    if (url.expiresAt) {
-      const expirationDate = new Date(url.expiresAt);
-      if (expirationDate < now) {
-        return { valid: false, reason: 'This short URL has expired.', status: 'expired' };
-      }
-    }
-
-    // Check max uses
-    if (url.maxUses !== null && url.clicks >= url.maxUses) {
-      return { valid: false, reason: 'This short URL has reached its maximum number of uses.', status: 'max_uses' };
-    }
-
-    return { valid: true, reason: null, status: 'active' };
   }
 
   /**

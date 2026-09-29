@@ -68,13 +68,7 @@
               <%= new Date(file.createdAt).toLocaleDateString('en-GB') %>
             </td>
             <td>
-              <% if (file.isBlocked) { %>
-                <span class="status-badge status-blocked">Blocked</span>
-              <% } else if (file.expiresAt && new Date(file.expiresAt) < new Date()) { %>
-                <span class="status-badge status-expired">Expired</span>
-              <% } else { %>
-                <span class="status-badge status-active">Active</span>
-              <% } %>
+              <%- include('partials/status-badge', { status: file.accessStatus }) %>
             </td>
             <td>
               <div style="display:flex;gap:0.375rem;justify-content:flex-end;">

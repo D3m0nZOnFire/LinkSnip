@@ -21,7 +21,7 @@ const AnalyticsService = require('../services/analyticsService');
 const Tag = require('../models/Tag');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
 const configService = require('../services/configService');
-const { showQuarantineWarning } = require('../services/quarantineGate');
+const { checkAccess, sendAccessDenied } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 
 class UrlController {
@@ -202,50 +202,9 @@ class UrlController {
       });
     }
 
-    // Validate URL (expiration, max uses, and scheduling)
-    const { valid, reason, status } = Url.isValid(url);
-
-    if (!valid) {
-      // Special handling for scheduled URLs
-      if (status === 'scheduled') {
-        return res.status(410).render('url-scheduled', {
-          title: 'Not Yet Active',
-          message: reason,
-          status,
-          activateAt: url.activateAt,
-          slug: slug
-        });
-      }
-
-      // Generic error for other cases (blocked, expired, max uses)
-      return res.status(410).render('error', {
-        title: 'URL Unavailable',
-        message: reason,
-        code: 410
-      });
-    }
-
-    // Reported past the threshold: warn before redirecting (no click counted for the warning)
-    if (showQuarantineWarning(req, res, {
-      type: 'url', item: url, destination: url.longUrl, path: `/s/${slug}`, infoPath: `/info/${slug}`
-    })) return;
-
-    // Check if password protection is enabled
-    if (url.password) {
-      // Check if URL is unlocked in session
-      const isUnlocked = req.session.unlockedUrls && req.session.unlockedUrls.includes(url.id);
-      const isTempUnlocked = req.session.tempUnlock === url.id;
-
-      // Clear temp unlock flag
-      if (isTempUnlocked) {
-        delete req.session.tempUnlock;
-      }
-
-      // If not unlocked, redirect to password page
-      if (!isUnlocked && !isTempUnlocked) {
-        return res.redirect(`/unlock/${slug}`);
-      }
-    }
+    // Blocked, scheduled, expired, used up, quarantine warning, password (no click counted)
+    const access = checkAccess(req, 'url', url);
+    if (!access.allowed) return sendAccessDenied(req, res, 'url', url, access);
 
     // Increment clicks
     Url.incrementClicks(slug);

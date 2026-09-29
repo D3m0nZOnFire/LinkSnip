@@ -181,28 +181,6 @@ class File {
     }
     throw new Error('Unable to generate unique file slug after multiple attempts');
   }
-
-  static isValid(file) {
-    const now = new Date();
-
-    if (file.isBlocked) {
-      return { valid: false, reason: 'This file has been blocked.', status: 'blocked' };
-    }
-    if (file.activateAt && new Date(file.activateAt) > now) {
-      return { valid: false, reason: 'This file is not yet available.', status: 'not_active' };
-    }
-    if (file.deactivateAt && new Date(file.deactivateAt) < now) {
-      return { valid: false, reason: 'This file link has expired.', status: 'expired' };
-    }
-    if (file.expiresAt && new Date(file.expiresAt) < now) {
-      return { valid: false, reason: 'This file link has expired.', status: 'expired' };
-    }
-    if (file.maxDownloads !== null && file.downloads >= file.maxDownloads) {
-      return { valid: false, reason: 'This file has reached its maximum download limit.', status: 'max_downloads' };
-    }
-
-    return { valid: true, reason: null, status: 'active' };
-  }
 }
 
 module.exports = File;

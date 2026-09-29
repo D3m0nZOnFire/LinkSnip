@@ -4,7 +4,7 @@ const BundleAnalytics = require('../models/BundleAnalytics');
 const AnalyticsService = require('../services/analyticsService');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
 const configService = require('../services/configService');
-const { showQuarantineWarning } = require('../services/quarantineGate');
+const { checkAccess, sendAccessDenied, sendIfUnavailable } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 
 const MAX_ITEMS_REGISTERED = 20;
@@ -314,26 +314,9 @@ async function launchBundle(req, res) {
     });
   }
 
-  const validation = Bundle.isValid(bundle);
-  if (!validation.valid) {
-    return res.status(410).render('error', {
-      message: validation.reason,
-      error: { status: 410, stack: '' }
-    });
-  }
-
-  // Reported past the threshold: warn before launching
-  if (showQuarantineWarning(req, res, {
-    type: 'bundle', item: bundle, destination: bundle.title, path: `/b/${slug}`
-  })) return;
-
-  // Password protection check
-  if (bundle.password) {
-    const unlockedBundles = req.session.unlockedBundles || [];
-    if (!unlockedBundles.includes(bundle.id)) {
-      return res.redirect(`/unlock-bundle/${slug}`);
-    }
-  }
+  // Blocked, scheduled, expired, used up, quarantine warning, password
+  const access = checkAccess(req, 'bundle', bundle);
+  if (!access.allowed) return sendAccessDenied(req, res, 'bundle', bundle, access);
 
   // Increment click counter
   Bundle.incrementClicks(slug);
@@ -380,6 +363,7 @@ function getUnlockBundlePage(req, res) {
   if (!bundle || !bundle.password) {
     return res.redirect(`/b/${slug}`);
   }
+  if (sendIfUnavailable(req, res, 'bundle', bundle)) return;
 
   res.render('unlock-bundle', {
     user: req.user || null,
@@ -402,6 +386,7 @@ async function postUnlockBundle(req, res) {
   if (!bundle || !bundle.password) {
     return res.redirect(`/b/${slug}`);
   }
+  if (sendIfUnavailable(req, res, 'bundle', bundle)) return;
 
   const bundleUrl = `${req.protocol}://${req.get('host')}/b/${slug}`;
 

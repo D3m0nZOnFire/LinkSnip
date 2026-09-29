@@ -262,81 +262,6 @@ describe('Url Model', () => {
     });
   });
 
-  describe('isValid', () => {
-    it('should return valid for active URL', () => {
-      const url = createTestUrl({ slug: 'active' });
-
-      const result = Url.isValid(url);
-
-      expect(result.valid).toBe(true);
-      expect(result.status).toBe('active');
-    });
-
-    it('should return invalid for blocked URL', () => {
-      const url = createTestUrl({ slug: 'blocked', isBlocked: 1 });
-
-      const result = Url.isValid(url);
-
-      expect(result.valid).toBe(false);
-      expect(result.status).toBe('blocked');
-      expect(result.reason).toContain('blocked');
-    });
-
-    it('should return invalid for expired URL', () => {
-      const pastDate = new Date(Date.now() - 86400000).toISOString();
-      const url = createTestUrl({ slug: 'expired', expiresAt: pastDate });
-
-      const result = Url.isValid(url);
-
-      expect(result.valid).toBe(false);
-      expect(result.status).toBe('expired');
-    });
-
-    it('should return invalid for URL that reached max uses', () => {
-      const url = createTestUrl({ slug: 'maxed', clicks: 10, maxUses: 10 });
-
-      const result = Url.isValid(url);
-
-      expect(result.valid).toBe(false);
-      expect(result.status).toBe('max_uses');
-    });
-
-    it('should return invalid for not yet activated URL', () => {
-      const futureDate = new Date(Date.now() + 86400000).toISOString();
-      const url = createTestUrl({ slug: 'future', activateAt: futureDate });
-
-      const result = Url.isValid(url);
-
-      expect(result.valid).toBe(false);
-      expect(result.status).toBe('scheduled');
-    });
-
-    it('should return expired for URL past deactivateAt', () => {
-      const pastDate = new Date(Date.now() - 86400000).toISOString();
-      const url = createTestUrl({ slug: 'deact', deactivateAt: pastDate });
-
-      const result = Url.isValid(url);
-
-      expect(result.valid).toBe(false);
-      expect(result.status).toBe('expired');
-    });
-
-    it('should return valid when within activation window', () => {
-      const pastDate = new Date(Date.now() - 3600000).toISOString();
-      const futureDate = new Date(Date.now() + 3600000).toISOString();
-      const url = createTestUrl({
-        slug: 'window',
-        activateAt: pastDate,
-        deactivateAt: futureDate
-      });
-
-      const result = Url.isValid(url);
-
-      expect(result.valid).toBe(true);
-      expect(result.status).toBe('active');
-    });
-  });
-
   describe('block/unblock', () => {
     it('should block a URL', () => {
       const url = createTestUrl({ slug: 'toblock' });
@@ -577,43 +502,6 @@ describe('Url Model', () => {
 
       expect(slugs).toContain('faf-maxed');
       expect(slugs).not.toContain('faf-notmaxed');
-    });
-  });
-
-  describe('isValid - priority order', () => {
-    it('blocked takes priority over scheduled', () => {
-      const future = new Date(Date.now() + 86400000).toISOString();
-      const url = createTestUrl({ slug: 'prio-blocked-sched', isBlocked: 1, activateAt: future });
-
-      const result = Url.isValid(url);
-
-      expect(result.status).toBe('blocked');
-    });
-
-    it('blocked takes priority over expired', () => {
-      const past = new Date(Date.now() - 86400000).toISOString();
-      const url = createTestUrl({ slug: 'prio-blocked-exp', isBlocked: 1, expiresAt: past });
-
-      const result = Url.isValid(url);
-
-      expect(result.status).toBe('blocked');
-    });
-
-    it('blocked takes priority over max_uses', () => {
-      const url = createTestUrl({ slug: 'prio-blocked-max', isBlocked: 1, clicks: 5, maxUses: 5 });
-
-      const result = Url.isValid(url);
-
-      expect(result.status).toBe('blocked');
-    });
-
-    it('scheduled takes priority over max_uses', () => {
-      const future = new Date(Date.now() + 86400000).toISOString();
-      const url = createTestUrl({ slug: 'prio-sched-max', activateAt: future, clicks: 5, maxUses: 5 });
-
-      const result = Url.isValid(url);
-
-      expect(result.status).toBe('scheduled');
     });
   });
 });

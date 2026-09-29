@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const Url = require('../models/Url');
+const { sendIfUnavailable } = require('../services/accessService');
 
 /**
  * Show password entry page for protected URL
@@ -17,14 +18,8 @@ exports.showUnlockPage = (req, res) => {
     });
   }
 
-  // Check if URL is valid (not expired, not maxed out, not blocked)
-  const { valid, reason } = Url.isValid(url);
-  if (!valid) {
-    return res.status(410).render('error', {
-      message: reason,
-      statusCode: 410
-    });
-  }
+  // Blocked, scheduled, expired or used up: nothing to unlock
+  if (sendIfUnavailable(req, res, 'url', url)) return;
 
   // Check if password is required
   if (!url.password) {
@@ -58,14 +53,8 @@ exports.unlockUrl = async (req, res) => {
     });
   }
 
-  // Check if URL is valid
-  const { valid, reason } = Url.isValid(url);
-  if (!valid) {
-    return res.status(410).render('error', {
-      message: reason,
-      statusCode: 410
-    });
-  }
+  // Blocked, scheduled, expired or used up: nothing to unlock
+  if (sendIfUnavailable(req, res, 'url', url)) return;
 
   // Check if password is required
   if (!url.password) {

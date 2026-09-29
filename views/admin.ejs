@@ -95,7 +95,7 @@
                   <tr><td style="padding-top:0.4rem;"><code style="color:var(--primary);">@user:[name]</code></td><td style="color:var(--muted-foreground);">URLs by this user</td></tr>
                   <tr><td><code style="color:var(--primary);">@user:[a],[b]</code></td><td style="color:var(--muted-foreground);">URLs by user A <em>or</em> B</td></tr>
                   <tr><td><code style="color:var(--primary);">@user:![name]</code></td><td style="color:var(--muted-foreground);">Exclude this user</td></tr>
-                  <tr><td style="padding-top:0.6rem;"><code style="color:var(--primary);">@status:[value]</code></td><td style="color:var(--muted-foreground); padding-top:0.6rem;">active · blocked · expired · scheduled<br><span style="padding-left:0;">max-uses · anonymous · password-protected</span></td></tr>
+                  <tr><td style="padding-top:0.6rem;"><code style="color:var(--primary);">@status:[value]</code></td><td style="color:var(--muted-foreground); padding-top:0.6rem;">active · blocked · expired · scheduled<br><span style="padding-left:0;">max-uses · quarantined · anonymous · password-protected</span></td></tr>
                   <tr><td style="padding-top:0.6rem;"><code style="color:var(--primary);">@clicks:&gt;[N]</code></td><td style="color:var(--muted-foreground); padding-top:0.6rem;">More than N clicks</td></tr>
                   <tr><td><code style="color:var(--primary);">@clicks:&lt;[N]</code></td><td style="color:var(--muted-foreground);">Fewer than N clicks</td></tr>
                   <tr><td><code style="color:var(--primary);">@clicks:0</code></td><td style="color:var(--muted-foreground);">Never clicked</td></tr>
@@ -141,6 +141,7 @@
               <option value="expired" <%= filters.status === 'expired' ? 'selected' : '' %>>Expired</option>
               <option value="scheduled" <%= filters.status === 'scheduled' ? 'selected' : '' %>>Scheduled</option>
               <option value="max-uses" <%= filters.status === 'max-uses' ? 'selected' : '' %>>Max Uses</option>
+              <option value="quarantined" <%= filters.status === 'quarantined' ? 'selected' : '' %>>Quarantined</option>
               <option value="anonymous" <%= filters.status === 'anonymous' ? 'selected' : '' %>>Anonymous</option>
               <option value="password-protected" <%= filters.status === 'password-protected' ? 'selected' : '' %>>Password Protected</option>
             </select>
@@ -263,37 +264,8 @@
       <div id="itemList" class="url-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
         <% urls.forEach(url => { %>
           <%
-            // Check all possible states
-            const now = new Date();
-            let isBlocked = url.isBlocked;
-            let isNotActive = url.activateAt && new Date(url.activateAt) > now;
-            let isDeactivated = url.deactivateAt && new Date(url.deactivateAt) < now;
-            let isExpired = url.expiresAt && new Date(url.expiresAt) < now;
-            let isMaxedOut = url.maxUses && url.clicks >= url.maxUses;
-
-            // Priority order for status
-            let status = 'active';
-            if (isBlocked) status = 'blocked';
-            else if (isNotActive) status = 'scheduled';
-            else if (isDeactivated || isExpired) status = 'expired';
-            else if (isMaxedOut) status = 'max-uses';
-
-            // Deletion warning: show when ≤30 days remain in the 90-day grace period (registered users only)
-            const graceDays = 90;
-            const warningThreshold = 30;
-            let daysUntilDeletion = null;
-            if (url.creatorId) {
-              let inactiveDate = null;
-              if (isDeactivated) inactiveDate = new Date(url.deactivateAt);
-              else if (isExpired) inactiveDate = new Date(url.expiresAt);
-              if (inactiveDate) {
-                const daysSinceInactive = (now - inactiveDate) / (1000 * 60 * 60 * 24);
-                const remaining = graceDays - daysSinceInactive;
-                if (remaining > 0 && remaining <= warningThreshold) {
-                  daysUntilDeletion = Math.ceil(remaining);
-                }
-              }
-            }
+            // Status from accessService (same as what visitors get)
+            const status = url.accessStatus;
           %>
           <div class="url-item" data-type="link" data-url-id="<%= url.id %>" data-created-at="<%= url.createdAt %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
             <!-- Collapsed View (Always Visible) -->
@@ -327,25 +299,11 @@
 
                 <!-- Status Badge -->
                 <div style="flex-shrink: 0;">
-                  <% if (status === 'blocked') { %>
-                    <span class="badge" style="background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border);">⛔ Blocked</span>
-                  <% } else if (status === 'scheduled') { %>
-                    <span class="badge" style="background-color: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3);">⏰ Scheduled</span>
-                  <% } else if (status === 'expired') { %>
-                    <span class="badge badge-expired">Expired</span>
-                  <% } else if (status === 'max-uses') { %>
-                    <span class="badge badge-max">Max Uses</span>
-                  <% } else { %>
-                    <span class="badge badge-active">Active</span>
-                  <% } %>
+                  <%- include('partials/status-badge', { status }) %>
                 </div>
 
                 <!-- Deletion Warning Badge -->
-                <% if (daysUntilDeletion !== null) { %>
-                  <div style="flex-shrink: 0;" title="This expired link will be automatically deleted in <%= daysUntilDeletion %> day<%= daysUntilDeletion === 1 ? '' : 's' %>">
-                    <span class="badge" style="background-color: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3);">⚠️ Deletes in <%= daysUntilDeletion %>d</span>
-                  </div>
-                <% } %>
+                <%- include('partials/deletion-badge', { days: url.deletesInDays, noun: 'link' }) %>
 
                 <!-- Reports Badge -->
                 <% if (url.reportCount > 0) { %>
@@ -562,15 +520,6 @@
 
         <!-- Bundle Cards -->
         <% bundles.forEach(bundle => { %>
-          <%
-            const now = new Date();
-            let bundleStatus = 'active';
-            if (bundle.isBlocked) bundleStatus = 'blocked';
-            else if (bundle.activateAt && new Date(bundle.activateAt) > now) bundleStatus = 'scheduled';
-            else if ((bundle.expiresAt && new Date(bundle.expiresAt) < now) ||
-                     (bundle.deactivateAt && new Date(bundle.deactivateAt) < now)) bundleStatus = 'expired';
-            else if (bundle.maxUses && bundle.clicks >= bundle.maxUses) bundleStatus = 'max-uses';
-          %>
           <div class="url-item" data-type="bundle" data-url-id="<%= bundle.id %>" data-created-at="<%= bundle.createdAt %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
             <!-- Collapsed View -->
             <div class="url-item-header" style="padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer;" onclick="toggleUrlDetails(this)">
@@ -605,17 +554,7 @@
                 </div>
                 <!-- Status Badge -->
                 <div style="flex-shrink: 0;">
-                  <% if (bundleStatus === 'blocked') { %>
-                    <span class="badge" style="background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border);">⛔ Blocked</span>
-                  <% } else if (bundleStatus === 'scheduled') { %>
-                    <span class="badge" style="background-color: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3);">⏰ Scheduled</span>
-                  <% } else if (bundleStatus === 'expired') { %>
-                    <span class="badge badge-expired">Expired</span>
-                  <% } else if (bundleStatus === 'max-uses') { %>
-                    <span class="badge badge-max">Max Uses</span>
-                  <% } else { %>
-                    <span class="badge badge-active">Active</span>
-                  <% } %>
+                  <%- include('partials/status-badge', { status: bundle.accessStatus }) %>
                 </div>
                 <!-- Password Icon -->
                 <% if (bundle.password) { %>

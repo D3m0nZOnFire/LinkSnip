@@ -3,6 +3,7 @@ const User = require('../models/User');
 const RoleService = require('./roleService');
 const configService = require('./configService');
 const { logSecurity, ACTIONS } = require('./auditService');
+const { contentType } = require('./contentTypes');
 
 /**
  * Report-driven moderation for links and bundles.
@@ -15,16 +16,15 @@ const { logSecurity, ACTIONS } = require('./auditService');
  * never quarantined.
  */
 
-// The two reportable types share the same shape; Phase 2 unifies the tables.
+// Table, target column and path come from the content-type registry; the report
+// tables are still per type until Phase 2 unifies them.
+const reportable = (type, reports, fk, actions) => {
+  const info = contentType(type);
+  return { table: info.table, target: info.destination, prefix: info.publicPrefix, reports, fk, actions };
+};
 const TYPES = {
-  url: {
-    table: 'urls', reports: 'url_reports', fk: 'urlId', target: 'longUrl', prefix: '/s/',
-    actions: { quarantine: ACTIONS.QUARANTINE_URL, block: ACTIONS.BLOCK_URL }
-  },
-  bundle: {
-    table: 'bundles', reports: 'bundle_reports', fk: 'bundleId', target: 'title', prefix: '/b/',
-    actions: { quarantine: ACTIONS.QUARANTINE_BUNDLE, block: ACTIONS.BLOCK_BUNDLE }
-  }
+  url: reportable('url', 'url_reports', 'urlId', { quarantine: ACTIONS.QUARANTINE_URL, block: ACTIONS.BLOCK_URL }),
+  bundle: reportable('bundle', 'bundle_reports', 'bundleId', { quarantine: ACTIONS.QUARANTINE_BUNDLE, block: ACTIONS.BLOCK_BUNDLE })
 };
 
 class ModerationError extends Error {
