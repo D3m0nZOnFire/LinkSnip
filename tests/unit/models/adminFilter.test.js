@@ -129,9 +129,10 @@ describe('Url._buildGroupSQL', () => {
     });
 
     it('@protected and @status:blocked both appear (additive AND)', () => {
-      const { conditions } = Url._buildGroupSQL({ isProtected: true, groupStatus: 'blocked' }, '', NOW);
+      const { conditions, params } = Url._buildGroupSQL({ isProtected: true, groupStatus: 'blocked' }, '', NOW);
       expect(conditions).toContain('urls.password IS NOT NULL');
-      expect(conditions).toContain('urls.isBlocked = 1');
+      expect(conditions.some(c => c.includes('CASE'))).toBe(true);
+      expect(params[params.length - 1]).toBe('blocked');
     });
 
     it('creatorUsernames + isAnonymous are OR-ed into a single condition', () => {
@@ -151,16 +152,23 @@ describe('Url._buildGroupSQL', () => {
     });
   });
 
+  // Status values filter on the shared access status (accessService.statusSql):
+  // one condition "(CASE …) = ?" whose last param is the status. Which rows match
+  // is tested against real rows in urlStatusFilter.test.js.
+  const statusFilter = (group, globalStatus = '') => {
+    const { conditions, params } = Url._buildGroupSQL(group, globalStatus, NOW);
+    return { condition: conditions.find(c => c.includes('CASE')), status: params[params.length - 1], conditions, params };
+  };
+
   describe('status resolution', () => {
     it('groupStatus takes priority over globalStatus', () => {
-      const { conditions } = Url._buildGroupSQL({ groupStatus: 'blocked' }, 'active', NOW);
-      expect(conditions).toContain('urls.isBlocked = 1');
-      expect(conditions.some(c => c.includes('isBlocked = 0'))).toBe(false);
+      const { status, conditions } = statusFilter({ groupStatus: 'blocked' }, 'active');
+      expect(status).toBe('blocked');
+      expect(conditions.filter(c => c.includes('CASE'))).toHaveLength(1);
     });
 
     it('falls back to globalStatus when groupStatus is empty', () => {
-      const { conditions } = Url._buildGroupSQL({}, 'blocked', NOW);
-      expect(conditions).toContain('urls.isBlocked = 1');
+      expect(statusFilter({}, 'blocked').status).toBe('blocked');
     });
 
     it('no status condition added when both are empty', () => {
@@ -169,44 +177,19 @@ describe('Url._buildGroupSQL', () => {
     });
   });
 
-  describe('status: active', () => {
-    it('adds isBlocked = 0 plus time-window conditions', () => {
-      const { conditions, params } = Url._buildGroupSQL({ groupStatus: 'active' }, '', NOW);
-      expect(conditions).toContain('urls.isBlocked = 0');
-      expect(conditions.some(c => c.includes('expiresAt'))).toBe(true);
-      expect(conditions.some(c => c.includes('activateAt'))).toBe(true);
-      expect(conditions.some(c => c.includes('deactivateAt'))).toBe(true);
-      expect(params.filter(p => p === NOW)).toHaveLength(3);
-    });
-  });
-
-  describe('status: expired', () => {
-    it('checks both expiresAt and deactivateAt against now', () => {
-      const { conditions, params } = Url._buildGroupSQL({ groupStatus: 'expired' }, '', NOW);
-      expect(conditions.some(c => c.includes('expiresAt') && c.includes('deactivateAt'))).toBe(true);
-      expect(params.filter(p => p === NOW)).toHaveLength(2);
-    });
-  });
-
-  describe('status: scheduled', () => {
-    it('checks activateAt IS NOT NULL AND activateAt > now', () => {
-      const { conditions, params } = Url._buildGroupSQL({ groupStatus: 'scheduled' }, '', NOW);
-      expect(conditions.some(c => c.includes('activateAt') && c.includes('>'))).toBe(true);
-      expect(params).toContain(NOW);
-    });
-  });
-
-  describe('status: blocked', () => {
-    it('adds isBlocked = 1', () => {
-      const { conditions } = Url._buildGroupSQL({ groupStatus: 'blocked' }, '', NOW);
-      expect(conditions).toContain('urls.isBlocked = 1');
-    });
-  });
-
-  describe('status: max-uses', () => {
-    it('adds clicks >= maxUses condition', () => {
-      const { conditions } = Url._buildGroupSQL({ groupStatus: 'max-uses' }, '', NOW);
-      expect(conditions.some(c => c.includes('maxUses') && c.includes('clicks'))).toBe(true);
+  describe('status values', () => {
+    it.each([
+      ['active', 'active'],
+      ['blocked', 'blocked'],
+      ['expired', 'expired'],
+      ['scheduled', 'scheduled'],
+      ['max-uses', 'limit_reached'],
+      ['quarantined', 'quarantined']
+    ])('%s filters on the access status %s', (value, status) => {
+      const filter = statusFilter({ groupStatus: value });
+      expect(filter.condition).toMatch(/^\(CASE[\s\S]*END\) = \?$/);
+      expect(filter.status).toBe(status);
+      expect(filter.params).toContain(NOW);
     });
   });
 

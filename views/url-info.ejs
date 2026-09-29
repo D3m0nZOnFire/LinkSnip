@@ -140,7 +140,7 @@
     </div>
 
     <!-- Blocked Warning (Admin Blocked) -->
-    <% if (!validation.valid && url.isBlocked) { %>
+    <% if (!validation.live && url.isBlocked) { %>
       <div class="warning-banner">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -193,7 +193,7 @@
       </div>
 
       <!-- Destination URL -->
-      <% if (validation.valid || validation.status === 'expired' || validation.status === 'max_uses') { %>
+      <% if (validation.live || validation.status === 'expired' || validation.status === 'limit_reached') { %>
         <!-- Show destination URL for active, expired, or max uses URLs (NOT blocked) -->
         <div style="margin: 2rem 0; padding: 1rem; background-color: var(--secondary); border: 1px solid var(--border); border-radius: 8px;">
           <h3 style="margin: 0 0 0.75rem 0; font-size: 0.875rem; color: var(--muted-foreground); text-transform: uppercase;">Destination URL</h3>
@@ -262,7 +262,7 @@
 
       <!-- Actions -->
       <div class="actions">
-        <% if (validation.valid) { %>
+        <% if (validation.live) { %>
           <a href="/s/<%= url.slug %>" class="btn btn-large">
             Continue to Destination →
           </a>
@@ -278,7 +278,7 @@
           <button class="btn btn-large" disabled style="background-color: var(--secondary); color: var(--muted-foreground); cursor: not-allowed;">
             Link Expired
           </button>
-        <% } else if (validation.status === 'max_uses') { %>
+        <% } else if (validation.status === 'limit_reached') { %>
           <button class="btn btn-large" disabled style="background-color: var(--secondary); color: var(--muted-foreground); cursor: not-allowed;">
             Maximum Uses Reached
           </button>

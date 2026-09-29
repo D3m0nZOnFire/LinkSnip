@@ -197,7 +197,7 @@ function sendAccessDenied(req, res, type, record, result) {
         message: text,
         activateAt: record.activateAt,
         deactivateAt: record.deactivateAt,
-        slug: record.slug,
+        path: `${info.publicPrefix}${record.slug}`,
         code: 404
       });
     case 'blocked':
@@ -209,4 +209,25 @@ function sendAccessDenied(req, res, type, record, result) {
   }
 }
 
-module.exports = { recordStatus, evaluate, isLive, statusSql, message, checkAccess, sendAccessDenied };
+/**
+ * For pages that come before the full check (the unlock pages): refuse a record
+ * that is unavailable to everyone.
+ * @returns {boolean} true when a response was sent (the caller stops)
+ */
+function sendIfUnavailable(req, res, type, record) {
+  const status = recordStatus(type, record);
+  if (isLive(status)) return false;
+  sendAccessDenied(req, res, type, record, { status, allowed: false });
+  return true;
+}
+
+/** Rows for list pages, each with its accessStatus (the templates show it as a badge). */
+function withAccessStatus(type, rows) {
+  const now = new Date();
+  return rows.map(row => ({ ...row, accessStatus: recordStatus(type, row, now) }));
+}
+
+module.exports = {
+  recordStatus, evaluate, isLive, statusSql, message, checkAccess, sendAccessDenied, sendIfUnavailable,
+  withAccessStatus, toTime
+};

@@ -115,11 +115,29 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 ## Features
 
+### Access checks (every content type)
+- `services/contentTypes.js`: registry of the types sharing the short-link machinery (`url`, `bundle`, `paste`,
+  `file`): table, owner/used/limit columns, quarantine/restricted flags, public/info/unlock paths, session keys.
+  Shared services take a type name and look the rest up here.
+- `services/accessService.js` is the one access check. Statuses in order: `blocked` → `scheduled` → `expired` →
+  `limit_reached` → `quarantined` → `login_required` / `forbidden` (restricted files) → `password_required` → `active`.
+  - Public routes: `checkAccess(req, type, record)` (reads the user, session unlocks and `?confirmed=1`), then
+    `sendAccessDenied(req, res, type, record, result)`: blocked/forbidden 403, scheduled 404 (`views/scheduled.ejs`),
+    expired/limit_reached 410, quarantined → `views/quarantine.ejs`, password → the type's unlock page,
+    login_required → `/login?next=…`. Unlock pages call `sendIfUnavailable()` first.
+  - `recordStatus(type, record)` is the record-only part (first five statuses); info pages and the bio page use it with
+    `isLive(status)`. `statusSql(type)` computes the same in SQL for list filters; a test keeps the two identical.
+  - List pages attach `accessStatus` with `withAccessStatus(type, rows)`; templates show it via
+    `partials/status-badge.ejs`. Never recompute a status in a template.
+  - Dates without a timezone are UTC (as SQLite reads them); SQL compares with `julianday()`.
+
 ### Short links
 - `POST /create` (form), `GET /s/:slug` redirect with analytics, `/info/:slug` public preview, `/unlock/:slug`.
-- `Url.isValid()` status codes: `blocked`, `scheduled`, `expired`, `max_uses`, `active`.
+- Admin filter (`?status=`, `@status:`): active, blocked, expired, scheduled, max-uses (= `limit_reached`),
+  quarantined, plus anonymous and password-protected.
 - Anonymous links always expire within `anonymous.urlExpirationDays`; expired anonymous content is deleted nightly
-  (4:00), registered users' after `retention.expiredGraceDays`.
+  (4:00), registered users' after `retention.expiredGraceDays` (the "Deletes in Nd" badge on links and pastes:
+  `services/retentionService.js` `deletesInDays`, shown by `partials/deletion-badge.ejs`).
 - URL prefill: `/https://example.com` prefills the creation form.
 
 ### Pastes
@@ -138,6 +156,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - All `/f/*` responses send `X-Content-Type-Options: nosniff`; downloads also `Content-Security-Policy: sandbox`
   and are always attachments. Any file type is allowed.
 - Admin → Files can block/unblock (blocked → 403).
+- `sharingMode: 'restricted'` + `allowedUsers`: only the owner, listed users and admins (the `login_required` /
+  `forbidden` access statuses).
 
 ### Bundles and bio pages
 - Bundles: `/b/:slug` launcher, `/bt/:itemId` per-item tracking redirect, `/bundle-analytics/:id`.
@@ -155,8 +175,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - `services/moderationService.js`: after a report, `afterReport(type, id, req)` quarantines a link or bundle once
   its pending reports reach `moderation.reportThreshold` (0 = off). Owners who are admins or whose role has
   `skipAutoModeration` are exempt.
-- Quarantined items show visitors `views/quarantine.ejs` first (`services/quarantineGate.js`); "Continue anyway"
-  (`?confirmed=1`) is remembered in `req.session.quarantineAck`.
+- Quarantined items show visitors `views/quarantine.ejs` first (the `quarantined` access status); "Continue anyway"
+  (`?confirmed=1`) is remembered in `req.session.quarantineAck`. The warning comes before the password prompt.
 - Admin → Reports lists quarantined items on top. `POST /api/admin/moderation/:type/:id/block` (hard block, reports →
   `blocked`) or `/clear` (reports → `dismissed`, warning lifted).
 
@@ -221,5 +241,7 @@ share links · 5:30 expired files.
 9. Tests stub `res.render`, so a template that crashes at render time only shows up in a real run. Smoke-test pages
    you change.
 10. Use Node 22: better-sqlite3 is a native module and may not build on newer Node versions.
+11. Don't check blocked/expiry/limits by hand, in JS, SQL or a template: use `accessService` (`checkAccess`,
+    `recordStatus`, `statusSql`, `withAccessStatus`). Owners and admins get no bypass on public routes.
 
 - Always kill what you are running. I want to run the service on my own

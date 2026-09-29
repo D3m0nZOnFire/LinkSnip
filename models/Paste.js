@@ -167,28 +167,6 @@ class Paste {
     throw new Error('Unable to generate unique paste slug after multiple attempts');
   }
 
-  static isValid(paste) {
-    const now = new Date();
-
-    if (paste.isBlocked) {
-      return { valid: false, reason: 'This paste has been blocked due to reports of malicious content.', status: 'blocked' };
-    }
-    if (paste.activateAt && new Date(paste.activateAt) > now) {
-      return { valid: false, reason: 'This paste is not yet active.', status: 'scheduled' };
-    }
-    if (paste.deactivateAt && new Date(paste.deactivateAt) < now) {
-      return { valid: false, reason: 'This paste has expired.', status: 'expired' };
-    }
-    if (paste.expiresAt && new Date(paste.expiresAt) < now) {
-      return { valid: false, reason: 'This paste has expired.', status: 'expired' };
-    }
-    if (paste.maxViews !== null && paste.views >= paste.maxViews) {
-      return { valid: false, reason: 'This paste has reached its maximum number of views.', status: 'max_views' };
-    }
-
-    return { valid: true, reason: null, status: 'active' };
-  }
-
   static block(id) {
     const result = db.prepare('UPDATE pastes SET isBlocked = 1 WHERE id = ?').run(id);
     return result.changes > 0;

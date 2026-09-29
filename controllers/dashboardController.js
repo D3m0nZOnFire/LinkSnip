@@ -5,6 +5,8 @@ const File = require('../models/File');
 const Paste = require('../models/Paste');
 const RoleService = require('../services/roleService');
 const configService = require('../services/configService');
+const { withAccessStatus } = require('../services/accessService');
+const { deletesInDays } = require('../services/retentionService');
 
 class DashboardController {
   /**
@@ -26,22 +28,29 @@ class DashboardController {
     const urls = Url.findByCreatorIdWithFilters(req.session.userId, filterOptions);
     const totalUrls = Url.countByCreatorIdWithFilters(req.session.userId, { search });
 
-    // Number of active analytics share links per URL
-    const urlsWithShares = urls.map(url => ({ ...url, shareCount: AnalyticsShare.countActiveByUrlId(url.id) }));
+    // Number of active analytics share links per URL, and the deletion countdown
+    const urlsWithShares = withAccessStatus('url', urls).map(url => ({
+      ...url,
+      shareCount: AnalyticsShare.countActiveByUrlId(url.id),
+      deletesInDays: deletesInDays('url', url)
+    }));
 
     // Switched-off features (settings.json → features.*) show no rows
     const features = configService.getSettings().features;
 
     // Get all bundles for the user (no pagination — typically few bundles)
-    const bundles = features.bundles ? Bundle.findByCreatorId(req.session.userId) : [];
+    const bundles = features.bundles ? withAccessStatus('bundle', Bundle.findByCreatorId(req.session.userId)) : [];
 
     // Files for unified list (only for roles that can upload)
     const canUploadFiles = features.files && RoleService.can(req.user, 'uploadFiles');
-    const files = canUploadFiles ? File.findByUserId(req.session.userId) : [];
+    const files = canUploadFiles ? withAccessStatus('file', File.findByUserId(req.session.userId)) : [];
     const fileCount = files.length;
 
     // Pastes for unified list (available to every logged-in user)
-    const pastes = features.pastes ? Paste.findByUserId(req.session.userId) : [];
+    const pastes = features.pastes
+      ? withAccessStatus('paste', Paste.findByUserId(req.session.userId))
+        .map(paste => ({ ...paste, deletesInDays: deletesInDays('paste', paste) }))
+      : [];
     const pasteCount = pastes.length;
 
     // Calculate pagination info
@@ -64,7 +73,6 @@ class DashboardController {
       files,
       fileCount,
       canUploadFiles,
-      graceDays: configService.get('retention.expiredGraceDays'),
       pastes,
       pasteCount
     });
@@ -157,11 +165,12 @@ class DashboardController {
 
     // Get URLs and total count with filters
     const filterOptions = { limit, offset, filterGroups, status: effectiveGlobalStatus, hasReports, sort, dateFrom, dateTo };
-    const urls = Url.findAllWithFilters(filterOptions);
+    const urls = withAccessStatus('url', Url.findAllWithFilters(filterOptions))
+      .map(url => ({ ...url, deletesInDays: deletesInDays('url', url) }));
     const totalUrls = Url.countAllWithFilters({ filterGroups, status: effectiveGlobalStatus, hasReports, dateFrom, dateTo });
 
     // Get all bundles system-wide (no separate pagination — same pattern as user dashboard)
-    const bundles = Bundle.findAll();
+    const bundles = withAccessStatus('bundle', Bundle.findAll());
     const totalBundles = Bundle.countAll();
 
     // Calculate pagination info

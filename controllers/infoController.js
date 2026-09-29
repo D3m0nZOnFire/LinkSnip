@@ -1,5 +1,6 @@
 const Url = require('../models/Url');
 const Report = require('../models/Report');
+const { recordStatus, isLive, message: accessMessage } = require('../services/accessService');
 
 class InfoController {
   /**
@@ -20,14 +21,15 @@ class InfoController {
         });
       }
 
-      // Check if URL is valid (not expired, not maxed out, not blocked, scheduled)
-      const validation = Url.isValid(url);
+      // Status from the link itself (the password is shown separately on the page)
+      const status = recordStatus('url', url);
+      const validation = { status, live: isLive(status), message: accessMessage('url', status) };
 
-      // Block access to info page for non-activated or deactivated links
-      if (validation.status === 'scheduled') {
+      // Block access to info page for links that aren't active yet
+      if (status === 'scheduled') {
         return res.status(404).render('error', {
           title: 'Link Not Yet Active',
-          message: validation.reason,
+          message: validation.message,
           code: 404
         });
       }

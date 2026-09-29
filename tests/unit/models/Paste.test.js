@@ -203,39 +203,6 @@ describe('Paste Model', () => {
     });
   });
 
-  // ─── isValid ───────────────────────────────────────────────
-  describe('isValid', () => {
-    it('active by default', () => {
-      const p = createTestPaste(null, { slug: 'iv0' });
-      expect(Paste.isValid(p)).toMatchObject({ valid: true, status: 'active' });
-    });
-
-    it('blocked', () => {
-      const p = createTestPaste(null, { slug: 'iv1', isBlocked: 1 });
-      expect(Paste.isValid(p)).toMatchObject({ valid: false, status: 'blocked' });
-    });
-
-    it('scheduled (activateAt in the future)', () => {
-      const p = createTestPaste(null, { slug: 'iv2', activateAt: future() });
-      expect(Paste.isValid(p)).toMatchObject({ valid: false, status: 'scheduled' });
-    });
-
-    it('expired (expiresAt in the past)', () => {
-      const p = createTestPaste(null, { slug: 'iv3', expiresAt: past() });
-      expect(Paste.isValid(p)).toMatchObject({ valid: false, status: 'expired' });
-    });
-
-    it('expired (deactivateAt in the past)', () => {
-      const p = createTestPaste(null, { slug: 'iv4', deactivateAt: past() });
-      expect(Paste.isValid(p)).toMatchObject({ valid: false, status: 'expired' });
-    });
-
-    it('max_views', () => {
-      const p = createTestPaste(null, { slug: 'iv5', maxViews: 3, views: 3 });
-      expect(Paste.isValid(p)).toMatchObject({ valid: false, status: 'max_views' });
-    });
-  });
-
   // ─── block / unblock ───────────────────────────────────────
   describe('block / unblock', () => {
     it('toggles the isBlocked flag', () => {

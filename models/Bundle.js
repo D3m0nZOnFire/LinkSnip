@@ -191,45 +191,6 @@ class Bundle {
   }
 
   /**
-   * Validate bundle status (mirrors Url.isValid logic)
-   * @returns {{ valid: boolean, reason: string|null, status: string }}
-   */
-  static isValid(bundle) {
-    const now = new Date();
-
-    if (bundle.isBlocked) {
-      return { valid: false, reason: 'This bundle has been blocked.', status: 'blocked' };
-    }
-
-    if (bundle.activateAt) {
-      const activationDate = new Date(bundle.activateAt);
-      if (activationDate > now) {
-        return { valid: false, reason: 'This bundle is not yet active.', status: 'scheduled' };
-      }
-    }
-
-    if (bundle.deactivateAt) {
-      const deactivationDate = new Date(bundle.deactivateAt);
-      if (deactivationDate < now) {
-        return { valid: false, reason: 'This bundle has expired.', status: 'expired' };
-      }
-    }
-
-    if (bundle.expiresAt) {
-      const expirationDate = new Date(bundle.expiresAt);
-      if (expirationDate < now) {
-        return { valid: false, reason: 'This bundle has expired.', status: 'expired' };
-      }
-    }
-
-    if (bundle.maxUses !== null && bundle.clicks >= bundle.maxUses) {
-      return { valid: false, reason: 'This bundle has reached its maximum number of uses.', status: 'max_uses' };
-    }
-
-    return { valid: true, reason: null, status: 'active' };
-  }
-
-  /**
    * Find all bundles system-wide with creator username and item count (admin use)
    */
   static findAll(limit = null, offset = 0) {

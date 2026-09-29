@@ -2,6 +2,7 @@ const BioPage = require('../models/BioPage');
 const RoleService = require('../services/roleService');
 const User = require('../models/User');
 const Url = require('../models/Url');
+const { recordStatus, isLive } = require('../services/accessService');
 
 class BioPageController {
   /**
@@ -34,12 +35,8 @@ class BioPageController {
         });
       }
 
-      // Get URLs for bio page (only valid, active URLs)
-      const allUrls = BioPage.getUrls(bioPage.id);
-      const urls = allUrls.filter(url => {
-        const validation = Url.isValid(url);
-        return validation.valid;
-      });
+      // Only links that are available (password-protected and reported ones still show)
+      const urls = BioPage.getUrls(bioPage.id).filter(url => isLive(recordStatus('url', url)));
 
       res.render('bio-page', {
         bioPage,

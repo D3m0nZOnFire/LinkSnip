@@ -47,11 +47,6 @@
         <tbody>
           <% pastes.forEach(function(paste) { %>
           <%
-            const now = new Date();
-            let status = 'active';
-            if (paste.isBlocked) status = 'blocked';
-            else if (paste.expiresAt && new Date(paste.expiresAt) < now) status = 'expired';
-            else if (paste.deactivateAt && new Date(paste.deactivateAt) < now) status = 'expired';
             const title = (paste.title && paste.title.trim()) ? paste.title : '(untitled)';
           %>
           <tr data-paste-id="<%= paste.id %>">
@@ -76,9 +71,8 @@
               <%= new Date(paste.createdAt).toLocaleDateString('en-GB') %>
             </td>
             <td>
-              <span class="status-badge status-<%= status %>" data-status-cell>
-                <%= status.charAt(0).toUpperCase() + status.slice(1) %>
-              </span>
+              <%- include('partials/status-badge', { status: paste.accessStatus }) %>
+              <%- include('partials/deletion-badge', { days: paste.deletesInDays, noun: 'paste' }) %>
             </td>
             <td>
               <div style="display:flex;gap:0.375rem;justify-content:flex-end;">

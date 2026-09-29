@@ -7,6 +7,10 @@ const SlugGenerator = require('../services/slugGenerator');
 const QRCodeService = require('../services/qrcodeService');
 const AnalyticsService = require('../services/analyticsService');
 const { logAdminAction, logAccountChange, ACTIONS } = require('../services/auditService');
+const {
+  checkAccess, sendAccessDenied, sendIfUnavailable, recordStatus, isLive, withAccessStatus, message: accessMessage
+} = require('../services/accessService');
+const { deletesInDays } = require('../services/retentionService');
 
 const configService = require('../services/configService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
@@ -266,23 +270,6 @@ exports.bulkDelete = (req, res) => {
   return res.json({ success: true, deleted, errors });
 };
 
-// ─── Access control helper ────────────────────────────────────────────────────
-
-function checkAccess(req, paste) {
-  const { valid, reason, status } = Paste.isValid(paste);
-  if (!valid) return { allowed: false, status, reason };
-
-  if (paste.password) {
-    const unlocked = req.session.unlockedPastes || [];
-    const temp = req.session.tempUnlockPaste;
-    const ok = unlocked.includes(paste.id) || temp === paste.id;
-    if (req.session.tempUnlockPaste === paste.id) delete req.session.tempUnlockPaste;
-    if (!ok) return { allowed: false, redirect: `/unlock-paste/${paste.slug}` };
-  }
-
-  return { allowed: true };
-}
-
 // ─── Public ───────────────────────────────────────────────────────────────────
 
 /**
@@ -294,20 +281,8 @@ exports.view = (req, res) => {
     return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
   }
 
-  const access = checkAccess(req, paste);
-  if (!access.allowed) {
-    if (access.redirect) return res.redirect(access.redirect);
-    if (access.status === 'scheduled') {
-      return res.status(410).render('url-scheduled', {
-        title: 'Not Yet Active',
-        message: access.reason,
-        activateAt: paste.activateAt,
-        deactivateAt: paste.deactivateAt,
-        slug: paste.slug
-      });
-    }
-    return res.status(410).render('error', { title: 'Paste Unavailable', message: access.reason, code: 410 });
-  }
+  const access = checkAccess(req, 'paste', paste);
+  if (!access.allowed) return sendAccessDenied(req, res, 'paste', paste, access);
 
   Paste.incrementViews(paste.id);
 
@@ -380,13 +355,14 @@ exports.showInfoPage = (req, res) => {
     return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
   }
 
-  const validation = Paste.isValid(paste);
+  const status = recordStatus('paste', paste);
+  const validation = { status, live: isLive(status), message: accessMessage('paste', status) };
 
   // Hide the info page for not-yet-active pastes, same as the URL info page
-  if (validation.status === 'scheduled') {
+  if (status === 'scheduled') {
     return res.status(404).render('error', {
       title: 'Paste Not Yet Active',
-      message: validation.reason,
+      message: validation.message,
       code: 404
     });
   }
@@ -395,7 +371,7 @@ exports.showInfoPage = (req, res) => {
   const ageInDays = Math.floor((Date.now() - createdDate) / (1000 * 60 * 60 * 24));
 
   // Only preview content for a readable paste that is not password protected
-  const showPreview = validation.valid && !paste.password;
+  const showPreview = validation.live && !paste.password;
   const previewLines = showPreview ? paste.content.split('\n').slice(0, 12) : [];
   const previewTruncated = showPreview && paste.content.split('\n').length > 12;
 
@@ -422,11 +398,8 @@ exports.raw = (req, res) => {
     return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
   }
 
-  const access = checkAccess(req, paste);
-  if (!access.allowed) {
-    if (access.redirect) return res.redirect(access.redirect);
-    return res.status(410).render('error', { title: 'Paste Unavailable', message: access.reason, code: 410 });
-  }
+  const access = checkAccess(req, 'paste', paste);
+  if (!access.allowed) return sendAccessDenied(req, res, 'paste', paste, access);
 
   Paste.incrementViews(paste.id);
 
@@ -448,6 +421,7 @@ exports.showUnlockPastePage = (req, res) => {
     return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
   }
   if (!paste.password) return res.redirect(`/p/${paste.slug}`);
+  if (sendIfUnavailable(req, res, 'paste', paste)) return;
 
   return res.render('unlock-paste', {
     user: req.user || null,
@@ -466,6 +440,7 @@ exports.unlockPaste = async (req, res) => {
     return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
   }
   if (!paste.password) return res.redirect(`/p/${paste.slug}`);
+  if (sendIfUnavailable(req, res, 'paste', paste)) return;
 
   const { password, remember } = req.body;
 
@@ -511,7 +486,7 @@ exports.adminList = (req, res) => {
 
   return res.render('admin-pastes', {
     user: req.user,
-    pastes,
+    pastes: withAccessStatus('paste', pastes).map(p => ({ ...p, deletesInDays: deletesInDays('paste', p) })),
     search,
     pagination: { page, totalPages, total, limit }
   });

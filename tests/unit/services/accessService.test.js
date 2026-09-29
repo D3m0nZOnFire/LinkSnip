@@ -56,6 +56,8 @@ const RECORD_CASES = [
   ['blocked', { isBlocked: 1 }, 'blocked'],
   ['blocked and expired', { isBlocked: 1, expiresAt: PAST }, 'blocked'],
   ['blocked and scheduled', { isBlocked: 1, activateAt: FUTURE }, 'blocked'],
+  ['blocked and limit reached', { isBlocked: 1, used: 5, limit: 5 }, 'blocked'],
+  ['scheduled and limit reached', { activateAt: FUTURE, used: 5, limit: 5 }, 'scheduled'],
   ['activateAt in the future', { activateAt: FUTURE }, 'scheduled'],
   ['activateAt exactly now', { activateAt: NOW.toISOString() }, 'active'],
   ['activateAt in the past', { activateAt: PAST }, 'active'],
