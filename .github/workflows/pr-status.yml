@@ -15,6 +15,10 @@ on:
     workflows: [CI]
     types: [completed]
 
+# One run at a time per commit: CI for a branch push and for its PR finish together.
+concurrency:
+  group: pr-status-${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha }}
+
 permissions:
   actions: read
   issues: write

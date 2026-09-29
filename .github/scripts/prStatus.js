@@ -26,12 +26,20 @@ function desiredLabel({ draft, ciConclusion }) {
   return null;
 }
 
+const alreadyExists = (error) => error.status === 422 &&
+  ((error.response && error.response.data && error.response.data.errors) || []).some(e => e.code === 'already_exists');
+
 async function ensureLabel(github, owner, repo, name) {
   try {
     await github.rest.issues.getLabel({ owner, repo, name });
   } catch (error) {
     if (error.status !== 404) throw error;
-    await github.rest.issues.createLabel({ owner, repo, name, ...LABELS[name] });
+    try {
+      await github.rest.issues.createLabel({ owner, repo, name, ...LABELS[name] });
+    } catch (createError) {
+      // Two runs (e.g. CI for the push and for the PR) can race to create the same label.
+      if (!alreadyExists(createError)) throw createError;
+    }
   }
 }
 
