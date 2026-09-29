@@ -1,0 +1,63 @@
+name: Deploy
+
+# Deploys a release to the maintainer's server once its Docker image is published,
+# or on demand (Actions → Deploy → Run workflow). The server side is a forced-command
+# SSH key that can only run the deploy script with a vX.Y.Z tag.
+# Needs the VPS_DEPLOY_HOST, VPS_DEPLOY_USER, VPS_DEPLOY_KEY and VPS_DEPLOY_KNOWN_HOSTS secrets;
+# forks without them skip this workflow.
+
+on:
+  workflow_run:
+    workflows: [Publish Docker image]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to deploy (vX.Y.Z)
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.repository == 'D3m0nZOnFire/LinkSnip' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Pick the release tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          RUN_TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          TAG="${INPUT_TAG:-$RUN_TAG}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Not a release tag: $TAG"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy over SSH
+        env:
+          HOST: ${{ secrets.VPS_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.VPS_DEPLOY_USER }}
+          KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_DEPLOY_KNOWN_HOSTS }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$DEPLOY_USER" ]; then
+            echo "No deploy secrets configured; skipping."
+            exit 0
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes "$DEPLOY_USER@$HOST" "$TAG"

@@ -7,6 +7,8 @@
 A self-hosted URL shortener that also shares text, files and groups of links. It runs as one Docker container with a
 SQLite database, and everything it stores lives in a single `data/` folder.
 
+![Dashboard](docs/screenshots/dashboard.png)
+
 ## Features
 
 - **Short links** with custom slugs, expiry, click limits, passwords and activation/deactivation times
@@ -21,6 +23,15 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 - **Moderation**: visitors can report links, and reported links show a warning page until an admin blocks or clears them
 - **Admin panel**: users, links, files, pastes, reports, settings and a full audit log
 - **Operations**: nightly online backups and cleanup of expired content
+
+### Screenshots
+
+| | |
+|---|---|
+| ![Creating a short link](docs/screenshots/home.png) | ![Analytics for a link](docs/screenshots/analytics.png) |
+| **Create** links, pastes, bundles and files | **Analytics** per link, shareable read-only |
+| ![A text paste](docs/screenshots/paste.png) | ![Roles in Admin → Settings](docs/screenshots/roles.png) |
+| **Pastes** with line numbers, raw view and editor | **Roles**: permissions and limits per kind of account |
 
 ## Quick start (Docker)
 
