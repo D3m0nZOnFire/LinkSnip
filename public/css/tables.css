@@ -1,0 +1,245 @@
+/* ========================================
+   Table Styles
+   ======================================== */
+
+.table-container {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background-color: var(--table-header-bg);
+}
+
+th {
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+th.text-right {
+  text-align: right;
+}
+
+th.text-center {
+  text-align: center;
+}
+
+td {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+td.text-right {
+  text-align: right;
+}
+
+td.text-center {
+  text-align: center;
+}
+
+tbody tr {
+  transition: background-color var(--transition-base);
+}
+
+tbody tr:hover {
+  background-color: var(--table-row-hover);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Table Links */
+.url-link {
+  color: var(--primary);
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity var(--transition-base);
+}
+
+.url-link:hover {
+  opacity: 0.8;
+}
+
+.long-url {
+  max-width: 20rem;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--transition-base);
+}
+
+.long-url:hover {
+  color: var(--foreground);
+}
+
+.creator {
+  font-weight: 500;
+}
+
+/* Table Actions */
+.actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+}
+
+/* Responsive Tables */
+@media (max-width: 768px) {
+  table {
+    font-size: 0.875rem;
+  }
+
+  th, td {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .long-url {
+    max-width: 10rem;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+}
+
+/* User Avatar Icon */
+.user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: var(--status-active-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-avatar svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--primary);
+}
+
+/* User Info Cell */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.user-name {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.user-email {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color var(--transition-base);
+}
+
+.user-email:hover {
+  color: var(--primary);
+}
+
+/* Simple Icon Buttons */
+.icon-btn-simple {
+  padding: 0.5rem;
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  color: var(--muted-foreground);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn-simple:hover {
+  background-color: var(--status-active-bg);
+  color: var(--primary);
+}
+
+.icon-btn-simple.danger:hover {
+  background-color: var(--status-error-bg);
+  color: var(--destructive);
+}
+
+.icon-btn-simple svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Last Active Status */
+.last-active {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.last-active.recent {
+  color: var(--primary);
+}
+
+/* Simple Icon Buttons */
+.icon-btn-simple {
+  padding: 0.5rem;
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  color: var(--muted-foreground);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn-simple:hover {
+  background-color: var(--status-active-bg);
+  color: var(--primary);
+}
+
+.icon-btn-simple.danger:hover {
+  background-color: var(--status-error-bg);
+  color: var(--destructive);
+}
+
+.icon-btn-simple.warning:hover {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.icon-btn-simple svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}

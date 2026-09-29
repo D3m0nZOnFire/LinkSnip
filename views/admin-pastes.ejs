@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Pastes - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'admin-pastes' }) %>
+
+  <main class="main-content-wide">
+    <div class="header-section">
+      <div>
+        <h2>Pastes</h2>
+        <p><span class="count"><%= pagination.total %></span> paste<%= pagination.total !== 1 ? 's' : '' %> across all users</p>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <form method="GET" action="/admin/pastes" style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+      <input type="text" name="search" value="<%= search %>" placeholder="Search by title…" class="form-input" style="flex:1;max-width:320px;">
+      <button type="submit" class="btn btn-primary">Search</button>
+      <% if (search) { %><a href="/admin/pastes" class="btn" style="background:var(--secondary);color:var(--foreground);">Clear</a><% } %>
+    </form>
+
+    <% if (pastes.length === 0) { %>
+      <div style="text-align:center;padding:3rem;color:var(--muted-foreground);">No pastes found.</div>
+    <% } else { %>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Paste</th>
+            <th>Owner</th>
+            <th>Size</th>
+            <th>Views</th>
+            <th>Created</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% pastes.forEach(function(paste) { %>
+          <%
+            const now = new Date();
+            let status = 'active';
+            if (paste.isBlocked) status = 'blocked';
+            else if (paste.expiresAt && new Date(paste.expiresAt) < now) status = 'expired';
+            else if (paste.deactivateAt && new Date(paste.deactivateAt) < now) status = 'expired';
+            const title = (paste.title && paste.title.trim()) ? paste.title : '(untitled)';
+          %>
+          <tr data-paste-id="<%= paste.id %>">
+            <td>
+              <div style="display:flex;align-items:center;gap:0.5rem;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;background:var(--primary);color:var(--primary-foreground);padding:0.2rem 0.4rem;border-radius:4px;flex-shrink:0;">
+                  <%= paste.language ? paste.language.substring(0, 6) : 'txt' %>
+                </span>
+                <div>
+                  <div style="font-weight:500;word-break:break-all;"><%= title %></div>
+                  <div style="font-size:0.75rem;color:var(--muted-foreground);">/p/<%= paste.slug %></div>
+                </div>
+              </div>
+            </td>
+            <td><%= paste.ownerUsername || '—' %></td>
+            <td><%= paste.content.length %> chars</td>
+            <td>
+              <%= paste.views %>
+              <% if (paste.maxViews) { %>/<%= paste.maxViews %><% } %>
+            </td>
+            <td style="font-size:0.85rem;color:var(--muted-foreground);">
+              <%= new Date(paste.createdAt).toLocaleDateString('en-GB') %>
+            </td>
+            <td>
+              <span class="status-badge status-<%= status %>" data-status-cell>
+                <%= status.charAt(0).toUpperCase() + status.slice(1) %>
+              </span>
+            </td>
+            <td>
+              <div style="display:flex;gap:0.375rem;justify-content:flex-end;">
+                <a href="/p/<%= paste.slug %>" target="_blank" class="icon-btn" title="Preview">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </a>
+                <button type="button" class="icon-btn" data-block-btn title="<%= paste.isBlocked ? 'Unblock' : 'Block' %>"
+                        onclick="toggleBlock(<%= paste.id %>, <%= paste.isBlocked ? 'true' : 'false' %>)">
+                  <% if (paste.isBlocked) { %>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+                  <% } else { %>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.9" y1="4.9" x2="19.1" y2="19.1"/></svg>
+                  <% } %>
+                </button>
+                <button type="button" class="icon-btn icon-btn-danger" title="Delete" onclick="deletePaste(<%= paste.id %>, '<%= title.replace(/'/g, "\\'") %>')">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <% if (pagination.totalPages > 1) { %>
+    <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;margin-top:1.5rem;">
+      <% if (pagination.page > 1) { %>
+        <a href="/admin/pastes?page=<%= pagination.page - 1 %>&search=<%= encodeURIComponent(search) %>" class="btn" style="background:var(--secondary);color:var(--foreground);">Previous</a>
+      <% } %>
+      <span style="color:var(--muted-foreground);font-size:0.875rem;">Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+      <% if (pagination.page < pagination.totalPages) { %>
+        <a href="/admin/pastes?page=<%= pagination.page + 1 %>&search=<%= encodeURIComponent(search) %>" class="btn" style="background:var(--secondary);color:var(--foreground);">Next</a>
+      <% } %>
+    </div>
+    <% } %>
+    <% } %>
+  </main>
+
+  <script>
+    async function deletePaste(id, name) {
+      if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+      try {
+        const res = await fetch(`/api/admin/pastes/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          document.querySelector(`tr[data-paste-id="${id}"]`).remove();
+        } else {
+          alert('Delete failed: ' + (data.error || 'Unknown error'));
+        }
+      } catch (e) {
+        alert('Request failed');
+      }
+    }
+
+    async function toggleBlock(id, isBlocked) {
+      const action = isBlocked ? 'unblock' : 'block';
+      try {
+        const res = await fetch(`/api/admin/pastes/${id}/${action}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          location.reload();
+        } else {
+          alert((data.error || 'Action failed'));
+        }
+      } catch (e) {
+        alert('Request failed');
+      }
+    }
+  </script>
+  <%- include('partials/footer') %>
+</body>
+</html>

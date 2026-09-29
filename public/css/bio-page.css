@@ -1,0 +1,234 @@
+/* Bio Page Styles */
+
+.bio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.bio-home-link {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.btn-small {
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  border: none;
+  border-radius: 8px;
+  color: var(--primary-foreground);
+  text-decoration: none;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-small:hover {
+  opacity: 0.9;
+}
+
+.bio-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.bio-profile {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.bio-display-name {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--foreground);
+}
+
+.bio-username {
+  font-size: 1rem;
+  color: var(--muted-foreground);
+  margin: 0 0 1.5rem 0;
+}
+
+.bio-text {
+  font-size: 1rem;
+  color: var(--foreground);
+  line-height: 1.6;
+  margin: 0 0 1.5rem 0;
+  white-space: pre-wrap;
+}
+
+.bio-social-links {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+.bio-social-link {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--foreground);
+  text-decoration: none;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.bio-social-link:hover {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+.bio-links {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bio-link-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--foreground);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.bio-link-card:hover {
+  background: var(--secondary);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.bio-link-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.bio-link-title {
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.bio-link-tags {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.bio-tag {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.bio-link-arrow {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+  margin-left: 1rem;
+}
+
+.bio-empty {
+  text-align: center;
+  color: var(--muted-foreground);
+  padding: 2rem;
+}
+
+.bio-footer {
+  text-align: center;
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.bio-footer a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+/* Theme Variations */
+
+.bio-theme-light {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #f9fafb;
+  --secondary: #f3f4f6;
+  --border: #e5e7eb;
+  --primary: #10b981;
+  --primary-foreground: #ffffff;
+  --muted-foreground: #6b7280;
+}
+
+.bio-theme-dark {
+  /* Uses default dark theme variables */
+}
+
+.bio-theme-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.bio-theme-gradient .bio-header {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.bio-theme-gradient .bio-link-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.bio-theme-gradient .bio-link-card:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.bio-theme-gradient .bio-social-link {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.bio-theme-gradient .bio-social-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.bio-theme-gradient .bio-footer {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .bio-container {
+    padding: 1rem 0.75rem;
+  }
+
+  .bio-display-name {
+    font-size: 1.5rem;
+  }
+
+  .bio-header {
+    padding: 1rem;
+  }
+}

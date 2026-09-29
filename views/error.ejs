@@ -1,0 +1,38 @@
+<%
+  // Callers pass { title, message, code }; tolerate { statusCode } and { error: { status } } too.
+  const code = locals.code || locals.statusCode || (locals.error && locals.error.status) || 500;
+  const DEFAULT_TITLES = { 403: 'Access Denied', 404: 'Not Found', 410: 'Gone', 429: 'Too Many Requests' };
+  const title = locals.title || DEFAULT_TITLES[code] || 'Something Went Wrong';
+  const message = locals.message || '';
+%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+  <div class="error-container">
+    <div class="error-box">
+      <!-- Error Code -->
+      <div class="error-code">
+        <h1 style="color: <%= code === 404 || code === 410 ? 'var(--primary)' : 'var(--destructive)' %>">
+          <%= code %>
+        </h1>
+      </div>
+
+      <!-- Error Message -->
+      <h2><%= title %></h2>
+      <p><%= message %></p>
+
+      <!-- Action Button -->
+      <a href="/" class="btn" style="color: var(--primary-foreground);">Go Back Home</a>
+    </div>
+  </div>
+  <%- include('partials/footer') %>
+</body>
+</html>

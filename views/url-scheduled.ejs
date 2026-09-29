@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+  <div class="error-container">
+    <div class="error-box">
+      <!-- Status Icon -->
+      <div class="error-code">
+        <h1 style="color: var(--primary)">⏳</h1>
+      </div>
+
+      <!-- Status Message -->
+      <h2><%= title %></h2>
+      <p><%= message %></p>
+
+      <!-- Scheduling Information -->
+      <% if (activateAt || deactivateAt) { %>
+        <div style="margin: 2rem 0; padding: 1rem; background: var(--info-bg); border-radius: 0.5rem; text-align: left;">
+          <% if (activateAt) { %>
+            <p style="margin: 0; color: var(--foreground);">
+              <strong>Activation Time:</strong><br>
+              <%= new Date(activateAt).toLocaleString('en-GB', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+                timeZoneName: 'short'
+              }) %>
+            </p>
+          <% } %>
+        </div>
+      <% } %>
+
+      <!-- Short URL Display -->
+      <% if (slug) { %>
+        <div style="margin: 1.5rem 0; padding: 0.75rem; background: var(--muted); border-radius: 0.5rem;">
+          <p style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">Short URL:</p>
+          <p style="margin: 0.25rem 0 0 0; font-family: monospace; font-weight: bold; color: var(--foreground); word-break: break-all;">
+            /s/<%= slug %>
+          </p>
+        </div>
+      <% } %>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+        <a href="/" class="btn" style="color: var(--primary-foreground);">Go Back Home</a>
+        <% if (slug) { %>
+          <a href="/info/<%= slug %>" class="btn btn-secondary">View Info</a>
+        <% } %>
+      </div>
+    </div>
+  </div>
+  <%- include('partials/footer') %>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{
+  "name": "linksnip",
+  "version": "1.0.0",
+  "description": "Self-hosted URL shortener with pastes, file sharing, link bundles, analytics and roles. One container and a SQLite file.",
+  "main": "app.js",
+  "private": true,
+  "license": "MIT",
+  "author": "D3m0nZOnFire (https://github.com/D3m0nZOnFire)",
+  "homepage": "https://github.com/D3m0nZOnFire/LinkSnip#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/D3m0nZOnFire/LinkSnip.git"
+  },
+  "bugs": {
+    "url": "https://github.com/D3m0nZOnFire/LinkSnip/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest tests/unit",
+    "admin": "node scripts/admin.js",
+    "docs:config": "node scripts/generate-config-docs.js"
+  },
+  "keywords": [
+    "url-shortener",
+    "link-shortener",
+    "pastebin",
+    "file-sharing",
+    "self-hosted",
+    "express",
+    "sqlite",
+    "docker"
+  ],
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.4.1",
+    "better-sqlite3-session-store": "^0.1.0",
+    "csv-parse": "^7.0.2",
+    "csv-stringify": "^6.6.0",
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
+    "express-session": "^1.18.2",
+    "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
+    "papaparse": "^5.5.3",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.11",
+    "supertest": "^7.2.2"
+  }
+}

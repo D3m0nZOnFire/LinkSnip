@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Analytics Shares - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'admin-analytics-shares' }) %>
+
+  <%
+    const fmt = (v) => v ? new Date(v).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+  %>
+
+  <main class="main-content-wide">
+    <div class="header-section">
+      <div>
+        <h2>Analytics Shares</h2>
+        <p><span class="count"><%= total %></span> active share link<%= total !== 1 ? 's' : '' %>. Anyone holding one can view that link's analytics.</p>
+      </div>
+    </div>
+
+    <% if (links.length === 0) { %>
+      <div style="text-align:center;padding:3rem;color:var(--muted-foreground);">No active share links.</div>
+    <% } else { %>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Short link</th>
+            <th>Label</th>
+            <th>Created by</th>
+            <th>Created</th>
+            <th>Expires</th>
+            <th class="text-right">Views</th>
+            <th>Last viewed</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% links.forEach(link => { %>
+            <tr data-link-id="<%= link.id %>">
+              <td><a href="/analytics/<%= link.urlId %>">/s/<%= link.slug %></a></td>
+              <td><%= link.label || '—' %></td>
+              <td><%= link.createdByUsername || '(deleted user)' %></td>
+              <td><%= fmt(link.createdAt) %></td>
+              <td><%= link.expiresAt ? fmt(link.expiresAt) : 'Never' %></td>
+              <td class="text-right"><%= link.viewCount %></td>
+              <td><%= link.lastViewedAt ? fmt(link.lastViewedAt) : 'Never' %></td>
+              <td class="text-right">
+                <button type="button" class="btn" style="background:var(--secondary);color:var(--foreground);" onclick="revokeLink(<%= link.id %>)">Revoke</button>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if (totalPages > 1) { %>
+      <div style="display:flex;gap:0.5rem;justify-content:center;margin-top:1.5rem;">
+        <% if (page > 1) { %><a class="btn" href="?page=<%= page - 1 %>" style="background:var(--secondary);color:var(--foreground);">Previous</a><% } %>
+        <span style="align-self:center;color:var(--muted-foreground);">Page <%= page %> of <%= totalPages %></span>
+        <% if (page < totalPages) { %><a class="btn" href="?page=<%= page + 1 %>" style="background:var(--secondary);color:var(--foreground);">Next</a><% } %>
+      </div>
+    <% } %>
+    <% } %>
+  </main>
+
+  <script>
+    async function revokeLink(id) {
+      if (!confirm('Revoke this share link? Anyone using it will lose access.')) return;
+      try {
+        const res = await fetch(`/api/share-links/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          document.querySelector(`tr[data-link-id="${id}"]`).remove();
+        } else {
+          alert('Revoke failed: ' + (data.error || 'Unknown error'));
+        }
+      } catch (e) {
+        alert('Request failed');
+      }
+    }
+  </script>
+  <%- include('partials/footer') %>
+</body>
+</html>

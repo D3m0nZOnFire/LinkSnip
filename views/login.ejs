@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/forms.css">
+  <script src="/js/theme.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --background: #000000;
+      --foreground: #ffffff;
+      --card: #0a0a0a;
+      --primary: #34d399;
+      --primary-foreground: #000000;
+      --secondary: #1a1a2e;
+      --muted-foreground: #a0a0b0;
+      --destructive: #ef4444;
+      --border: #1a1a2e;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--background);
+      color: var(--foreground);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 28rem;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .logo {
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo span {
+      color: var(--primary-foreground);
+      font-weight: bold;
+    }
+
+    .logo-text {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .heading {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .heading h2 {
+      font-size: 1.875rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+
+    .heading p {
+      color: var(--muted-foreground);
+    }
+
+    .error-block {
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background-color: var(--status-error-bg);
+      border: 1px solid var(--status-error-border);
+      border-radius: 0.5rem;
+      color: var(--destructive);
+      font-size: 0.875rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background-color: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      color: var(--foreground);
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .form-input::placeholder {
+      color: var(--muted-foreground);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--chart-border);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.75rem 1.5rem;
+      background-color: var(--primary);
+      color: var(--primary-foreground);
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-top: 1.5rem;
+      font-size: 1rem;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .footer-links {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      text-align: center;
+      font-size: 0.875rem;
+    }
+
+    .footer-links p {
+      color: var(--muted-foreground);
+    }
+
+    .footer-links a {
+      color: var(--primary);
+      font-weight: 500;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .footer-links a:hover {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Logo -->
+    <div class="logo-container">
+      <div class="logo">
+        <img src="/logo.png" alt="LinkSnip Logo" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <h1 class="logo-text">LinkSnip</h1>
+    </div>
+
+    <!-- Heading -->
+    <div class="heading">
+      <h2>Welcome Back</h2>
+      <p>Sign in to manage your shortened links</p>
+    </div>
+
+    <!-- Error Block -->
+    <% if (error) { %>
+      <div class="error-block"><%= error %></div>
+    <% } %>
+
+    <!-- Form -->
+    <form action="/login" method="POST">
+      <div class="form-group">
+        <label for="username" class="form-label">Username</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          class="form-input"
+          placeholder="Enter your username"
+          value="<%= username %>"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="form-input"
+          placeholder="Enter your password"
+          required
+          data-toggle-password
+        >
+      </div>
+
+      <button type="submit" class="btn" style="color: var(--primary-foreground);">Sign In</button>
+    </form>
+
+    <!-- Footer Links -->
+    <div class="footer-links">
+      <% if (locals.registrationOpen !== false) { %>
+      <p>
+        Don't have an account? 
+        <a href="/register">Create one</a>
+      </p>
+      <% } %>
+      <a href="/">Back to Home</a>
+    </div>
+  </div>
+
+  <script src="/js/main.js"></script>
+  <% if (error) { %>
+  <script>
+    window.onload = function() {
+      var pwField = document.getElementById('password');
+      if (pwField) pwField.focus();
+    };
+  </script>
+  <% } %>
+  <%- include('partials/footer') %>
+</body>
+</html>

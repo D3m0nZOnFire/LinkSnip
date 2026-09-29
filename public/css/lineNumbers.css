@@ -1,0 +1,60 @@
+/**
+ * LineNumbers — gutter overlay + textarea styling (see public/js/lineNumbers.js).
+ * The gutter and the textarea MUST share font-size, line-height and vertical
+ * padding so the numbers line up with the text.
+ */
+
+.ln-wrap {
+  position: relative;
+  display: block;
+}
+
+.ln-gutter {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 1px;
+  width: 3rem;
+  padding: 0.75rem 0.5rem 0 0;
+  overflow: hidden;
+  text-align: right;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+  background: var(--secondary);
+  border-right: 1px solid var(--border);
+  border-radius: var(--radius-md, 0.5rem) 0 0 var(--radius-md, 0.5rem);
+  white-space: pre;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ln-gutter-inner {
+  will-change: transform;
+}
+
+textarea.ln-input {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 0.75rem 0.75rem 3.9rem !important;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 0.5rem);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+  tab-size: 2;
+  resize: vertical;
+}
+
+textarea.ln-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
+}

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Preview - <%= url.slug %> - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/modals.css">
+  <script src="/js/theme.js"></script>
+  <style>
+    .info-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .warning-banner {
+      background-color: var(--status-error-bg);
+      border: 1px solid var(--status-error-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: start;
+      gap: 1rem;
+    }
+
+    .warning-banner.report-warning {
+      background-color: var(--status-warning-bg);
+      border: 1px solid var(--status-warning-border);
+    }
+
+    .warning-banner svg {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      color: var(--status-error-text);
+    }
+
+    .warning-banner.report-warning svg {
+      color: var(--status-warning-text);
+    }
+
+    .info-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .info-card h1 {
+      margin: 0 0 1.5rem 0;
+      color: var(--foreground);
+      font-size: 1.75rem;
+    }
+
+    .stat-item {
+      background: var(--info-bg);
+      border: 1px solid var(--info-border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .stat-item h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.875rem;
+      color: var(--muted-foreground);
+      text-transform: uppercase;
+    }
+
+    .stat-item .value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .qr-section {
+      text-align: center;
+      margin: 2rem 0;
+    }
+
+    .qr-section img {
+      max-width: 200px;
+      border-radius: 8px;
+      border: 2px solid var(--chart-border);
+    }
+
+    .actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-large {
+      padding: 1rem 2rem;
+      font-size: 1.125rem;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .btn-danger {
+      background-color: var(--status-error-bg);
+      border: 1px solid var(--status-error-border);
+      color: var(--status-error-text);
+    }
+
+    .btn-danger:hover {
+      background-color: var(--status-error-border);
+    }
+
+    .security-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background-color: var(--status-active-bg);
+      border: 1px solid var(--status-active-border);
+      border-radius: 4px;
+      font-size: 0.875rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'info' }) %>
+
+  <!-- Main Content -->
+  <main class="info-container">
+    <!-- Security Badge -->
+    <div class="security-badge">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      <span>Security Preview - See where this link goes before clicking</span>
+    </div>
+
+    <!-- Blocked Warning (Admin Blocked) -->
+    <% if (!validation.valid && url.isBlocked) { %>
+      <div class="warning-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div>
+          <h3 style="margin: 0 0 0.5rem 0; color: var(--status-error-text); font-size: 1.125rem;">⛔ This URL has been blocked</h3>
+          <p style="margin: 0; color: var(--status-error-text);">This short URL has been permanently blocked by administrators due to malicious content. Access is not permitted.</p>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- Quarantine Warning (reported past the threshold, awaiting admin review) -->
+    <% if (url.isQuarantined && !url.isBlocked) { %>
+      <div class="warning-banner report-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div>
+          <h3 style="margin: 0 0 0.5rem 0; color: var(--status-warning-text); font-size: 1.125rem;">Under review</h3>
+          <p style="margin: 0; color: var(--muted-foreground);">This link was reported by several visitors and is waiting for an administrator. Visitors see a warning before being redirected.</p>
+        </div>
+      </div>
+    <!-- Report Warning (for reported but not blocked URLs) -->
+    <% } else if (reportCount > 0 && !url.isBlocked) { %>
+      <div class="warning-banner report-warning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div>
+          <h3 style="margin: 0 0 0.5rem 0; color: var(--status-warning-text); font-size: 1.125rem;">⚠️ Community Reports</h3>
+          <p style="margin: 0; color: var(--muted-foreground);">This link has received <%= reportCount %> <%= reportCount === 1 ? 'report' : 'reports' %> from users. Please exercise caution before proceeding.</p>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- URL Info Card -->
+    <div class="info-card">
+      <h1>URL Preview</h1>
+
+      <p style="color: var(--muted-foreground); margin-bottom: 2rem;">
+        This security preview allows you to see where a shortened link goes before clicking it. LinkSnip promotes transparency and safety.
+      </p>
+
+      <!-- Link Age -->
+      <div class="stat-item">
+        <h3>Link Age</h3>
+        <div class="value" style="font-size: 1.125rem;">
+          <%= ageInDays === 0 ? 'Created today' : `Created ${ageInDays} day${ageInDays === 1 ? '' : 's'} ago` %>
+        </div>
+      </div>
+
+      <!-- Destination URL -->
+      <% if (validation.valid || validation.status === 'expired' || validation.status === 'max_uses') { %>
+        <!-- Show destination URL for active, expired, or max uses URLs (NOT blocked) -->
+        <div style="margin: 2rem 0; padding: 1rem; background-color: var(--secondary); border: 1px solid var(--border); border-radius: 8px;">
+          <h3 style="margin: 0 0 0.75rem 0; font-size: 0.875rem; color: var(--muted-foreground); text-transform: uppercase;">Destination URL</h3>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <a href="/s/<%= url.slug %>" target="_blank" rel="noopener noreferrer" style="flex: 1; color: var(--primary); word-break: break-all; font-size: 1rem; text-decoration: none;">
+              <%= url.longUrl %>
+            </a>
+            <button onclick="copyToClipboard('<%= url.longUrl.replace(/'/g, "\\'") %>')" class="btn" style="padding: 0.5rem 1rem; white-space: nowrap; color: var(--primary-foreground);" title="Copy URL">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle;">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      <% } else if (validation.status === 'blocked') { %>
+        <!-- Hide destination URL for blocked URLs -->
+        <div style="margin: 2rem 0; padding: 1rem; background-color: var(--status-error-bg); border: 1px solid var(--status-error-border); border-radius: 8px;">
+          <h3 style="margin: 0 0 0.75rem 0; font-size: 0.875rem; color: var(--status-error-text); text-transform: uppercase;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Destination Hidden
+          </h3>
+          <p style="margin: 0; color: var(--muted-foreground); font-size: 0.875rem;">
+            The destination URL is hidden because this link has been blocked by administrators.
+          </p>
+        </div>
+      <% } else if (validation.status === 'scheduled') { %>
+        <!-- Hide destination URL for scheduled (not yet active) URLs -->
+        <div style="margin: 2rem 0; padding: 1rem; background-color: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: 8px;">
+          <h3 style="margin: 0 0 0.75rem 0; font-size: 0.875rem; color: var(--status-warning-text); text-transform: uppercase;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Destination Hidden
+          </h3>
+          <p style="margin: 0; color: var(--muted-foreground); font-size: 0.875rem;">
+            The destination URL is hidden because this link is not yet active.
+            <% if (url.activateAt) { %>
+              It will become available on <%= new Date(url.activateAt).toLocaleString('en-GB', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }) %>.
+            <% } %>
+          </p>
+        </div>
+      <% } %>
+
+      <!-- QR Code -->
+      <% if (features.qrCodes) { %>
+      <div class="qr-section">
+        <h3 style="margin-bottom: 1rem; color: var(--muted-foreground);">Scan QR Code (opens this preview page)</h3>
+        <img src="/qrcode/<%= url.id %>?theme=light" alt="QR Code">
+      </div>
+      <% } %>
+
+      <!-- Actions -->
+      <div class="actions">
+        <% if (validation.valid) { %>
+          <a href="/s/<%= url.slug %>" class="btn btn-large">
+            Continue to Destination →
+          </a>
+        <% } else if (validation.status === 'blocked') { %>
+          <button class="btn btn-large" disabled style="background-color: var(--status-error-border); color: var(--status-error-text); cursor: not-allowed;">
+            ⛔ Access Blocked by Administrator
+          </button>
+        <% } else if (validation.status === 'scheduled') { %>
+          <button class="btn btn-large" disabled style="background-color: var(--secondary); color: var(--muted-foreground); cursor: not-allowed;">
+            Link Not Yet Active
+          </button>
+        <% } else if (validation.status === 'expired') { %>
+          <button class="btn btn-large" disabled style="background-color: var(--secondary); color: var(--muted-foreground); cursor: not-allowed;">
+            Link Expired
+          </button>
+        <% } else if (validation.status === 'max_uses') { %>
+          <button class="btn btn-large" disabled style="background-color: var(--secondary); color: var(--muted-foreground); cursor: not-allowed;">
+            Maximum Uses Reached
+          </button>
+        <% } %>
+        <% if (!url.isBlocked && features.reports) { %>
+          <button class="btn btn-large btn-danger" onclick="openModal('reportModal')">
+            Report This URL
+          </button>
+        <% } %>
+      </div>
+
+      <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-top: 2rem;">
+        Short URL: <a href="/s/<%= url.slug %>" style="color: var(--primary);"><%= baseUrl %>/s/<%= url.slug %></a>
+      </p>
+    </div>
+  </main>
+
+  <!-- Report Modal -->
+  <div id="reportModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Report URL</h3>
+        <button class="modal-close" onclick="closeModal('reportModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p style="color: var(--muted-foreground); margin-bottom: 1.5rem;">
+          Please select a reason for reporting this URL. Your report helps keep the community safe.
+        </p>
+
+        <form id="reportForm">
+          <input type="hidden" id="urlId" value="<%= url.id %>">
+
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--foreground);">Reason *</label>
+            <select id="reportReason" required style="width: 100%; padding: 0.75rem; background-color: var(--input); color: var(--foreground); border: 1px solid var(--border); border-radius: 6px;">
+              <option value="">Select a reason...</option>
+              <option value="FRAUD">Fraud/Scam</option>
+              <option value="PHISHING">Phishing</option>
+              <option value="MALWARE">Malware</option>
+              <option value="SPAM">Spam</option>
+              <option value="ADULT">Adult Content</option>
+              <option value="COPYRIGHT">Copyright Violation</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--foreground);">Additional Details (Optional)</label>
+            <textarea id="reportDescription" rows="4" placeholder="Provide more information about why you're reporting this URL..." style="width: 100%; padding: 0.75rem; background-color: var(--input); color: var(--foreground); border: 1px solid var(--border); border-radius: 6px; resize: vertical;"></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn" style="background-color: var(--secondary); color: var(--foreground);" onclick="closeModal('reportModal')">
+          Cancel
+        </button>
+        <button class="btn" onclick="submitReport()" style="color: var(--primary-foreground);">
+          Submit Report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/main.js"></script>
+  <script>
+    function submitReport() {
+      const urlId = document.getElementById('urlId').value;
+      const reason = document.getElementById('reportReason').value;
+      const description = document.getElementById('reportDescription').value;
+
+      if (!reason) {
+        alert('Please select a reason for reporting');
+        return;
+      }
+
+      fetch('/api/report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          urlId: parseInt(urlId),
+          reason,
+          description
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          closeModal('reportModal');
+          alert(data.message);
+          location.reload();
+        } else {
+          alert(data.error || 'Failed to submit report');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while submitting the report');
+      });
+    }
+  </script>
+  <%- include('partials/footer') %>
+</body>
+</html>

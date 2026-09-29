@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics - <%= paste.title ? paste.title : paste.slug %> - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/modals.css">
+  <script src="/js/theme.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--chart-background);
+      border: 1px solid var(--chart-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .stat-card h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.875rem;
+      color: var(--chart-muted-text);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-card .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--status-active-text);
+      margin: 0;
+    }
+
+    .chart-container {
+      background: var(--chart-background);
+      border: 1px solid var(--chart-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .chart-container h3 {
+      margin: 0 0 1.5rem 0;
+      font-size: 1.125rem;
+      color: var(--chart-text);
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+    }
+
+    .data-table {
+      background: var(--chart-background);
+      border: 1px solid var(--chart-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .data-table h3 {
+      margin: 0 0 1rem 0;
+      font-size: 1.125rem;
+      color: var(--chart-text);
+    }
+
+    .data-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--status-active-bg);
+    }
+
+    .data-table th {
+      color: var(--chart-muted-text);
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .data-table td {
+      color: var(--chart-data-text);
+    }
+
+    .paste-info {
+      background: var(--chart-background);
+      border: 1px solid var(--chart-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .paste-info h2 {
+      margin: 0 0 0.75rem 0;
+      color: var(--chart-text);
+    }
+
+    .paste-info p {
+      margin: 0.4rem 0;
+      color: var(--chart-muted-text);
+    }
+
+    .paste-info a {
+      color: var(--status-active-text);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'dashboard' }) %>
+
+  <main class="main-content-wide">
+
+    <!-- Paste Info -->
+    <div class="paste-info">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 260px;">
+          <h2>Analytics for "<%= paste.title ? paste.title : '(untitled paste)' %>"</h2>
+          <p><strong>Paste link:</strong> <a href="<%= baseUrl %>/p/<%= paste.slug %>" target="_blank"><%= baseUrl %>/p/<%= paste.slug %></a></p>
+          <p><strong>Info page:</strong> <a href="<%= baseUrl %>/p-info/<%= paste.slug %>" target="_blank"><%= baseUrl %>/p-info/<%= paste.slug %></a></p>
+          <% if (paste.language) { %><p><strong>Language:</strong> <%= paste.language %></p><% } %>
+          <p><strong>Size:</strong> <%= sizeChars.toLocaleString() %> characters</p>
+          <p><strong>View counter:</strong> <%= paste.views.toLocaleString() %><% if (paste.maxViews) { %> / <%= paste.maxViews.toLocaleString() %> max<% } %></p>
+          <p><strong>Created:</strong> <%= new Date(paste.createdAt).toLocaleString('en-GB') %></p>
+          <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
+            <a class="btn" href="/pastes/<%= paste.id %>/edit" style="background-color: var(--secondary); color: var(--foreground);">Edit paste</a>
+            <button class="btn" onclick="showPasteQRCode()" style="display: inline-flex; align-items: center; color: var(--primary-foreground);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 0.5rem;">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              View QR Code
+            </button>
+          </div>
+        </div>
+        <div style="flex-shrink: 0;">
+          <img src="/qrcode/paste/<%= paste.slug %>?theme=light" alt="QR Code" style="width: 150px; height: 150px; border-radius: 8px; border: 2px solid var(--chart-border);">
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="analytics-grid">
+      <div class="stat-card">
+        <h3>Tracked Views</h3>
+        <p class="stat-value"><%= analytics.totalViews.toLocaleString() %></p>
+      </div>
+      <div class="stat-card">
+        <h3>Unique Visitors</h3>
+        <p class="stat-value"><%= analytics.uniqueVisitors.toLocaleString() %></p>
+      </div>
+      <div class="stat-card">
+        <h3>Countries</h3>
+        <p class="stat-value"><%= analytics.countries.length.toLocaleString() %></p>
+      </div>
+      <div class="stat-card">
+        <h3>Device Types</h3>
+        <p class="stat-value"><%= analytics.devices.length.toLocaleString() %></p>
+      </div>
+    </div>
+
+    <p style="color: var(--chart-muted-text); font-size: 0.85rem; margin-top: -1rem; margin-bottom: 2rem;">
+      Tracked views count visits to the paste page since view analytics were enabled, so they can trail the raw view counter above.
+    </p>
+
+    <!-- Views Over Time -->
+    <div class="chart-container">
+      <h3>Paste Views Over Time <span style="font-size: 0.875rem; color: var(--chart-muted-text); font-weight: normal;">(<%= analytics.viewsByDatePeriod %>)</span></h3>
+      <div class="chart-wrapper">
+        <canvas id="viewsChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Device & Browser Charts -->
+    <div class="grid-2">
+      <div class="chart-container" style="margin-bottom: 0;">
+        <h3>Devices</h3>
+        <% if (analytics.devices.length > 0) { %>
+        <div class="chart-wrapper" style="height: 250px;">
+          <canvas id="deviceChart"></canvas>
+        </div>
+        <% } else { %>
+        <p style="color: var(--chart-muted-text); text-align: center; padding: 2rem 0;">No data yet</p>
+        <% } %>
+      </div>
+      <div class="chart-container" style="margin-bottom: 0;">
+        <h3>Browsers</h3>
+        <% if (analytics.browsers.length > 0) { %>
+        <div class="chart-wrapper" style="height: 250px;">
+          <canvas id="browserChart"></canvas>
+        </div>
+        <% } else { %>
+        <p style="color: var(--chart-muted-text); text-align: center; padding: 2rem 0;">No data yet</p>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Referrers & Countries -->
+    <div class="grid-2">
+      <div class="data-table" style="margin-bottom: 0;">
+        <h3>Top Referrers</h3>
+        <% if (analytics.referrers.length > 0) { %>
+        <table>
+          <thead>
+            <tr><th>Source</th><th>Views</th></tr>
+          </thead>
+          <tbody>
+            <% analytics.referrers.forEach(r => { %>
+            <tr>
+              <td><%= r.referrer || 'Direct' %></td>
+              <td><%= r.count.toLocaleString() %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } else { %>
+        <p style="color: var(--chart-muted-text); text-align: center; padding: 1.5rem 0;">No data yet</p>
+        <% } %>
+      </div>
+
+      <div class="data-table" style="margin-bottom: 0;">
+        <h3>Top Countries</h3>
+        <% if (analytics.countries.length > 0) { %>
+        <table>
+          <thead>
+            <tr><th>Country</th><th>Views</th></tr>
+          </thead>
+          <tbody>
+            <% analytics.countries.forEach(c => { %>
+            <tr>
+              <td><%= c.country || 'Unknown' %></td>
+              <td><%= c.count.toLocaleString() %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } else { %>
+        <p style="color: var(--chart-muted-text); text-align: center; padding: 1.5rem 0;">No data yet</p>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- OS breakdown -->
+    <% if (analytics.os.length > 0) { %>
+    <div class="data-table">
+      <h3>Operating Systems</h3>
+      <table>
+        <thead>
+          <tr><th>OS</th><th>Views</th></tr>
+        </thead>
+        <tbody>
+          <% analytics.os.forEach(o => { %>
+          <tr>
+            <td><%= o.os || 'Unknown' %></td>
+            <td><%= o.count.toLocaleString() %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+  </main>
+
+  <script src="/js/main.js"></script>
+
+  <!-- QR Code Modal -->
+  <div id="pasteQrcodeModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>QR Code</h3>
+        <button class="modal-close" onclick="closeModal('pasteQrcodeModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" style="text-align: center;">
+        <div style="margin: 2rem 0;">
+          <img src="/qrcode/paste/<%= paste.slug %>?theme=light" alt="QR Code" style="max-width: 400px; width: 100%; border-radius: 8px;">
+        </div>
+        <p style="color: var(--chart-muted-text); margin-bottom: 1rem;">Scan this QR code to open the paste</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" style="background-color: var(--secondary); color: var(--foreground);" onclick="closeModal('pasteQrcodeModal')">Close</button>
+        <button class="btn" onclick="window.location.href='/qrcode/paste/<%= paste.slug %>/download?theme=light'" style="color: var(--primary-foreground);">Download PNG</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showPasteQRCode() {
+      openModal('pasteQrcodeModal');
+    }
+
+    const chartColors = [
+      '#34d399', '#60a5fa', '#f472b6', '#fbbf24',
+      '#a78bfa', '#fb923c', '#34d3c5', '#e879f9'
+    ];
+
+    const viewsData = <%- JSON.stringify(analytics.viewsByDate) %>;
+    new Chart(document.getElementById('viewsChart'), {
+      type: 'line',
+      data: {
+        labels: viewsData.map(d => d.date),
+        datasets: [{
+          label: 'Views',
+          data: viewsData.map(d => d.count),
+          borderColor: '#34d399',
+          backgroundColor: 'rgba(52, 211, 153, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: viewsData.length > 60 ? 0 : 3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            ticks: { color: '#9ca3af', maxTicksLimit: 10 },
+            grid: { color: 'rgba(156,163,175,0.1)' }
+          },
+          y: {
+            ticks: { color: '#9ca3af' },
+            grid: { color: 'rgba(156,163,175,0.1)' },
+            beginAtZero: true
+          }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    <% if (analytics.devices.length > 0) { %>
+    const deviceData = <%- JSON.stringify(analytics.devices) %>;
+    new Chart(document.getElementById('deviceChart'), {
+      type: 'doughnut',
+      data: {
+        labels: deviceData.map(d => d.device || 'Unknown'),
+        datasets: [{
+          data: deviceData.map(d => d.count),
+          backgroundColor: chartColors.slice(0, deviceData.length),
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af', padding: 16 } } }
+      }
+    });
+    <% } %>
+
+    <% if (analytics.browsers.length > 0) { %>
+    const browserData = <%- JSON.stringify(analytics.browsers) %>;
+    new Chart(document.getElementById('browserChart'), {
+      type: 'doughnut',
+      data: {
+        labels: browserData.map(b => b.browser || 'Unknown'),
+        datasets: [{
+          data: browserData.map(b => b.count),
+          backgroundColor: chartColors.slice(0, browserData.length),
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af', padding: 16 } } }
+      }
+    });
+    <% } %>
+  </script>
+  <%- include('partials/footer') %>
+</body>
+</html>

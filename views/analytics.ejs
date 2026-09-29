@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics - <%= url.slug %> - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/modals.css">
+  <script src="/js/theme.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--chart-background);
+      border: 1px solid var(--chart-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .stat-card h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.875rem;
+      color: var(--chart-muted-text);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-card .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--status-active-text);
+      margin: 0;
+    }
+
+    .chart-container {
+      background: var(--chart-background);
+      border: 1px solid var(--chart-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .chart-container h3 {
+      margin: 0 0 1.5rem 0;
+      font-size: 1.125rem;
+      color: var(--chart-text);
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+    }
+
+    .data-table {
+      background: var(--chart-background);
+      border: 1px solid var(--chart-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .data-table h3 {
+      margin: 0 0 1rem 0;
+      font-size: 1.125rem;
+      color: var(--chart-text);
+    }
+
+    .data-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--status-active-bg);
+    }
+
+    .data-table th {
+      color: var(--chart-muted-text);
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .data-table td {
+      color: var(--chart-data-text);
+    }
+
+    .url-info {
+      background: var(--chart-background);
+      border: 1px solid var(--chart-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .url-info h2 {
+      margin: 0 0 1rem 0;
+      color: var(--chart-text);
+    }
+
+    .url-info p {
+      margin: 0.5rem 0;
+      color: var(--chart-muted-text);
+    }
+
+    .url-info a {
+      color: var(--status-active-text);
+      word-break: break-all;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'analytics' }) %>
+
+  <!-- Main Content -->
+  <main class="main-content-wide">
+    <% if (readOnly) { %>
+    <!-- Share link banner -->
+    <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+      <div style="flex: 1;">
+        <strong style="color: #60a5fa;">Shared analytics</strong>
+        <p style="margin: 0.25rem 0 0 0; color: #9ca3af; font-size: 0.875rem;">
+          A read-only view shared by the owner of this link.
+        </p>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- URL Info -->
+    <div class="url-info">
+      <div style="display: flex; justify-content: space-between; align-items: start; gap: 2rem;">
+        <div style="flex: 1;">
+          <h2>Analytics for /s/<%= url.slug %></h2>
+          <p><strong>Long URL:</strong> <a href="<%= url.longUrl %>" target="_blank"><%= url.longUrl %></a></p>
+          <p><strong>Short URL:</strong> <a href="<%= baseUrl %>/s/<%= url.slug %>" target="_blank"><%= baseUrl %>/s/<%= url.slug %></a></p>
+          <p><strong>Created:</strong> <%= new Date(url.createdAt).toLocaleString('en-GB') %></p>
+          <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+            <a href="/info/<%= url.slug %>" class="btn" style="display: inline-flex; align-items: center; text-decoration: none; color: var(--primary-foreground);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 0.5rem;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              Public Info
+            </a>
+            <% if (features.qrCodes) { %>
+            <button class="btn" onclick="showQRCode(<%= url.id %>)" style="display: inline-flex; align-items: center; color: var(--primary-foreground);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 0.5rem;">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              View QR Code
+            </button>
+            <% } %>
+            <% if (!readOnly && can.analyticsShareLinks) { %>
+            <button class="btn" onclick="openShareLinks()" style="display: inline-flex; align-items: center; color: var(--primary-foreground);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 0.5rem;">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                <polyline points="16 6 12 2 8 6"></polyline>
+                <line x1="12" y1="2" x2="12" y2="15"></line>
+              </svg>
+              Share links
+            </button>
+            <% } %>
+          </div>
+        </div>
+        <% if (features.qrCodes) { %>
+        <div style="flex-shrink: 0;">
+          <img src="/qrcode/<%= url.id %>?theme=light" alt="QR Code" style="width: 150px; height: 150px; border-radius: 8px; border: 2px solid var(--chart-border);">
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+
+    <!-- Stats Overview -->
+    <div class="analytics-grid">
+      <div class="stat-card">
+        <h3>Total Clicks</h3>
+        <p class="stat-value"><%= summary.totalClicks %></p>
+      </div>
+      <div class="stat-card">
+        <h3>Unique Referrers</h3>
+        <p class="stat-value"><%= summary.referrers.length %></p>
+      </div>
+      <div class="stat-card">
+        <h3>Countries</h3>
+        <p class="stat-value"><%= summary.countries.length %></p>
+      </div>
+      <div class="stat-card">
+        <h3>Devices</h3>
+        <p class="stat-value"><%= summary.devices.length %></p>
+      </div>
+    </div>
+
+    <!-- Clicks Over Time Chart -->
+    <div class="chart-container">
+      <h3>Clicks Over Time <span style="font-size: 0.875rem; color: var(--chart-muted-text); font-weight: normal;">(<%= summary.clicksByDatePeriod || 'Last 30 Days' %>)</span></h3>
+      <div class="chart-wrapper">
+        <canvas id="clicksChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Two Column Grid -->
+    <div class="grid-2">
+      <!-- Devices Chart -->
+      <div class="chart-container" style="margin-bottom: 0;">
+        <h3>Devices</h3>
+        <% if (summary.devices.length > 0) { %>
+        <div class="chart-wrapper" style="height: 250px;">
+          <canvas id="devicesChart"></canvas>
+        </div>
+        <% } else { %>
+        <p style="color: var(--chart-muted-text); text-align: center; padding: 2rem 0;">No data yet</p>
+        <% } %>
+      </div>
+
+      <!-- Browsers Chart -->
+      <div class="chart-container" style="margin-bottom: 0;">
+        <h3>Browsers</h3>
+        <% if (summary.browsers.length > 0) { %>
+        <div class="chart-wrapper" style="height: 250px;">
+          <canvas id="browsersChart"></canvas>
+        </div>
+        <% } else { %>
+        <p style="color: var(--chart-muted-text); text-align: center; padding: 2rem 0;">No data yet</p>
+        <% } %>
+      </div>
+    </div>
+    <div style="margin-bottom: 2rem;"></div>
+
+    <!-- Top Referrers + Countries side-by-side -->
+    <div class="grid-2">
+      <div class="data-table" style="margin-bottom: 0;">
+        <h3>Top Referrers</h3>
+        <% if (summary.referrers.length === 0) { %>
+          <p style="color: var(--chart-muted-text);">No referrer data yet</p>
+        <% } else { %>
+          <table>
+            <thead>
+              <tr>
+                <th>Referrer</th>
+                <th style="text-align: right;">Clicks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% summary.referrers.forEach(ref => { %>
+                <tr>
+                  <td><%= ref.referrer %></td>
+                  <td style="text-align: right;"><%= ref.count %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+
+      <div class="data-table" style="margin-bottom: 0;">
+        <h3>Top Countries</h3>
+        <% if (summary.countries.length === 0) { %>
+          <p style="color: var(--chart-muted-text);">No country data yet</p>
+        <% } else { %>
+          <table>
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th style="text-align: right;">Clicks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% summary.countries.forEach(country => { %>
+                <tr>
+                  <td><%= country.country || 'Unknown' %></td>
+                  <td style="text-align: right;"><%= country.count %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- OS Table -->
+    <% if (summary.os && summary.os.length > 0) { %>
+    <div class="data-table">
+      <h3>Operating Systems</h3>
+      <table>
+        <thead>
+          <tr><th>OS</th><th style="text-align: right;">Clicks</th></tr>
+        </thead>
+        <tbody>
+          <% summary.os.forEach(o => { %>
+          <tr>
+            <td><%= o.os || 'Unknown' %></td>
+            <td style="text-align: right;"><%= o.count %></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </main>
+
+  <script>
+    const chartColors = [
+      '#34d399', '#60a5fa', '#f472b6', '#fbbf24',
+      '#a78bfa', '#fb923c', '#34d3c5', '#e879f9'
+    ];
+
+    // Clicks over time chart
+    const clicksData = <%- JSON.stringify(summary.clicksByDate) %>;
+    new Chart(document.getElementById('clicksChart'), {
+      type: 'line',
+      data: {
+        labels: clicksData.map(d => d.date),
+        datasets: [{
+          label: 'Clicks',
+          data: clicksData.map(d => d.count),
+          borderColor: '#34d399',
+          backgroundColor: 'rgba(52, 211, 153, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: clicksData.length > 60 ? 0 : 3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            ticks: { color: '#9ca3af', maxTicksLimit: 10 },
+            grid: { color: 'rgba(156,163,175,0.1)' }
+          },
+          y: {
+            ticks: { color: '#9ca3af' },
+            grid: { color: 'rgba(156,163,175,0.1)' },
+            beginAtZero: true
+          }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    // Devices chart
+    <% if (summary.devices.length > 0) { %>
+    const devicesData = <%- JSON.stringify(summary.devices) %>;
+    new Chart(document.getElementById('devicesChart'), {
+      type: 'doughnut',
+      data: {
+        labels: devicesData.map(d => d.device || 'Unknown'),
+        datasets: [{
+          data: devicesData.map(d => d.count),
+          backgroundColor: chartColors.slice(0, devicesData.length),
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#9ca3af', padding: 16 } }
+        }
+      }
+    });
+    <% } %>
+
+    // Browsers chart
+    <% if (summary.browsers.length > 0) { %>
+    const browsersData = <%- JSON.stringify(summary.browsers) %>;
+    new Chart(document.getElementById('browsersChart'), {
+      type: 'doughnut',
+      data: {
+        labels: browsersData.map(d => d.browser || 'Unknown'),
+        datasets: [{
+          data: browsersData.map(d => d.count),
+          backgroundColor: chartColors.slice(0, browsersData.length),
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#9ca3af', padding: 16 } }
+        }
+      }
+    });
+    <% } %>
+  </script>
+
+  <!-- QR Code Modal -->
+  <div id="qrcodeModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>QR Code</h3>
+        <button class="modal-close" onclick="closeModal('qrcodeModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body" style="text-align: center;">
+        <div id="qrcodeContainer" style="margin: 2rem 0;">
+          <img id="qrcodeImage" src="" alt="QR Code" style="max-width: 400px; width: 100%; border-radius: 8px;">
+        </div>
+        <p style="color: var(--chart-muted-text); margin-bottom: 1rem;">Scan this QR code to access the short URL</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn" style="background-color: var(--secondary); color: var(--foreground);" onclick="closeModal('qrcodeModal')">
+          Close
+        </button>
+        <button class="btn" id="downloadQRBtn" style="color: var(--primary-foreground);">
+          Download PNG
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <% if (!readOnly && can.analyticsShareLinks) { %>
+  <!-- Share Links Modal -->
+  <div id="shareLinksModal" class="modal-overlay" onclick="closeModal('shareLinksModal')">
+    <div class="modal-content" onclick="event.stopPropagation()" role="dialog" aria-labelledby="shareLinksTitle">
+      <h3 id="shareLinksTitle">Share links</h3>
+      <p style="color: var(--muted-foreground); font-size: 0.875rem; margin: 0.5rem 0 1.5rem;">
+        Anyone with a share link can see these analytics without an account. Revoke a link to turn it off.
+      </p>
+
+      <form id="createShareLinkForm" style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border);">
+        <div class="form-group">
+          <label for="shareLinkLabel">Label (optional)</label>
+          <input type="text" id="shareLinkLabel" maxlength="100" placeholder="e.g. Client report">
+        </div>
+        <div class="form-group">
+          <label for="shareLinkExpiry">Expires</label>
+          <select id="shareLinkExpiry">
+            <option value="">Never</option>
+            <option value="1">In 1 day</option>
+            <option value="7">In 7 days</option>
+            <option value="30">In 30 days</option>
+            <option value="90">In 90 days</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" style="color: var(--primary-foreground);">Create link</button>
+      </form>
+
+      <div id="newShareLink" style="display: none; margin-bottom: 1.5rem; padding: 1rem; border: 1px solid var(--primary); border-radius: 8px;">
+        <p style="margin: 0 0 0.5rem; font-size: 0.875rem;"><strong>Copy this link now.</strong> It won't be shown again.</p>
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="text" id="newShareLinkUrl" readonly style="flex: 1;" aria-label="New share link">
+          <button type="button" class="btn" id="copyShareLinkBtn" style="color: var(--primary-foreground);">Copy</button>
+        </div>
+      </div>
+
+      <h4 style="margin: 0 0 1rem 0; font-size: 1rem;">Active links <span id="shareLinksCount" style="color: var(--muted-foreground); font-weight: normal;"></span></h4>
+      <div id="shareLinksList"></div>
+    </div>
+  </div>
+  <% } %>
+
+  <script src="/js/main.js"></script>
+  <script>
+    // QR Code functionality
+    let currentQRCodeId = <%= url.id %>;
+
+    function showQRCode(urlId) {
+      currentQRCodeId = urlId;
+      const qrcodeImage = document.getElementById('qrcodeImage');
+      qrcodeImage.src = `/qrcode/${urlId}?theme=light`;
+      openModal('qrcodeModal');
+    }
+
+    document.getElementById('downloadQRBtn').addEventListener('click', () => {
+      if (currentQRCodeId) {
+        window.location.href = `/qrcode/${currentQRCodeId}/download?theme=light`;
+      }
+    });
+
+    <% if (!readOnly && can.analyticsShareLinks) { %>
+    // Share links
+    const SHARE_LINKS_API = '/api/urls/<%= url.id %>/share-links';
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text == null ? '' : String(text);
+      return div.innerHTML;
+    }
+
+    function formatDate(value) {
+      return value ? new Date(value).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+    }
+
+    async function openShareLinks() {
+      document.getElementById('newShareLink').style.display = 'none';
+      await loadShareLinks();
+      openModal('shareLinksModal');
+    }
+
+    async function loadShareLinks() {
+      const list = document.getElementById('shareLinksList');
+      try {
+        const response = await fetch(SHARE_LINKS_API);
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Could not load share links');
+
+        document.getElementById('shareLinksCount').textContent =
+          result.limit === null ? `(${result.links.length})` : `(${result.links.length} of ${result.limit})`;
+
+        list.innerHTML = result.links.length === 0
+          ? '<p style="color: var(--muted-foreground); text-align: center;">No share links yet.</p>'
+          : result.links.map(link => `
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border);">
+              <div>
+                <p style="margin: 0; font-weight: 500;">${escapeHtml(link.label || 'Untitled link')}</p>
+                <p style="margin: 0.25rem 0 0; color: var(--muted-foreground); font-size: 0.8rem;">
+                  Created ${escapeHtml(formatDate(link.createdAt))}
+                  · ${link.expiresAt ? 'expires ' + escapeHtml(formatDate(link.expiresAt)) : 'never expires'}
+                  · ${link.viewCount} view${link.viewCount === 1 ? '' : 's'}
+                </p>
+              </div>
+              <button type="button" class="btn" style="background: var(--secondary); color: var(--foreground);" onclick="revokeShareLink(${link.id})">Revoke</button>
+            </div>`).join('');
+      } catch (error) {
+        list.innerHTML = `<p style="color: var(--destructive);">${escapeHtml(error.message)}</p>`;
+      }
+    }
+
+    async function revokeShareLink(id) {
+      if (!confirm('Revoke this link? Anyone using it will lose access.')) return;
+      const response = await fetch(`/api/share-links/${id}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (!result.success) alert('Error: ' + (result.error || 'Could not revoke the link'));
+      loadShareLinks();
+    }
+
+    document.getElementById('createShareLinkForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const response = await fetch(SHARE_LINKS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: document.getElementById('shareLinkLabel').value,
+          expiresInDays: document.getElementById('shareLinkExpiry').value || null
+        })
+      });
+      const result = await response.json();
+      if (!result.success) {
+        alert('Error: ' + (result.error || result.message || 'Could not create the link'));
+        return;
+      }
+      document.getElementById('shareLinkLabel').value = '';
+      document.getElementById('newShareLinkUrl').value = result.shareUrl;
+      document.getElementById('newShareLink').style.display = 'block';
+      loadShareLinks();
+    });
+
+    document.getElementById('copyShareLinkBtn').addEventListener('click', async () => {
+      const input = document.getElementById('newShareLinkUrl');
+      try {
+        await navigator.clipboard.writeText(input.value);
+      } catch (_) {
+        input.select();
+        document.execCommand('copy');
+      }
+      document.getElementById('copyShareLinkBtn').textContent = 'Copied!';
+      setTimeout(() => { document.getElementById('copyShareLinkBtn').textContent = 'Copy'; }, 1500);
+    });
+    <% } %>
+  </script>
+  <%- include('partials/footer') %>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'settings' }) %>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <h2 style="font-size: 1.875rem; font-weight: 700; margin-bottom: 2rem;">Account Settings</h2>
+
+    <!-- Change Username Section -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Change Username</h3>
+      <p style="color: var(--muted-foreground); margin-bottom: 1.5rem; font-size: 0.875rem;">
+        Current username: <strong><%= user.username %></strong>
+      </p>
+
+      <div class="form-group">
+        <label for="newUsername" class="form-label">New Username</label>
+        <input 
+          type="text" 
+          id="newUsername" 
+          class="form-input"
+          placeholder="Enter new username"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="usernamePassword" class="form-label">Current Password</label>
+        <input
+          type="password"
+          id="usernamePassword"
+          class="form-input"
+          placeholder="Confirm with your password"
+          data-toggle-password
+        >
+      </div>
+
+      <button class="btn" id="saveUsernameBtn" style="color: var(--primary-foreground);">Update Username</button>
+    </div>
+
+    <!-- Change Password Section -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Change Password</h3>
+      <p style="color: var(--muted-foreground); margin-bottom: 1.5rem; font-size: 0.875rem;">
+        Update your password to keep your account secure.
+      </p>
+
+      <div class="form-group">
+        <label for="currentPassword" class="form-label">Current Password</label>
+        <input
+          type="password"
+          id="currentPassword"
+          class="form-input"
+          placeholder="Enter current password"
+          data-toggle-password
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="newPassword" class="form-label">New Password</label>
+        <input
+          type="password"
+          id="newPassword"
+          class="form-input"
+          placeholder="Enter new password"
+          minlength="6"
+          data-toggle-password
+        >
+        <div class="form-hint">Minimum 6 characters</div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+        <input
+          type="password"
+          id="confirmPassword"
+          class="form-input"
+          placeholder="Confirm new password"
+          data-toggle-password
+        >
+      </div>
+
+      <button class="btn" id="savePasswordBtn" style="color: var(--primary-foreground);">Update Password</button>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="card" style="border-color: var(--destructive);">
+      <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--destructive);">
+        Danger Zone
+      </h3>
+      <p style="color: var(--muted-foreground); margin-bottom: 1.5rem; font-size: 0.875rem;">
+        Once you delete your account, there is no going back. All your URLs will be permanently deleted.
+      </p>
+
+      <button class="btn btn-danger" id="deleteAccountBtn">Delete Account</button>
+    </div>
+  </main>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/settings.js"></script>
+  <%- include('partials/footer') %>
+</body>
+</html>

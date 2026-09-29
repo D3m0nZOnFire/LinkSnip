@@ -1,0 +1,499 @@
+const File = require('../../../models/File');
+const { createTestUser, createTestTag, createTestFile } = require('../../setup/testHelpers');
+const { getTestDatabase } = require('../../setup/testDatabase');
+
+// Helpers
+const future = (ms = 86400000) => new Date(Date.now() + ms).toISOString();
+const past   = (ms = 86400000) => new Date(Date.now() - ms).toISOString();
+
+describe('File Model', () => {
+
+  // ─── create ────────────────────────────────────────────────
+  describe('create', () => {
+    it('creates a file with required fields', async () => {
+      const user = await createTestUser();
+      const file = File.create({
+        userId: user.id,
+        slug: 'abc12',
+        originalName: 'doc.pdf',
+        storedName: 'uuid.pdf',
+        mimeType: 'application/pdf',
+        size: 2048
+      });
+
+      expect(file).toBeDefined();
+      expect(file.id).toBeDefined();
+      expect(file.slug).toBe('abc12');
+      expect(file.originalName).toBe('doc.pdf');
+      expect(file.mimeType).toBe('application/pdf');
+      expect(file.size).toBe(2048);
+      expect(file.downloads).toBe(0);
+      expect(file.sharingMode).toBe('public');
+      expect(file.isBlocked).toBe(0);
+    });
+
+    it('creates a file with all optional fields', async () => {
+      const user = await createTestUser();
+      const expiresAt   = future();
+      const activateAt  = past(3600000);
+      const deactivateAt = future(172800000);
+
+      const file = File.create({
+        userId: user.id,
+        slug: 'full1',
+        originalName: 'img.png',
+        storedName: 'uuid.png',
+        mimeType: 'image/png',
+        size: 512,
+        expiresAt,
+        activateAt,
+        deactivateAt,
+        maxDownloads: 5,
+        password: '$2b$10$hashedpassword',
+        sharingMode: 'restricted',
+        allowedUsers: [99, 100]
+      });
+
+      expect(file.expiresAt).toBe(expiresAt);
+      expect(file.activateAt).toBe(activateAt);
+      expect(file.deactivateAt).toBe(deactivateAt);
+      expect(file.maxDownloads).toBe(5);
+      expect(file.password).toBe('$2b$10$hashedpassword');
+      expect(file.sharingMode).toBe('restricted');
+      expect(JSON.parse(file.allowedUsers)).toEqual([99, 100]);
+    });
+
+    it('defaults sharingMode to public and allowedUsers to []', async () => {
+      const user = await createTestUser();
+      const file = File.create({
+        userId: user.id, slug: 'def01', originalName: 'x.txt',
+        storedName: 'u.txt', mimeType: 'text/plain', size: 10
+      });
+
+      expect(file.sharingMode).toBe('public');
+      expect(JSON.parse(file.allowedUsers)).toEqual([]);
+    });
+  });
+
+  // ─── findBySlug ────────────────────────────────────────────
+  describe('findBySlug', () => {
+    it('returns the file for an existing slug', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 'findme' });
+
+      const file = File.findBySlug('findme');
+      expect(file).toBeDefined();
+      expect(file.slug).toBe('findme');
+    });
+
+    it('returns undefined for a non-existent slug', () => {
+      expect(File.findBySlug('nope99')).toBeUndefined();
+    });
+
+    it('includes tags array on the returned file', async () => {
+      const user = await createTestUser();
+      const tag  = createTestTag({ name: 'docs', userId: user.id });
+      const f    = createTestFile(user.id, { slug: 'tagged1' });
+      getTestDatabase().prepare('INSERT INTO file_tags (fileId, tagId) VALUES (?, ?)').run(f.id, tag.id);
+
+      const file = File.findBySlug('tagged1');
+      expect(file.tags).toHaveLength(1);
+      expect(file.tags[0].name).toBe('docs');
+    });
+  });
+
+  // ─── findByUserId ──────────────────────────────────────────
+  describe('findByUserId', () => {
+    it('returns all files for a user', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 'f001' });
+      createTestFile(user.id, { slug: 'f002' });
+
+      const files = File.findByUserId(user.id);
+      expect(files).toHaveLength(2);
+    });
+
+    it('returns empty array for a user with no files', async () => {
+      const user = await createTestUser();
+      expect(File.findByUserId(user.id)).toEqual([]);
+    });
+
+    it('does not return files belonging to other users', async () => {
+      const userA = await createTestUser();
+      const userB = await createTestUser();
+      createTestFile(userA.id, { slug: 'fa01' });
+
+      expect(File.findByUserId(userB.id)).toHaveLength(0);
+    });
+
+    it('respects limit and offset', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 'p001' });
+      createTestFile(user.id, { slug: 'p002' });
+      createTestFile(user.id, { slug: 'p003' });
+
+      const page1 = File.findByUserId(user.id, 2, 0);
+      const page2 = File.findByUserId(user.id, 2, 2);
+      expect(page1).toHaveLength(2);
+      expect(page2).toHaveLength(1);
+    });
+  });
+
+  // ─── countByUserId ─────────────────────────────────────────
+  describe('countByUserId', () => {
+    it('returns the correct file count for a user', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 'c001' });
+      createTestFile(user.id, { slug: 'c002' });
+
+      expect(File.countByUserId(user.id)).toBe(2);
+    });
+
+    it('returns 0 for a user with no files', async () => {
+      const user = await createTestUser();
+      expect(File.countByUserId(user.id)).toBe(0);
+    });
+  });
+
+  // ─── findAll ───────────────────────────────────────────────
+  describe('findAll', () => {
+    it('returns all files across all users', async () => {
+      const userA = await createTestUser();
+      const userB = await createTestUser();
+      createTestFile(userA.id, { slug: 'a001' });
+      createTestFile(userB.id, { slug: 'b001' });
+
+      expect(File.findAll()).toHaveLength(2);
+    });
+
+    it('filters by search term on originalName', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 's001', originalName: 'report.pdf' });
+      createTestFile(user.id, { slug: 's002', originalName: 'image.png' });
+
+      const results = File.findAll(null, 0, 'report');
+      expect(results).toHaveLength(1);
+      expect(results[0].originalName).toBe('report.pdf');
+    });
+
+    it('respects limit and offset', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 'pg01' });
+      createTestFile(user.id, { slug: 'pg02' });
+      createTestFile(user.id, { slug: 'pg03' });
+
+      expect(File.findAll(2, 0)).toHaveLength(2);
+      expect(File.findAll(2, 2)).toHaveLength(1);
+    });
+  });
+
+  // ─── countAll ──────────────────────────────────────────────
+  describe('countAll', () => {
+    it('returns total file count', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 'cnt1' });
+      createTestFile(user.id, { slug: 'cnt2' });
+
+      expect(File.countAll()).toBe(2);
+    });
+
+    it('filters count by search term', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 'srch1', originalName: 'budget.xlsx' });
+      createTestFile(user.id, { slug: 'srch2', originalName: 'photo.jpg' });
+
+      expect(File.countAll('budget')).toBe(1);
+      expect(File.countAll('photo')).toBe(1);
+      expect(File.countAll('missing')).toBe(0);
+    });
+  });
+
+  // ─── findExpired ───────────────────────────────────────────
+  describe('findExpired', () => {
+    it('returns files whose expiresAt is in the past', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 'exp1', expiresAt: past() });
+      createTestFile(user.id, { slug: 'exp2', expiresAt: future() });
+
+      const expired = File.findExpired();
+      expect(expired.map(f => f.slug)).toContain('exp1');
+      expect(expired.map(f => f.slug)).not.toContain('exp2');
+    });
+
+    it('returns files whose deactivateAt is in the past', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 'dct1', deactivateAt: past() });
+      createTestFile(user.id, { slug: 'dct2', deactivateAt: future() });
+
+      const expired = File.findExpired();
+      expect(expired.map(f => f.slug)).toContain('dct1');
+      expect(expired.map(f => f.slug)).not.toContain('dct2');
+    });
+
+    it('does not return active files with no expiry', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 'noexp' });
+
+      expect(File.findExpired()).toHaveLength(0);
+    });
+  });
+
+  // ─── delete ────────────────────────────────────────────────
+  describe('delete', () => {
+    it('removes the file from the database', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'del01' });
+
+      File.delete(file.id);
+      expect(File.findBySlug('del01')).toBeUndefined();
+    });
+
+    it('returns change info with changes = 1', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'del02' });
+
+      const result = File.delete(file.id);
+      expect(result.changes).toBe(1);
+    });
+  });
+
+  // ─── incrementDownloads ────────────────────────────────────
+  describe('incrementDownloads', () => {
+    it('increments the download counter by 1', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'dl001', downloads: 0 });
+
+      File.incrementDownloads(file.id);
+      const updated = File.findBySlug('dl001');
+      expect(updated.downloads).toBe(1);
+    });
+
+    it('increments correctly from a non-zero value', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'dl002', downloads: 4 });
+
+      File.incrementDownloads(file.id);
+      expect(File.findBySlug('dl002').downloads).toBe(5);
+    });
+  });
+
+  // ─── update ────────────────────────────────────────────────
+  describe('update', () => {
+    it('updates expiry and maxDownloads', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'upd01' });
+      const newExpiry = future();
+
+      const updated = File.update(file.id, { expiresAt: newExpiry, maxDownloads: 10 });
+      expect(updated.expiresAt).toBe(newExpiry);
+      expect(updated.maxDownloads).toBe(10);
+    });
+
+    it('preserves fields that are not passed', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'upd02', maxDownloads: 5 });
+
+      const updated = File.update(file.id, { sharingMode: 'restricted' });
+      expect(updated.maxDownloads).toBe(5);
+      expect(updated.sharingMode).toBe('restricted');
+    });
+
+    it('updates password', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'upd03' });
+
+      const updated = File.update(file.id, { password: '$2b$10$newhash' });
+      expect(updated.password).toBe('$2b$10$newhash');
+    });
+
+    it('updates allowedUsers as JSON array', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'upd04' });
+
+      const updated = File.update(file.id, { allowedUsers: [1, 2, 3] });
+      expect(JSON.parse(updated.allowedUsers)).toEqual([1, 2, 3]);
+    });
+
+    it('replaces tags when tagIds is provided', async () => {
+      const user  = await createTestUser();
+      const tagA  = createTestTag({ name: 'alpha', userId: user.id });
+      const tagB  = createTestTag({ name: 'beta',  userId: user.id });
+      const file  = createTestFile(user.id, { slug: 'upd05' });
+      getTestDatabase().prepare('INSERT INTO file_tags (fileId, tagId) VALUES (?, ?)').run(file.id, tagA.id);
+
+      const updated = File.update(file.id, { tagIds: [tagB.id] });
+      const tagNames = updated.tags.map(t => t.name);
+      expect(tagNames).not.toContain('alpha');
+      expect(tagNames).toContain('beta');
+    });
+
+    it('returns null for a non-existent file', async () => {
+      expect(File.update(99999, { maxDownloads: 1 })).toBeNull();
+    });
+  });
+
+  // ─── replaceTags ───────────────────────────────────────────
+  describe('replaceTags', () => {
+    it('replaces all existing tags with new ones', async () => {
+      const user = await createTestUser();
+      const tagA = createTestTag({ name: 'old', userId: user.id });
+      const tagB = createTestTag({ name: 'new', userId: user.id });
+      const file = createTestFile(user.id, { slug: 'rt001' });
+      getTestDatabase().prepare('INSERT INTO file_tags (fileId, tagId) VALUES (?, ?)').run(file.id, tagA.id);
+
+      File.replaceTags(file.id, [tagB.id]);
+      const tags = File.getTags(file.id);
+      expect(tags.map(t => t.name)).toEqual(['new']);
+    });
+
+    it('removes all tags when passed an empty array', async () => {
+      const user = await createTestUser();
+      const tag  = createTestTag({ name: 'gone', userId: user.id });
+      const file = createTestFile(user.id, { slug: 'rt002' });
+      getTestDatabase().prepare('INSERT INTO file_tags (fileId, tagId) VALUES (?, ?)').run(file.id, tag.id);
+
+      File.replaceTags(file.id, []);
+      expect(File.getTags(file.id)).toHaveLength(0);
+    });
+  });
+
+  // ─── getTags ───────────────────────────────────────────────
+  describe('getTags', () => {
+    it('returns tags for a file', async () => {
+      const user = await createTestUser();
+      const tag  = createTestTag({ name: 'mytag', userId: user.id });
+      const file = createTestFile(user.id, { slug: 'gt001' });
+      getTestDatabase().prepare('INSERT INTO file_tags (fileId, tagId) VALUES (?, ?)').run(file.id, tag.id);
+
+      expect(File.getTags(file.id)).toHaveLength(1);
+      expect(File.getTags(file.id)[0].name).toBe('mytag');
+    });
+
+    it('returns empty array for a file with no tags', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'gt002' });
+      expect(File.getTags(file.id)).toEqual([]);
+    });
+  });
+
+  // ─── slugExists ────────────────────────────────────────────
+  describe('slugExists', () => {
+    it('returns true for a slug that exists', async () => {
+      const user = await createTestUser();
+      createTestFile(user.id, { slug: 'exist1' });
+      expect(File.slugExists('exist1')).toBe(true);
+    });
+
+    it('returns false for a slug that does not exist', () => {
+      expect(File.slugExists('nope99')).toBe(false);
+    });
+  });
+
+  // ─── generateUniqueSlug ────────────────────────────────────
+  describe('generateUniqueSlug', () => {
+    it('returns a 5-character slug', async () => {
+      const slug = File.generateUniqueSlug();
+      expect(typeof slug).toBe('string');
+      expect(slug).toHaveLength(5);
+    });
+
+    it('only uses valid characters', () => {
+      const slug = File.generateUniqueSlug();
+      expect(slug).toMatch(/^[A-Za-z0-9\-_]{5}$/);
+    });
+
+    it('generates a slug that does not already exist', async () => {
+      const slug = File.generateUniqueSlug();
+      expect(File.slugExists(slug)).toBe(false);
+    });
+
+    it('throws after exhausting retries if all slugs are taken', () => {
+      const spy = jest.spyOn(File, 'slugExists').mockReturnValue(true);
+      expect(() => File.generateUniqueSlug()).toThrow('Unable to generate unique file slug');
+      spy.mockRestore();
+    });
+  });
+
+  // ─── isValid ───────────────────────────────────────────────
+  describe('isValid', () => {
+    it('returns active for a normal available file', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'iv001' });
+
+      const result = File.isValid(file);
+      expect(result.valid).toBe(true);
+      expect(result.status).toBe('active');
+    });
+
+    it('returns blocked when isBlocked = 1', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'iv002', isBlocked: 1 });
+
+      const result = File.isValid(file);
+      expect(result.valid).toBe(false);
+      expect(result.status).toBe('blocked');
+    });
+
+    it('returns not_active when activateAt is in the future', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'iv003', activateAt: future() });
+
+      const result = File.isValid(file);
+      expect(result.valid).toBe(false);
+      expect(result.status).toBe('not_active');
+    });
+
+    it('returns expired when deactivateAt is in the past', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'iv004', deactivateAt: past() });
+
+      const result = File.isValid(file);
+      expect(result.valid).toBe(false);
+      expect(result.status).toBe('expired');
+    });
+
+    it('returns expired when expiresAt is in the past', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'iv005', expiresAt: past() });
+
+      const result = File.isValid(file);
+      expect(result.valid).toBe(false);
+      expect(result.status).toBe('expired');
+    });
+
+    it('returns active when expiresAt is in the future', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'iv006', expiresAt: future() });
+
+      const result = File.isValid(file);
+      expect(result.valid).toBe(true);
+      expect(result.status).toBe('active');
+    });
+
+    it('returns max_downloads when downloads >= maxDownloads', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'iv007', maxDownloads: 3, downloads: 3 });
+
+      const result = File.isValid(file);
+      expect(result.valid).toBe(false);
+      expect(result.status).toBe('max_downloads');
+    });
+
+    it('returns active when downloads is below maxDownloads', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'iv008', maxDownloads: 5, downloads: 2 });
+
+      const result = File.isValid(file);
+      expect(result.valid).toBe(true);
+      expect(result.status).toBe('active');
+    });
+
+    it('blocked takes precedence over not_active', async () => {
+      const user = await createTestUser();
+      const file = createTestFile(user.id, { slug: 'iv009', isBlocked: 1, activateAt: future() });
+
+      expect(File.isValid(file).status).toBe('blocked');
+    });
+  });
+
+});

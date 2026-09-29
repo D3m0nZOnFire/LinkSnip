@@ -1,0 +1,117 @@
+{
+  "defaultRole": "user",
+  "roles": {
+    "anonymous": {
+      "label": "Anonymous",
+      "permissions": {
+        "createUrls": true,
+        "createPastes": true,
+        "createBundles": true,
+        "uploadFiles": false,
+        "passwordProtection": false,
+        "scheduling": false,
+        "tags": false,
+        "analytics": false,
+        "analyticsShareLinks": false,
+        "importExport": false,
+        "bioPage": false,
+        "skipAutoModeration": false
+      },
+      "limits": {
+        "urlsPerHour": 10,
+        "pastesPerHour": 10,
+        "bundlesPerHour": 3,
+        "importsPerHour": 0,
+        "importBatchSize": 0,
+        "shareLinksPerUrl": 0,
+        "maxFileSizeMB": 0,
+        "storageQuotaMB": 0,
+        "uploadsPerHour": 0
+      }
+    },
+    "user": {
+      "label": "User",
+      "permissions": {
+        "createUrls": true,
+        "createPastes": true,
+        "createBundles": true,
+        "uploadFiles": false,
+        "passwordProtection": true,
+        "scheduling": true,
+        "tags": true,
+        "analytics": true,
+        "analyticsShareLinks": true,
+        "importExport": true,
+        "bioPage": true,
+        "skipAutoModeration": false
+      },
+      "limits": {
+        "urlsPerHour": 100,
+        "pastesPerHour": 100,
+        "bundlesPerHour": 20,
+        "importsPerHour": 10,
+        "importBatchSize": 1000,
+        "shareLinksPerUrl": 10,
+        "maxFileSizeMB": 0,
+        "storageQuotaMB": 0,
+        "uploadsPerHour": 0
+      }
+    },
+    "trusted": {
+      "label": "Trusted",
+      "permissions": {
+        "createUrls": true,
+        "createPastes": true,
+        "createBundles": true,
+        "uploadFiles": true,
+        "passwordProtection": true,
+        "scheduling": true,
+        "tags": true,
+        "analytics": true,
+        "analyticsShareLinks": true,
+        "importExport": true,
+        "bioPage": true,
+        "skipAutoModeration": true
+      },
+      "limits": {
+        "urlsPerHour": 500,
+        "pastesPerHour": 500,
+        "bundlesPerHour": 100,
+        "importsPerHour": 30,
+        "importBatchSize": 10000,
+        "shareLinksPerUrl": 50,
+        "maxFileSizeMB": 100,
+        "storageQuotaMB": 2048,
+        "uploadsPerHour": 50
+      }
+    },
+    "unlimited": {
+      "label": "Unlimited",
+      "permissions": {
+        "createUrls": true,
+        "createPastes": true,
+        "createBundles": true,
+        "uploadFiles": true,
+        "passwordProtection": true,
+        "scheduling": true,
+        "tags": true,
+        "analytics": true,
+        "analyticsShareLinks": true,
+        "importExport": true,
+        "bioPage": true,
+        "skipAutoModeration": true
+      },
+      "limits": {
+        "urlsPerHour": null,
+        "pastesPerHour": null,
+        "bundlesPerHour": null,
+        "importsPerHour": null,
+        "importBatchSize": null,
+        "shareLinksPerUrl": null,
+        "maxFileSizeMB": null,
+        "storageQuotaMB": null,
+        "uploadsPerHour": null
+      }
+    }
+  }
+}

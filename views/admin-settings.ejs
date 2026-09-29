@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Settings - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <script src="/js/theme.js"></script>
+  <style>
+    .settings-section { margin-bottom: 2rem; }
+    .settings-section h3 { margin-bottom: 0.75rem; }
+    .setting-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 11rem;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .setting-row code { color: var(--primary); font-size: 0.875rem; }
+    .setting-row p { margin: 0.25rem 0 0; color: var(--muted-foreground); font-size: 0.875rem; }
+    .setting-control { justify-self: end; }
+    .setting-control input[type="number"] { width: 11rem; }
+    .setting-control input[type="checkbox"] { width: 1.25rem; height: 1.25rem; accent-color: var(--primary); cursor: pointer; }
+    .settings-actions { display: flex; gap: 1rem; align-items: center; margin: 1.5rem 0 3rem; }
+    .settings-errors { color: var(--destructive); margin: 0; padding-left: 1.25rem; }
+    .settings-saved { color: var(--primary); }
+    .file-note { color: var(--muted-foreground); font-size: 0.875rem; }
+    .file-note code { color: var(--foreground); }
+    .role-grid td, .role-grid th { text-align: center; }
+    .role-grid td:first-child, .role-grid th:first-child { text-align: left; }
+    .role-grid .yes { color: var(--primary); font-weight: 600; }
+    .role-grid .no { color: var(--muted-foreground); }
+    .role-grid .desc { display: block; color: var(--muted-foreground); font-size: 0.8rem; }
+    @media (max-width: 640px) {
+      .setting-row { grid-template-columns: 1fr; }
+      .setting-control { justify-self: start; }
+    }
+  </style>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'admin-settings' }) %>
+
+  <%
+    const SECTION_TITLES = {
+      registration: 'Registration', geo: 'Geolocation', features: 'Features', moderation: 'Moderation',
+      anonymous: 'Anonymous visitors', pastes: 'Pastes', files: 'Files', retention: 'Retention'
+    };
+    const limitText = (v) => v === null ? 'Unlimited' : (v === 0 ? 'None' : v);
+  %>
+
+  <main class="main-content-wide">
+    <div class="header-section">
+      <div>
+        <h2>Settings</h2>
+        <p class="file-note">
+          Saved to <code><%= files.settings %></code>. Editing that file by hand works too; changes apply within a few seconds.
+        </p>
+      </div>
+    </div>
+
+    <form id="settingsForm" onsubmit="saveSettings(event)">
+      <% sections.forEach(section => { %>
+        <section class="settings-section">
+          <h3><%= SECTION_TITLES[section.name] || section.name %></h3>
+          <% section.fields.forEach(field => { %>
+            <div class="setting-row">
+              <label for="<%= field.key %>">
+                <code><%= field.key %></code>
+                <p><%= field.description %></p>
+              </label>
+              <div class="setting-control">
+                <% if (field.type === 'boolean') { %>
+                  <input type="checkbox" id="<%= field.key %>" data-key="<%= field.key %>" data-type="boolean" <%= field.value ? 'checked' : '' %>>
+                <% } else { %>
+                  <input type="number" class="form-input" id="<%= field.key %>" data-key="<%= field.key %>" data-type="integer"
+                    data-nullable="<%= field.nullable %>" min="<%= field.min %>" step="1"
+                    value="<%= field.value === null ? '' : field.value %>"
+                    <%= field.nullable ? 'placeholder=No cap' : 'required' %>>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+        </section>
+      <% }) %>
+
+      <div class="settings-actions">
+        <button type="submit" class="btn" id="saveSettingsBtn" style="color: var(--primary-foreground);">Save settings</button>
+        <span id="settingsStatus" class="settings-saved" role="status"></span>
+      </div>
+      <ul id="settingsErrors" class="settings-errors" role="alert"></ul>
+    </form>
+
+    <section class="settings-section">
+      <h3>Roles</h3>
+      <p class="file-note">
+        Read-only here. Edit <code><%= files.roles %></code> to change roles; missing keys use the built-in defaults.
+        Accounts without a role use <strong><%= (roleGrid.roles.find(r => r.name === roleGrid.defaultRole) || {}).label %></strong> (<code>defaultRole</code>).
+        Admins always have every permission and no limits.
+      </p>
+
+      <div class="table-container">
+        <table class="data-table role-grid">
+          <thead>
+            <tr>
+              <th>Permission</th>
+              <% roleGrid.roles.forEach(role => { %><th><%= role.label %></th><% }) %>
+            </tr>
+          </thead>
+          <tbody>
+            <% roleGrid.permissions.forEach(perm => { %>
+              <tr>
+                <td><code><%= perm.name %></code><span class="desc"><%= perm.description %></span></td>
+                <% perm.values.forEach(v => { %>
+                  <td class="<%= v ? 'yes' : 'no' %>" aria-label="<%= v ? 'Allowed' : 'Not allowed' %>"><%= v ? '✓' : '✗' %></td>
+                <% }) %>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-container" style="margin-top: 1.5rem;">
+        <table class="data-table role-grid">
+          <thead>
+            <tr>
+              <th>Limit</th>
+              <% roleGrid.roles.forEach(role => { %><th><%= role.label %></th><% }) %>
+            </tr>
+          </thead>
+          <tbody>
+            <% roleGrid.limits.forEach(limit => { %>
+              <tr>
+                <td><code><%= limit.name %></code><span class="desc"><%= limit.description %></span></td>
+                <% limit.values.forEach(v => { %><td><%= limitText(v) %></td><% }) %>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function readForm() {
+      const values = {};
+      document.querySelectorAll('#settingsForm [data-key]').forEach(input => {
+        const key = input.dataset.key;
+        if (input.dataset.type === 'boolean') {
+          values[key] = input.checked;
+        } else if (input.value.trim() === '' && input.dataset.nullable === 'true') {
+          values[key] = null;
+        } else {
+          values[key] = Number(input.value);
+        }
+      });
+      return values;
+    }
+
+    async function saveSettings(event) {
+      event.preventDefault();
+      const button = document.getElementById('saveSettingsBtn');
+      const status = document.getElementById('settingsStatus');
+      const errors = document.getElementById('settingsErrors');
+      status.textContent = '';
+      errors.innerHTML = '';
+      button.disabled = true;
+
+      try {
+        const response = await fetch('/api/admin/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(readForm())
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          const count = Object.keys(data.changed).length;
+          status.textContent = count ? `Saved ${count} change${count === 1 ? '' : 's'}.` : 'No changes.';
+        } else {
+          (data.errors || ['Could not save settings.']).forEach(message => {
+            const li = document.createElement('li');
+            li.textContent = message;
+            errors.appendChild(li);
+          });
+        }
+      } catch (e) {
+        const li = document.createElement('li');
+        li.textContent = 'Request failed. Please try again.';
+        errors.appendChild(li);
+      } finally {
+        button.disabled = false;
+      }
+    }
+  </script>
+  <%- include('partials/footer') %>
+</body>
+</html>

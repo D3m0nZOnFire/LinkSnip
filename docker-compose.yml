@@ -1,0 +1,41 @@
+# LinkSnip: docker compose up -d
+# Needs a .env file with SESSION_SECRET (see .env.example).
+# All data (database, uploads, backups, settings.json, roles.json) lives in ./data.
+#
+# With automatic HTTPS from the bundled Caddy:
+#   DOMAIN=links.example.com docker compose --profile caddy up -d
+
+services:
+  linksnip:
+    image: ghcr.io/d3m0nzonfire/linksnip:latest
+    build: .
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    ports:
+      # Only reachable from this machine; put a reverse proxy (Caddy below) in front.
+      - "127.0.0.1:8081:8081"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    profiles: [caddy]
+    depends_on:
+      - linksnip
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

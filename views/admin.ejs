@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/modals.css">
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'admin' }) %>
+
+  <!-- Main Content -->
+  <main class="main-content-wide">
+    <!-- Header Section -->
+    <div class="header-section">
+      <div>
+        <h2>Admin Panel</h2>
+        <p>
+          <span class="count"><%= pagination.totalUrls %></span> link<%= pagination.totalUrls !== 1 ? 's' : '' %>
+          <% if (pagination.totalBundles > 0) { %> &nbsp;·&nbsp; <span class="count"><%= pagination.totalBundles %></span> bundle<%= pagination.totalBundles !== 1 ? 's' : '' %><% } %>
+        </p>
+      </div>
+      <% if (pagination.totalUrls > 0 || pagination.totalBundles > 0) { %>
+        <button id="toggleSelectBtn" class="btn" style="background-color:var(--secondary); color:var(--foreground);" onclick="toggleSelectionMode()">Select</button>
+      <% } %>
+    </div>
+
+    <!-- Type Filter Pills -->
+    <div style="display:flex; gap:0.375rem; margin-bottom:1.25rem;">
+      <button type="button" class="dash-filter-pill active" id="pill-all" onclick="setAdminFilter('all')">All</button>
+      <button type="button" class="dash-filter-pill" id="pill-links" onclick="setAdminFilter('links')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+        </svg>
+        Links (<%= pagination.totalUrls %>)
+      </button>
+      <button type="button" class="dash-filter-pill" id="pill-bundles" onclick="setAdminFilter('bundles')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;">
+          <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+        </svg>
+        Bundles (<%= pagination.totalBundles %>)
+      </button>
+    </div>
+    <style>
+      .dash-filter-pill {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        padding: 0.375rem 0.875rem;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 9999px;
+        color: var(--muted-foreground);
+        font-size: 0.8125rem; font-weight: 500;
+        cursor: pointer; font-family: inherit; line-height: 1;
+        transition: border-color 0.15s, color 0.15s, background 0.15s;
+      }
+      .dash-filter-pill:hover { border-color: var(--primary); color: var(--foreground); }
+      .dash-filter-pill.active { border-color: var(--primary); color: var(--primary); background: var(--status-active-bg); }
+    </style>
+
+    <!-- Filters Section -->
+    <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
+      <form id="filterForm" method="GET" action="/admin">
+        <!-- Row 1: Search and Sort -->
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 1rem;">
+          <!-- Search Input -->
+          <div style="flex: 2; min-width: 250px; position: relative;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <label for="searchInput" style="font-size: 0.875rem; color: var(--muted-foreground);">Search</label>
+              <button type="button" id="searchHelpBtn" onclick="toggleSearchHelp(event)" title="Search shorthand reference" style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; border:1px solid var(--muted-foreground); background:transparent; color:var(--muted-foreground); font-size:0.7rem; font-weight:700; cursor:pointer; line-height:1; padding:0; flex-shrink:0;">?</button>
+            </div>
+            <input
+              type="text"
+              id="searchInput"
+              name="search"
+              value="<%= filters.search %>"
+              placeholder="Search slug, URL, or use @shortcuts..."
+              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem;"
+            >
+            <!-- Shorthand reference popup -->
+            <div id="searchHelpPopup" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:300; background:var(--card); border:1px solid var(--border); border-radius:0.5rem; padding:1rem; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+              <table style="width:100%; border-collapse:collapse; font-size:0.8rem; line-height:1.8;">
+                <thead>
+                  <tr>
+                    <th style="text-align:left; color:var(--muted-foreground); font-weight:500; padding-bottom:0.5rem; border-bottom:1px solid var(--border); width:55%;">Shorthand</th>
+                    <th style="text-align:left; color:var(--muted-foreground); font-weight:500; padding-bottom:0.5rem; border-bottom:1px solid var(--border);">Effect</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td style="padding-top:0.4rem;"><code style="color:var(--primary);">@user:[name]</code></td><td style="color:var(--muted-foreground);">URLs by this user</td></tr>
+                  <tr><td><code style="color:var(--primary);">@user:[a],[b]</code></td><td style="color:var(--muted-foreground);">URLs by user A <em>or</em> B</td></tr>
+                  <tr><td><code style="color:var(--primary);">@user:![name]</code></td><td style="color:var(--muted-foreground);">Exclude this user</td></tr>
+                  <tr><td style="padding-top:0.6rem;"><code style="color:var(--primary);">@status:[value]</code></td><td style="color:var(--muted-foreground); padding-top:0.6rem;">active · blocked · expired · scheduled<br><span style="padding-left:0;">max-uses · anonymous · password-protected</span></td></tr>
+                  <tr><td style="padding-top:0.6rem;"><code style="color:var(--primary);">@clicks:&gt;[N]</code></td><td style="color:var(--muted-foreground); padding-top:0.6rem;">More than N clicks</td></tr>
+                  <tr><td><code style="color:var(--primary);">@clicks:&lt;[N]</code></td><td style="color:var(--muted-foreground);">Fewer than N clicks</td></tr>
+                  <tr><td><code style="color:var(--primary);">@clicks:0</code></td><td style="color:var(--muted-foreground);">Never clicked</td></tr>
+                  <tr><td style="padding-top:0.6rem;"><code style="color:var(--primary);">@anon</code></td><td style="color:var(--muted-foreground); padding-top:0.6rem;">Anonymous URLs only</td></tr>
+                  <tr><td><code style="color:var(--primary);">@protected</code></td><td style="color:var(--muted-foreground);">Password-protected only</td></tr>
+                  <tr><td style="padding-top:0.6rem;"><code style="color:var(--primary);">A | B</code></td><td style="color:var(--muted-foreground); padding-top:0.6rem;">OR — results matching A <em>or</em> B</td></tr>
+                </tbody>
+              </table>
+              <p style="margin:0.75rem 0 0; font-size:0.75rem; color:var(--muted-foreground);">Example: <code style="color:var(--foreground);">@user:alice @status:blocked | @user:bob @clicks:>100</code></p>
+            </div>
+          </div>
+
+          <!-- Sort -->
+          <div style="min-width: 150px;">
+            <label for="sortFilter" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">Sort By</label>
+            <select
+              id="sortFilter"
+              name="sort"
+              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem; cursor: pointer;"
+            >
+              <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest First</option>
+              <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest First</option>
+              <option value="most-clicks" <%= filters.sort === 'most-clicks' ? 'selected' : '' %>>Most Clicks</option>
+              <option value="least-clicks" <%= filters.sort === 'least-clicks' ? 'selected' : '' %>>Least Clicks</option>
+              <option value="most-reports" <%= filters.sort === 'most-reports' ? 'selected' : '' %>>Most Reports</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 2: Filters -->
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+          <!-- Status Filter -->
+          <div style="min-width: 140px;">
+            <label for="statusFilter" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">Status</label>
+            <select
+              id="statusFilter"
+              name="status"
+              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem; cursor: pointer;"
+            >
+              <option value="" <%= filters.status === '' ? 'selected' : '' %>>All</option>
+              <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
+              <option value="blocked" <%= filters.status === 'blocked' ? 'selected' : '' %>>Blocked</option>
+              <option value="expired" <%= filters.status === 'expired' ? 'selected' : '' %>>Expired</option>
+              <option value="scheduled" <%= filters.status === 'scheduled' ? 'selected' : '' %>>Scheduled</option>
+              <option value="max-uses" <%= filters.status === 'max-uses' ? 'selected' : '' %>>Max Uses</option>
+              <option value="anonymous" <%= filters.status === 'anonymous' ? 'selected' : '' %>>Anonymous</option>
+              <option value="password-protected" <%= filters.status === 'password-protected' ? 'selected' : '' %>>Password Protected</option>
+            </select>
+          </div>
+
+          <!-- Has Reports Filter -->
+          <div style="min-width: 130px;">
+            <label for="hasReportsFilter" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">Reports</label>
+            <select
+              id="hasReportsFilter"
+              name="hasReports"
+              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem; cursor: pointer;"
+            >
+              <option value="" <%= filters.hasReports === '' ? 'selected' : '' %>>All</option>
+              <option value="yes" <%= filters.hasReports === 'yes' ? 'selected' : '' %>>Has Reports</option>
+              <option value="no" <%= filters.hasReports === 'no' ? 'selected' : '' %>>No Reports</option>
+            </select>
+          </div>
+
+          <!-- Date From -->
+          <div style="min-width: 140px;">
+            <label for="dateFrom" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">Created From</label>
+            <input
+              type="date"
+              id="dateFrom"
+              name="dateFrom"
+              value="<%= filters.dateFrom %>"
+              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem;"
+            >
+          </div>
+
+          <!-- Date To -->
+          <div style="min-width: 140px;">
+            <label for="dateTo" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">Created To</label>
+            <input
+              type="date"
+              id="dateTo"
+              name="dateTo"
+              value="<%= filters.dateTo %>"
+              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem;"
+            >
+          </div>
+
+          <!-- Filter Buttons -->
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn" style="padding: 0.5rem 1rem; color: var(--primary-foreground);">
+              Apply
+            </button>
+            <% const hasFilters = filters.search || filters.status || filters.hasReports || filters.sort !== 'newest' || filters.dateFrom || filters.dateTo; %>
+            <% if (hasFilters) { %>
+              <a href="/admin" class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); text-decoration: none;">
+                Clear
+              </a>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Preserve pagination limit in form -->
+        <input type="hidden" name="limit" value="<%= pagination.limit %>">
+      </form>
+    </div>
+
+    <!-- Pagination Controls -->
+    <% if (pagination.totalUrls > 0) { %>
+      <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <!-- Items per page selector -->
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label for="itemsPerPage" style="color: var(--muted-foreground); font-size: 0.875rem;">Show:</label>
+            <select id="itemsPerPage" style="padding: 0.5rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem; cursor: pointer;">
+              <option value="50" <%= pagination.limit == 50 ? 'selected' : '' %>>50</option>
+              <option value="100" <%= pagination.limit == 100 ? 'selected' : '' %>>100</option>
+              <option value="150" <%= pagination.limit == 150 ? 'selected' : '' %>>150</option>
+              <option value="200" <%= pagination.limit == 200 ? 'selected' : '' %>>200</option>
+              <option value="all" <%= pagination.limit === 'all' ? 'selected' : '' %>>All</option>
+            </select>
+            <span style="color: var(--muted-foreground); font-size: 0.875rem;">
+              <% if (pagination.limit === 'all') { %>
+                Showing all <%= pagination.totalUrls %> URLs
+              <% } else { %>
+                Showing <%= Math.min((pagination.currentPage - 1) * pagination.limit + 1, pagination.totalUrls) %>-<%= Math.min(pagination.currentPage * pagination.limit, pagination.totalUrls) %> of <%= pagination.totalUrls %>
+              <% } %>
+            </span>
+          </div>
+
+          <!-- Page navigation -->
+          <% if (pagination.limit !== 'all' && pagination.totalPages > 1) { %>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <button
+                id="prevPage"
+                class="btn"
+                style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground);"
+                <%= !pagination.hasPrev ? 'disabled' : '' %>
+              >
+                Previous
+              </button>
+              <span style="color: var(--muted-foreground); font-size: 0.875rem;">
+                Page <%= pagination.currentPage %> of <%= pagination.totalPages %>
+              </span>
+              <button
+                id="nextPage"
+                class="btn"
+                style="padding: 0.5rem 1rem; color: var(--primary-foreground);"
+                <%= !pagination.hasNext ? 'disabled' : '' %>
+              >
+                Next
+              </button>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- Empty State or Item List -->
+    <% if (urls.length === 0 && bundles.length === 0) { %>
+      <div class="empty-state">
+        <p>No items in the system</p>
+      </div>
+    <% } else { %>
+      <div id="itemList" class="url-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <% urls.forEach(url => { %>
+          <%
+            // Check all possible states
+            const now = new Date();
+            let isBlocked = url.isBlocked;
+            let isNotActive = url.activateAt && new Date(url.activateAt) > now;
+            let isDeactivated = url.deactivateAt && new Date(url.deactivateAt) < now;
+            let isExpired = url.expiresAt && new Date(url.expiresAt) < now;
+            let isMaxedOut = url.maxUses && url.clicks >= url.maxUses;
+
+            // Priority order for status
+            let status = 'active';
+            if (isBlocked) status = 'blocked';
+            else if (isNotActive) status = 'scheduled';
+            else if (isDeactivated || isExpired) status = 'expired';
+            else if (isMaxedOut) status = 'max-uses';
+
+            // Deletion warning: show when ≤30 days remain in the 90-day grace period (registered users only)
+            const graceDays = 90;
+            const warningThreshold = 30;
+            let daysUntilDeletion = null;
+            if (url.creatorId) {
+              let inactiveDate = null;
+              if (isDeactivated) inactiveDate = new Date(url.deactivateAt);
+              else if (isExpired) inactiveDate = new Date(url.expiresAt);
+              if (inactiveDate) {
+                const daysSinceInactive = (now - inactiveDate) / (1000 * 60 * 60 * 24);
+                const remaining = graceDays - daysSinceInactive;
+                if (remaining > 0 && remaining <= warningThreshold) {
+                  daysUntilDeletion = Math.ceil(remaining);
+                }
+              }
+            }
+          %>
+          <div class="url-item" data-type="link" data-url-id="<%= url.id %>" data-created-at="<%= url.createdAt %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
+            <!-- Collapsed View (Always Visible) -->
+            <div class="url-item-header" style="padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer;" onclick="toggleUrlDetails(this)">
+              <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 1rem;">
+                <!-- Selection Checkbox (visible in selection mode only) -->
+                <input type="checkbox" class="url-select-checkbox" style="display:none; flex-shrink:0; width:18px; height:18px; cursor:pointer; accent-color:var(--primary);" onclick="event.stopPropagation();" onchange="toggleUrlSelection(<%= url.id %>, this)">
+                <!-- Expand/Collapse Icon -->
+                <svg class="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; transition: transform 0.2s;">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+
+                <!-- Short URL -->
+                <div style="min-width: 120px; flex-shrink: 0;">
+                  <a href="<%= baseUrl %>/s/<%= url.slug %>" target="_blank" class="url-link" onclick="event.stopPropagation();" style="font-weight: 500; color: var(--primary);">
+                    /s/<%= url.slug %>
+                  </a>
+                </div>
+
+                <!-- Long URL (Truncated) -->
+                <div style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  <a href="<%= url.longUrl %>" target="_blank" onclick="event.stopPropagation();" style="color: var(--foreground); text-decoration: none;" title="<%= url.longUrl %>">
+                    <%= url.longUrl %>
+                  </a>
+                </div>
+
+                <!-- Clicks Badge -->
+                <div style="flex-shrink: 0; padding: 0.25rem 0.75rem; background-color: var(--secondary); border-radius: 0.375rem; font-size: 0.875rem;">
+                  <%= url.clicks %> clicks
+                </div>
+
+                <!-- Status Badge -->
+                <div style="flex-shrink: 0;">
+                  <% if (status === 'blocked') { %>
+                    <span class="badge" style="background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border);">⛔ Blocked</span>
+                  <% } else if (status === 'scheduled') { %>
+                    <span class="badge" style="background-color: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3);">⏰ Scheduled</span>
+                  <% } else if (status === 'expired') { %>
+                    <span class="badge badge-expired">Expired</span>
+                  <% } else if (status === 'max-uses') { %>
+                    <span class="badge badge-max">Max Uses</span>
+                  <% } else { %>
+                    <span class="badge badge-active">Active</span>
+                  <% } %>
+                </div>
+
+                <!-- Deletion Warning Badge -->
+                <% if (daysUntilDeletion !== null) { %>
+                  <div style="flex-shrink: 0;" title="This expired link will be automatically deleted in <%= daysUntilDeletion %> day<%= daysUntilDeletion === 1 ? '' : 's' %>">
+                    <span class="badge" style="background-color: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3);">⚠️ Deletes in <%= daysUntilDeletion %>d</span>
+                  </div>
+                <% } %>
+
+                <!-- Reports Badge -->
+                <% if (url.reportCount > 0) { %>
+                  <div style="flex-shrink: 0;">
+                    <span class="badge" style="background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border);">
+                      <%= url.reportCount %> reports
+                    </span>
+                  </div>
+                <% } %>
+
+                <!-- Password Protection Badge -->
+                <% if (url.password) { %>
+                  <div style="flex-shrink: 0;" title="Password Protected">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                  </div>
+                <% } %>
+
+                <!-- Scheduling Status Badge -->
+                <%
+                  if (url.activateAt || url.deactivateAt) {
+                    const now = new Date();
+                    const activateDate = url.activateAt ? new Date(url.activateAt) : null;
+                    const deactivateDate = url.deactivateAt ? new Date(url.deactivateAt) : null;
+                    let scheduleColor = 'var(--primary)';
+                    let scheduleText = '⏰ Scheduled';
+                    let scheduleTitle = 'This URL has scheduling';
+
+                    if (activateDate && activateDate > now) {
+                      scheduleColor = 'var(--status-warning-text)';
+                      scheduleText = '⏰ Not Active';
+                      scheduleTitle = 'Not yet active until ' + activateDate.toLocaleString('en-GB');
+                    } else if (deactivateDate && deactivateDate < now) {
+                      scheduleColor = 'var(--status-error-text)';
+                      scheduleText = '⏱️ Expired';
+                      scheduleTitle = 'Deactivated on ' + deactivateDate.toLocaleString('en-GB');
+                    }
+                %>
+                  <div style="flex-shrink: 0;" title="<%= scheduleTitle %>">
+                    <span class="badge" style="background-color: <%= scheduleColor %>20; color: <%= scheduleColor %>; border: 1px solid <%= scheduleColor %>50; font-size: 0.75rem;">
+                      <%= scheduleText %>
+                    </span>
+                  </div>
+                <% } %>
+
+                <!-- Quick Actions -->
+                <div style="flex-shrink: 0; display: flex; gap: 0.25rem; align-items: center; margin-left: 0.5rem;">
+                  <button class="icon-btn" onclick="event.stopPropagation(); window.open('/info/<%= url.slug %>', '_blank');" title="View Info">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                  </button>
+                  <button class="icon-btn" onclick="event.stopPropagation(); window.location.href='/analytics/<%= url.id %>';" title="Analytics">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 3v18h18"></path>
+                      <path d="M18 17V9"></path>
+                      <path d="M13 17V5"></path>
+                      <path d="M8 17v-3"></path>
+                    </svg>
+                  </button>
+                  <button class="icon-btn" onclick="event.stopPropagation(); showQRCode(<%= url.id %>, '<%= url.slug %>');" title="QR Code">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M3 11V3h8v8H3zm2-2h4V5H5v4zm-2 12v-8h8v8H3zm2-2h4v-4H5v4zM13 3h8v8h-8V3zm2 2v4h4V5h-4zm-2 16v-2h2v-2h2v2h2v-2h2v4h-4v2h-4v-2h-2zm2-4v-2h2v2h-2zm4 0v-2h2v2h-2zm-4-4V9h2v2h-2zm2 0h2v2h-2v-2zm2-2V9h2v2h-2z"/>
+                    </svg>
+                  </button>
+                  <button class="icon-btn" onclick="event.stopPropagation(); editUrl(<%= url.id %>);" title="Edit">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <% if (url.isBlocked) { %>
+                    <button class="icon-btn" onclick="event.stopPropagation(); unblockUrl(<%= url.id %>, '<%= url.slug %>');" title="Unblock URL">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 11 12 14 22 4"></polyline>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                      </svg>
+                    </button>
+                  <% } else { %>
+                    <button class="icon-btn danger" onclick="event.stopPropagation(); blockUrl(<%= url.id %>, '<%= url.slug %>');" title="Block URL">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                      </svg>
+                    </button>
+                  <% } %>
+                  <button class="icon-btn danger" onclick="event.stopPropagation(); deleteUrl(<%= url.id %>);" title="Delete">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Expanded Details (Hidden by Default) -->
+            <div class="url-item-details" style="display: none; padding: 0 1rem 1rem 1rem; border-top: 1px solid var(--border);">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding-top: 1rem;">
+                <!-- Creator -->
+                <div>
+                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Creator</div>
+                  <div style="font-weight: 500;">
+                    <%= url.creatorUsername || 'Anonymous' %>
+                    <% if (url.creatorIsAdmin) { %>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-left: 4px; color: var(--primary);" title="Admin">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                      </svg>
+                    <% } %>
+                  </div>
+                </div>
+
+                <!-- Max Uses -->
+                <div>
+                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Max Uses</div>
+                  <div style="font-weight: 500;"><%= url.maxUses || 'Unlimited' %></div>
+                </div>
+
+                <!-- Expiration -->
+                <div>
+                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Expires</div>
+                  <div style="font-weight: 500;"><%= url.expiresAt ? new Date(url.expiresAt).toLocaleDateString('en-GB') : 'Never' %></div>
+                </div>
+
+                <!-- Created -->
+                <div>
+                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Created</div>
+                  <div style="font-weight: 500;"><%= new Date(url.createdAt).toLocaleDateString('en-GB') %></div>
+                </div>
+
+                <!-- Password Protection Status -->
+                <div>
+                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Password Protection</div>
+                  <div style="font-weight: 500;">
+                    <% if (url.password) { %>
+                      <span style="color: var(--status-warning-text); display: inline-flex; align-items: center; gap: 0.25rem;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        Protected
+                      </span>
+                    <% } else { %>
+                      <span style="color: var(--muted-foreground);">None</span>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div style="display: flex; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <a href="/info/<%= url.slug %>" class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  Info
+                </a>
+                <a href="/analytics/<%= url.id %>" class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 3v18h18"></path>
+                    <path d="M18 17V9"></path>
+                    <path d="M13 17V5"></path>
+                    <path d="M8 17v-3"></path>
+                  </svg>
+                  Analytics
+                </a>
+                <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="showQRCode(<%= url.id %>, '<%= url.slug %>')">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 11V3h8v8H3zm2-2h4V5H5v4zm-2 12v-8h8v8H3zm2-2h4v-4H5v4zM13 3h8v8h-8V3zm2 2v4h4V5h-4zm-2 16v-2h2v-2h2v2h2v-2h2v4h-4v2h-4v-2h-2zm2-4v-2h2v2h-2zm4 0v-2h2v2h-2zm-4-4V9h2v2h-2zm2 0h2v2h-2v-2zm2-2V9h2v2h-2z"/>
+                  </svg>
+                  QR Code
+                </button>
+                <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="editUrl(<%= url.id %>)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  Edit
+                </button>
+                <% if (url.isBlocked) { %>
+                  <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--status-active-bg); color: var(--primary); border: 1px solid var(--status-active-border); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="unblockUrl(<%= url.id %>, '<%= url.slug %>')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="9 11 12 14 22 4"></polyline>
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                    Unblock
+                  </button>
+                <% } else { %>
+                  <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="blockUrl(<%= url.id %>, '<%= url.slug %>')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                    </svg>
+                    Block
+                  </button>
+                <% } %>
+                <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="deleteUrl(<%= url.id %>)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+
+        <!-- Bundle Cards -->
+        <% bundles.forEach(bundle => { %>
+          <%
+            const now = new Date();
+            let bundleStatus = 'active';
+            if (bundle.isBlocked) bundleStatus = 'blocked';
+            else if (bundle.activateAt && new Date(bundle.activateAt) > now) bundleStatus = 'scheduled';
+            else if ((bundle.expiresAt && new Date(bundle.expiresAt) < now) ||
+                     (bundle.deactivateAt && new Date(bundle.deactivateAt) < now)) bundleStatus = 'expired';
+            else if (bundle.maxUses && bundle.clicks >= bundle.maxUses) bundleStatus = 'max-uses';
+          %>
+          <div class="url-item" data-type="bundle" data-url-id="<%= bundle.id %>" data-created-at="<%= bundle.createdAt %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
+            <!-- Collapsed View -->
+            <div class="url-item-header" style="padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer;" onclick="toggleUrlDetails(this)">
+              <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 1rem;">
+                <!-- Selection Checkbox -->
+                <input type="checkbox" class="url-select-checkbox" style="display:none; flex-shrink:0; width:18px; height:18px; cursor:pointer; accent-color:var(--primary);" onclick="event.stopPropagation();" onchange="toggleUrlSelection(<%= bundle.id %>, this)">
+                <!-- Expand/Collapse Icon -->
+                <svg class="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; transition: transform 0.2s;">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+                <!-- Bundle icon -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;" title="Bundle">
+                  <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+                <!-- Bundle URL -->
+                <div style="min-width: 120px; flex-shrink: 0;">
+                  <a href="<%= baseUrl %>/b/<%= bundle.slug %>" target="_blank" class="url-link" onclick="event.stopPropagation();" style="font-weight: 500; color: var(--primary);">
+                    /b/<%= bundle.slug %>
+                  </a>
+                </div>
+                <!-- Bundle Title -->
+                <div style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  <span style="color: var(--foreground);" title="<%= bundle.title %>"><%= bundle.title %></span>
+                </div>
+                <!-- Item Count Badge -->
+                <div style="flex-shrink: 0; padding: 0.25rem 0.75rem; background-color: var(--secondary); border-radius: 0.375rem; font-size: 0.875rem;">
+                  <%= bundle.itemCount %> link<%= bundle.itemCount !== 1 ? 's' : '' %>
+                </div>
+                <!-- Clicks Badge -->
+                <div style="flex-shrink: 0; padding: 0.25rem 0.75rem; background-color: var(--secondary); border-radius: 0.375rem; font-size: 0.875rem;">
+                  <%= bundle.clicks %> clicks
+                </div>
+                <!-- Status Badge -->
+                <div style="flex-shrink: 0;">
+                  <% if (bundleStatus === 'blocked') { %>
+                    <span class="badge" style="background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border);">⛔ Blocked</span>
+                  <% } else if (bundleStatus === 'scheduled') { %>
+                    <span class="badge" style="background-color: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3);">⏰ Scheduled</span>
+                  <% } else if (bundleStatus === 'expired') { %>
+                    <span class="badge badge-expired">Expired</span>
+                  <% } else if (bundleStatus === 'max-uses') { %>
+                    <span class="badge badge-max">Max Uses</span>
+                  <% } else { %>
+                    <span class="badge badge-active">Active</span>
+                  <% } %>
+                </div>
+                <!-- Password Icon -->
+                <% if (bundle.password) { %>
+                  <div style="flex-shrink: 0;" title="Password Protected">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                  </div>
+                <% } %>
+                <!-- Quick Actions -->
+                <div style="flex-shrink: 0; display: flex; gap: 0.25rem; align-items: center; margin-left: 0.5rem;">
+                  <button class="icon-btn" onclick="event.stopPropagation(); window.open('/b/<%= bundle.slug %>', '_blank');" title="Open Bundle">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                      <polyline points="15 3 21 3 21 9"></polyline>
+                      <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                  </button>
+                  <% if (bundle.isBlocked) { %>
+                    <button class="icon-btn" onclick="event.stopPropagation(); unblockBundle(<%= bundle.id %>, '<%= bundle.slug %>');" title="Unblock Bundle">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 11 12 14 22 4"></polyline>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                      </svg>
+                    </button>
+                  <% } else { %>
+                    <button class="icon-btn danger" onclick="event.stopPropagation(); blockBundle(<%= bundle.id %>, '<%= bundle.slug %>');" title="Block Bundle">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                      </svg>
+                    </button>
+                  <% } %>
+                  <button class="icon-btn danger" onclick="event.stopPropagation(); deleteBundleAdmin(<%= bundle.id %>);" title="Delete Bundle">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Expanded Details -->
+            <div class="url-item-details" style="display: none; padding: 0 1rem 1rem 1rem; border-top: 1px solid var(--border);">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding-top: 1rem;">
+                <div>
+                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Creator</div>
+                  <div style="font-weight: 500;"><%= bundle.creatorUsername || 'Anonymous' %></div>
+                </div>
+                <div>
+                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Links</div>
+                  <div style="font-weight: 500;"><%= bundle.itemCount %></div>
+                </div>
+                <div>
+                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Max Uses</div>
+                  <div style="font-weight: 500;"><%= bundle.maxUses || 'Unlimited' %></div>
+                </div>
+                <div>
+                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Expires</div>
+                  <div style="font-weight: 500;"><%= bundle.expiresAt ? new Date(bundle.expiresAt).toLocaleDateString('en-GB') : 'Never' %></div>
+                </div>
+                <div>
+                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Created</div>
+                  <div style="font-weight: 500;"><%= new Date(bundle.createdAt).toLocaleDateString('en-GB') %></div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <a href="/b/<%= bundle.slug %>" target="_blank" class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                  Open Bundle
+                </a>
+                <% if (bundle.isBlocked) { %>
+                  <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--status-active-bg); color: var(--primary); border: 1px solid var(--status-active-border); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="unblockBundle(<%= bundle.id %>, '<%= bundle.slug %>')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="9 11 12 14 22 4"></polyline>
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                    Unblock
+                  </button>
+                <% } else { %>
+                  <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="blockBundle(<%= bundle.id %>, '<%= bundle.slug %>')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                    </svg>
+                    Block
+                  </button>
+                <% } %>
+                <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="deleteBundleAdmin(<%= bundle.id %>)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+
+        <!-- Per-type empty state messages (shown by JS filter) -->
+        <div id="noLinksMsg" style="display:none;" class="empty-state"><p>No shortened links in the system</p></div>
+        <div id="noBundlesMsg" style="display:none;" class="empty-state"><p>No bundles in the system</p></div>
+      </div>
+    <% } %>
+  </main>
+
+  <!-- Bulk Actions Bar (fixed at bottom, shown in selection mode) -->
+  <div id="bulkActionsBar" style="display:none; position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:2px solid var(--primary); padding:0.875rem 1.5rem; z-index:200; box-shadow:0 -4px 12px rgba(0,0,0,0.3);">
+    <div style="display:flex; align-items:center; gap:1rem; max-width:1400px; margin:0 auto; flex-wrap:wrap;">
+      <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem; color:var(--muted-foreground);">
+        <input type="checkbox" id="selectAllCheckbox" style="width:16px; height:16px; accent-color:var(--primary);" onchange="selectAll(this.checked)">
+        Select All
+      </label>
+      <span id="selectedCount" style="font-weight:600; color:var(--primary);">0 selected</span>
+      <div style="flex:1;"></div>
+      <button class="btn" style="background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.4);" onclick="bulkBlock()" id="bulkBlockBtn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.375rem;">
+          <circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+        </svg>
+        Block Selected
+      </button>
+      <button class="btn" style="background:rgba(52,211,153,0.15); color:var(--primary); border:1px solid rgba(52,211,153,0.4);" onclick="bulkUnblock()" id="bulkUnblockBtn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.375rem;">
+          <circle cx="12" cy="12" r="10"></circle><polyline points="9 11 12 14 22 4"></polyline>
+        </svg>
+        Unblock Selected
+      </button>
+      <button class="btn btn-danger" onclick="bulkDelete()" id="bulkDeleteBtn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.375rem;">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        Delete Selected
+      </button>
+      <button class="btn" style="background:var(--secondary); color:var(--foreground);" onclick="exitSelectionMode()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Edit URL Modal -->
+  <div id="editUrlModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit URL</h3>
+        <button class="modal-close" onclick="closeModal('editUrlModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="modal-info">
+          <strong>Current Stats:</strong>
+          <span id="currentClicks">0</span> clicks |
+          Created: <span id="currentCreated">-</span>
+        </div>
+
+        <div id="currentPasswordStatus" class="modal-info" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background-color: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: 0.375rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--status-warning-text)" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <strong style="color: var(--status-warning-text);">This URL is currently password protected</strong>
+        </div>
+
+        <div class="form-group">
+          <label for="editLongUrl" class="form-label">Long URL</label>
+          <input 
+            type="url" 
+            id="editLongUrl" 
+            class="form-input"
+            placeholder="https://example.com"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="editCustomSlug" class="form-label">Custom Slug</label>
+          <input 
+            type="text" 
+            id="editCustomSlug" 
+            class="form-input"
+            placeholder="my-custom-slug"
+            pattern="[A-Za-z0-9_-]{1,20}"
+          >
+          <div class="form-hint">1-20 characters (A-Z, a-z, 0-9, -, _)</div>
+        </div>
+
+        <div class="form-group">
+          <label for="editPassword" class="form-label">Password Protection (Optional)</label>
+          <input
+            type="password"
+            id="editPassword"
+            class="form-input"
+            placeholder="Leave empty to keep current password"
+            autocomplete="new-password"
+            data-toggle-password
+          >
+          <small style="color: var(--muted-foreground); font-size: 0.875rem;">
+            Enter a new password to update it, or leave empty to keep current setting.
+          </small>
+          <div class="form-group" style="margin-top: 0.5rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">
+              <input type="checkbox" id="removePassword" style="width: auto; margin: 0;">
+              Remove password protection
+            </label>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="editMaxUses" class="form-label">Max Uses</label>
+            <input
+              type="number"
+              id="editMaxUses"
+              class="form-input"
+              placeholder="Unlimited"
+              min="1"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="editExpirationDays" class="form-label">Days Until Expiration</label>
+            <input
+              type="number"
+              id="editExpirationDays"
+              class="form-input"
+              placeholder="Never expire"
+              min="1"
+            >
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="editActivateDateTime" class="form-label">Activate At (Optional)</label>
+            <input
+              type="datetime-local"
+              id="editActivateDateTime"
+              class="form-input"
+            >
+            <small style="color: var(--muted-foreground); font-size: 0.875rem;">
+              Link will not work before this time
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="editDeactivateDateTime" class="form-label">Deactivate At (Optional)</label>
+            <input
+              type="datetime-local"
+              id="editDeactivateDateTime"
+              class="form-input"
+            >
+            <small style="color: var(--muted-foreground); font-size: 0.875rem;">
+              Link will stop working after this time
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn" style="background-color: var(--secondary); color: var(--foreground);" id="cancelEditBtn">
+          Cancel
+        </button>
+        <button class="btn" id="saveUrlBtn" style="color: var(--primary-foreground);">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Code Modal -->
+  <div id="qrcodeModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>QR Code</h3>
+        <button class="modal-close" onclick="closeModal('qrcodeModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body" style="text-align: center;">
+        <div id="qrcodeContainer" style="margin: 2rem 0;">
+          <img id="qrcodeImage" src="" alt="QR Code" style="max-width: 300px; width: 100%; border-radius: 8px;">
+        </div>
+        <p style="color: var(--muted-foreground); margin-bottom: 1rem;">Scan this QR code to access the short URL</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn" style="background-color: var(--secondary); color: var(--foreground);" onclick="closeModal('qrcodeModal')">
+          Close
+        </button>
+        <button class="btn" id="downloadQRBtn" style="color: var(--primary-foreground);">
+          Download PNG
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/admin.js"></script>
+  <script>
+    // Toggle URL details expand/collapse
+    function toggleUrlDetails(headerElement) {
+      const urlItem = headerElement.closest('.url-item');
+      const detailsElement = urlItem.querySelector('.url-item-details');
+      const expandIcon = headerElement.querySelector('.expand-icon');
+
+      if (detailsElement.style.display === 'none') {
+        detailsElement.style.display = 'block';
+        expandIcon.style.transform = 'rotate(180deg)';
+      } else {
+        detailsElement.style.display = 'none';
+        expandIcon.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    // Pagination functionality - preserve filter parameters
+    document.getElementById('itemsPerPage')?.addEventListener('change', function() {
+      const limit = this.value;
+      const url = new URL(window.location.href);
+      url.searchParams.set('limit', limit);
+      url.searchParams.set('page', '1'); // Reset to first page
+      window.location.href = url.toString();
+    });
+
+    document.getElementById('prevPage')?.addEventListener('click', function() {
+      const url = new URL(window.location.href);
+      const currentPage = parseInt(url.searchParams.get('page') || '1');
+      url.searchParams.set('page', Math.max(1, currentPage - 1).toString());
+      window.location.href = url.toString();
+    });
+
+    document.getElementById('nextPage')?.addEventListener('click', function() {
+      const url = new URL(window.location.href);
+      const currentPage = parseInt(url.searchParams.get('page') || '1');
+      url.searchParams.set('page', (currentPage + 1).toString());
+      window.location.href = url.toString();
+    });
+
+    // Auto-submit filter form when select fields change
+    ['statusFilter', 'hasReportsFilter', 'sortFilter'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+      });
+    });
+
+    // Auto-submit on date change
+    ['dateFrom', 'dateTo'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+      });
+    });
+
+    // QR Code functionality
+    let currentQRCodeId = null;
+
+    function showQRCode(urlId, slug) {
+      currentQRCodeId = urlId;
+      const qrcodeImage = document.getElementById('qrcodeImage');
+      qrcodeImage.src = `/qrcode/${urlId}?theme=light`;
+      openModal('qrcodeModal');
+    }
+
+    document.getElementById('downloadQRBtn').addEventListener('click', () => {
+      if (currentQRCodeId) {
+        window.location.href = `/qrcode/${currentQRCodeId}/download?theme=light`;
+      }
+    });
+
+    // Search help popup toggle
+    function toggleSearchHelp(e) {
+      e.stopPropagation();
+      const popup = document.getElementById('searchHelpPopup');
+      popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#searchHelpBtn') && !e.target.closest('#searchHelpPopup')) {
+        const popup = document.getElementById('searchHelpPopup');
+        if (popup) popup.style.display = 'none';
+      }
+    });
+  </script>
+
+  <!-- Confirm Dialog Modal -->
+  <div id="confirmModal" class="modal-overlay">
+    <div class="modal" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3 id="confirmModalTitle">Confirm Action</h3>
+        <button class="modal-close" onclick="closeModal('confirmModal')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmModalMessage" style="margin: 0; line-height: 1.6;"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="confirmModalCancelBtn" class="btn" style="background-color: var(--secondary); color: var(--foreground);">Cancel</button>
+        <button id="confirmModalConfirmBtn" class="btn btn-danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+  <%- include('partials/footer') %>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Used by the "caddy" profile in docker-compose.yml.
+# Caddy gets and renews a certificate for $DOMAIN automatically
+# (the domain's DNS must point at this server, and ports 80/443 must be open).
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy linksnip:8081
+}

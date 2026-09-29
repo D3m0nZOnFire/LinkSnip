@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bio Page Settings - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'bio-settings' }) %>
+
+  <main class="main-content">
+    <div class="header-section">
+      <div>
+        <h2>Bio Page Settings</h2>
+        <p>Customize your link-in-bio page</p>
+      </div>
+      <a href="/bio/<%= user.username %>" class="btn" target="_blank" style="color: var(--primary-foreground);">
+        View Bio Page
+      </a>
+    </div>
+
+    <!-- Global Save Button (at top) -->
+    <button class="btn" id="saveBioBtn" style="color: var(--primary-foreground); width: 100%; margin-bottom: 2rem;">
+      Save All Changes
+    </button>
+
+    <!-- Bio Information Form -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">Profile Information</h3>
+
+      <div class="form-group">
+        <label for="displayName" class="form-label">Display Name</label>
+        <input
+          type="text"
+          id="displayName"
+          class="form-input"
+          value="<%= bioPage.displayName %>"
+          maxlength="100"
+          required
+        >
+        <div class="form-hint">Max 100 characters</div>
+      </div>
+
+      <div class="form-group">
+        <label for="bio" class="form-label">Bio</label>
+        <textarea
+          id="bio"
+          class="form-input"
+          rows="4"
+          maxlength="500"
+          placeholder="Tell people about yourself..."
+        ><%= bioPage.bio || '' %></textarea>
+        <div class="form-hint">Max 500 characters</div>
+      </div>
+
+      <div class="form-group">
+        <label for="theme" class="form-label">Theme</label>
+        <select id="theme" class="form-input">
+          <option value="dark" <%= bioPage.theme === 'dark' ? 'selected' : '' %>>Dark</option>
+          <option value="light" <%= bioPage.theme === 'light' ? 'selected' : '' %>>Light</option>
+          <option value="gradient" <%= bioPage.theme === 'gradient' ? 'selected' : '' %>>Gradient</option>
+        </select>
+      </div>
+
+      <!-- Gradient Color Pickers (shown only when gradient theme is selected) -->
+      <div id="gradientColorPickers" style="<%= bioPage.theme === 'gradient' ? '' : 'display: none;' %>">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="gradientStart" class="form-label">Gradient Start Color</label>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <div class="color-picker-wrapper">
+                <input
+                  type="color"
+                  id="gradientStart"
+                  class="color-picker-input"
+                  value="<%= bioPage.gradientStart || '#667eea' %>"
+                >
+              </div>
+              <input
+                type="text"
+                id="gradientStartHex"
+                class="form-input"
+                value="<%= bioPage.gradientStart || '#667eea' %>"
+                placeholder="#667eea"
+                pattern="^#[0-9A-Fa-f]{6}$"
+                style="flex: 1;"
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="gradientEnd" class="form-label">Gradient End Color</label>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <div class="color-picker-wrapper">
+                <input
+                  type="color"
+                  id="gradientEnd"
+                  class="color-picker-input"
+                  value="<%= bioPage.gradientEnd || '#764ba2' %>"
+                >
+              </div>
+              <input
+                type="text"
+                id="gradientEndHex"
+                class="form-input"
+                value="<%= bioPage.gradientEnd || '#764ba2' %>"
+                placeholder="#764ba2"
+                pattern="^#[0-9A-Fa-f]{6}$"
+                style="flex: 1;"
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Social Links Section -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">Social Links</h3>
+
+      <div id="socialLinksContainer">
+        <% if (socialLinks.length === 0) { %>
+          <p style="color: var(--muted-foreground); margin-bottom: 1rem;">No social links added yet</p>
+        <% } else { %>
+          <% socialLinks.forEach((link, index) => { %>
+            <div class="social-link-item" data-index="<%= index %>" style="margin-bottom: 1rem; padding: 1rem; background: var(--secondary); border-radius: 8px;">
+              <div style="display: flex; gap: 1rem; align-items: start;">
+                <div class="form-group" style="flex: 0 0 auto; margin-bottom: 0;">
+                  <label class="form-label">Icon</label>
+                  <button type="button" class="icon-picker-trigger" data-icon-value="<%= link.icon || 'link-outline' %>">
+                    <span class="icon-preview-slot">
+                      <% const iconVal = link.icon || 'link-outline'; %>
+                      <% if (iconVal.endsWith('-outline') || iconVal.startsWith('logo-')) { %>
+                        <ion-icon name="<%= iconVal %>" class="social-icon-preview" style="font-size: 2rem;"></ion-icon>
+                      <% } else { %>
+                        <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/<%= iconVal %>-light.svg"
+                             data-icon="<%= iconVal %>"
+                             class="social-icon-preview"
+                             style="width:2rem;height:2rem;"
+                             alt=""
+                             onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/<%= iconVal %>.svg'">
+                      <% } %>
+                    </span>
+                    <ion-icon name="chevron-down-outline" class="chevron-icon"></ion-icon>
+                  </button>
+                  <input type="hidden" class="social-icon" value="<%= link.icon || 'link-outline' %>">
+                </div>
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                  <label class="form-label">Platform (optional)</label>
+                  <input
+                    type="text"
+                    class="form-input social-platform"
+                    value="<%= link.platform || '' %>"
+                    placeholder="e.g., Twitter, Instagram (optional)"
+                  >
+                </div>
+                <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                  <label class="form-label">URL</label>
+                  <input
+                    type="url"
+                    class="form-input social-url"
+                    value="<%= link.url %>"
+                    placeholder="https://..."
+                  >
+                </div>
+                <button
+                  type="button"
+                  class="btn-icon-only remove-social-link"
+                  style="margin-top: 1.75rem;"
+                  title="Remove"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          <% }); %>
+        <% } %>
+      </div>
+
+      <button class="btn" id="addSocialLinkBtn" style="background: var(--secondary); color: var(--foreground);">
+        + Add Social Link
+      </button>
+    </div>
+
+    <!-- URL Selection Section -->
+    <div class="card">
+      <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem;">Select URLs to Display</h3>
+      <p style="color: var(--muted-foreground); margin-bottom: 1.5rem;">
+        Choose which short URLs to show on your bio page.
+      </p>
+
+      <% if (userUrls.length === 0) { %>
+        <p class="empty-state">No URLs yet. <a href="/">Create your first link</a></p>
+      <% } else { %>
+        <div class="url-selection-list">
+          <% userUrls.forEach(url => { %>
+            <%
+              const isOnBioPage = bioPageUrlIds.has(url.id);
+            %>
+            <div class="url-selection-item" data-url-id="<%= url.id %>">
+              <div class="url-selection-checkbox">
+                <input
+                  type="checkbox"
+                  id="url-<%= url.id %>"
+                  <%= isOnBioPage ? 'checked' : '' %>
+                  onchange="toggleUrlOnBioPage(<%= url.id %>, this.checked)"
+                >
+              </div>
+
+              <label for="url-<%= url.id %>" class="url-selection-label">
+                <div class="url-selection-info">
+                  <div class="url-slug">/s/<%= url.slug %></div>
+                  <div class="url-destination"><%= url.longUrl %></div>
+
+                  <% if (url.tags && url.tags.length > 0) { %>
+                    <div class="url-tags" style="margin-top: 0.5rem;">
+                      <% url.tags.forEach(tag => { %>
+                        <span class="tag-badge" style="background-color: <%= tag.color %>20; color: <%= tag.color %>;">
+                          <%= tag.name %>
+                        </span>
+                      <% }); %>
+                    </div>
+                  <% } %>
+                </div>
+
+                <div class="url-selection-stats">
+                  <span><%= url.clicks %> clicks</span>
+                </div>
+              </label>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+    </div>
+  </main>
+
+  <!-- Icon Picker Modal -->
+  <div id="iconPickerModal" class="icon-picker-modal">
+    <div class="icon-picker-content">
+      <div class="icon-picker-header">
+        <h3>Choose an Icon</h3>
+        <button type="button" class="icon-picker-close" onclick="closeIconPicker()">&times;</button>
+      </div>
+
+      <div class="icon-picker-search">
+        <input
+          type="text"
+          id="iconSearchInput"
+          class="form-input"
+          placeholder="Search icons..."
+          autocomplete="off"
+        >
+      </div>
+
+      <div id="iconPickerGrid" class="icon-picker-grid">
+        <!-- Icons will be populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/bio-settings.js"></script>
+  <%- include('partials/footer') %>
+</body>
+</html>
