@@ -318,6 +318,10 @@ async function launchBundle(req, res) {
   const access = checkAccess(req, 'bundle', bundle);
   if (!access.allowed) return sendAccessDenied(req, res, 'bundle', bundle, access);
 
+  // Remembered so this visit's item clicks (/bt) still work once this launch used up the limit
+  const launched = req.session.launchedBundles || [];
+  if (!launched.includes(bundle.id)) req.session.launchedBundles = [...launched, bundle.id];
+
   // Increment click counter
   Bundle.incrementClicks(slug);
 
