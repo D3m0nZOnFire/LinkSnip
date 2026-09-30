@@ -488,6 +488,18 @@ body {
   padding: var(--spacing-md);
 }
 
+/* Standalone pages (error, scheduled, quarantine): the box fills the screen above
+   the footer, so the footer shows at the bottom without scrolling */
+body.standalone-page {
+  display: flex;
+  flex-direction: column;
+}
+
+body.standalone-page > .error-container {
+  flex: 1;
+  min-height: 0;
+}
+
 .error-box {
   text-align: center;
   max-width: 28rem;
