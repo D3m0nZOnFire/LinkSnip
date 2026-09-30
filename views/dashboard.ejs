@@ -164,39 +164,31 @@
       </form>
     </div>
 
-    <!-- Tag Filter Section -->
-    <% if (urls.length > 0) { %>
-      <%
-        // Collect all unique tags
-        const allTags = new Map();
-        urls.forEach(url => {
-          if (url.tags && url.tags.length > 0) {
-            url.tags.forEach(tag => {
-              if (!allTags.has(tag.name)) {
-                allTags.set(tag.name, tag);
-              }
-            });
-          }
-        });
-      %>
-      <% if (allTags.size > 0) { %>
-        <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
-          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            <span style="font-weight: 500; color: var(--muted-foreground);">Filter by tags:</span>
-            <button class="tag-filter-btn" data-tag="all" style="padding: 0.25rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 4px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s;">
-              Clear All
+    <!-- Tag Filter Section (every row type) -->
+    <%
+      const tagNames = (item) => (item.tags || []).map(t => t.name).join(',');
+      const allTags = new Map();
+      [...urls, ...bundles, ...files, ...pastes].forEach(item => {
+        (item.tags || []).forEach(tag => { if (!allTags.has(tag.name)) allTags.set(tag.name, tag); });
+      });
+    %>
+    <% if (allTags.size > 0) { %>
+      <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+          <span style="font-weight: 500; color: var(--muted-foreground);">Filter by tags:</span>
+          <button class="tag-filter-btn" data-tag="all" style="padding: 0.25rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 4px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s;">
+            Clear All
+          </button>
+          <% Array.from(allTags.values()).forEach(tag => { %>
+            <button class="tag-filter-btn" data-tag="<%= tag.name %>" style="padding: 0.25rem 0.75rem; background-color: <%= tag.color %>20; color: <%= tag.color %>; border: 1px solid <%= tag.color %>40; border-radius: 4px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; opacity: 0.6;">
+              <%= tag.name %>
             </button>
-            <% Array.from(allTags.values()).forEach(tag => { %>
-              <button class="tag-filter-btn" data-tag="<%= tag.name %>" style="padding: 0.25rem 0.75rem; background-color: <%= tag.color %>20; color: <%= tag.color %>; border: 1px solid <%= tag.color %>40; border-radius: 4px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; opacity: 0.6;">
-                <%= tag.name %>
-              </button>
-            <% }); %>
-          </div>
-          <div id="activeFilters" style="margin-top: 0.75rem; display: none; font-size: 0.875rem; color: var(--muted-foreground);">
-            <span style="font-weight: 500;">Active filters:</span> <span id="filterCount">0</span> tag(s) selected
-          </div>
+          <% }); %>
         </div>
-      <% } %>
+        <div id="activeFilters" style="margin-top: 0.75rem; display: none; font-size: 0.875rem; color: var(--muted-foreground);">
+          <span style="font-weight: 500;">Active filters:</span> <span id="filterCount">0</span> tag(s) selected
+        </div>
+      </div>
     <% } %>
 
     <!-- Empty State or Unified List -->
@@ -211,10 +203,8 @@
           <%
             // Status from accessService (same as what visitors get)
             const status = url.accessStatus;
-
-            let urlTagNames = url.tags ? url.tags.map(t => t.name).join(',') : '';
           %>
-          <div class="url-item url-row" data-type="link" data-created-at="<%= url.createdAt %>" data-tags="<%= urlTagNames %>" data-url-id="<%= url.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
+          <div class="url-item url-row" data-type="link" data-created-at="<%= url.createdAt %>" data-tags="<%= tagNames(url) %>" data-url-id="<%= url.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
             <!-- Collapsed View (Always Visible) -->
             <div class="url-item-header" style="padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer;" onclick="toggleUrlDetails(this)">
               <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 1rem;">
@@ -258,15 +248,7 @@
                       <%= url.longUrl %>
                     </a>
                   </div>
-                  <% if (url.tags && url.tags.length > 0) { %>
-                    <div style="margin-top: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                      <% url.tags.forEach(tag => { %>
-                        <span style="display: inline-block; padding: 0.125rem 0.5rem; background-color: <%= tag.color %>20; color: <%= tag.color %>; border: 1px solid <%= tag.color %>40; border-radius: 4px; font-size: 0.75rem;">
-                          <%= tag.name %>
-                        </span>
-                      <% }); %>
-                    </div>
-                  <% } %>
+                  <%- include('partials/tag-chips', { tags: url.tags }) %>
                 </div>
 
                 <!-- Clicks Badge -->
@@ -471,7 +453,7 @@
 
         <!-- Bundle Rows (inside same container for unified date sort) -->
         <% bundles.forEach(bundle => { %>
-          <div class="url-item" data-type="bundle" data-created-at="<%= bundle.createdAt %>" id="bundle-<%= bundle.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
+          <div class="url-item" data-type="bundle" data-created-at="<%= bundle.createdAt %>" data-tags="<%= tagNames(bundle) %>" id="bundle-<%= bundle.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
             <div style="padding: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
 
               <!-- Type Icon: layers/bundle -->
@@ -489,6 +471,7 @@
                     /b/<%= bundle.slug %>
                   </a>
                 </div>
+                <%- include('partials/tag-chips', { tags: bundle.tags }) %>
               </div>
 
               <!-- Badges -->
@@ -554,7 +537,7 @@
                 : file.size < 1048576 ? (file.size / 1024).toFixed(1) + ' KB'
                 : (file.size / 1048576).toFixed(1) + ' MB';
             %>
-            <div class="url-item" data-type="file" data-created-at="<%= file.createdAt %>" id="file-item-<%= file.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
+            <div class="url-item" data-type="file" data-created-at="<%= file.createdAt %>" data-tags="<%= tagNames(file) %>" id="file-item-<%= file.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
               <div style="padding: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
 
                 <!-- Type Icon: file-corner-fold -->
@@ -573,6 +556,7 @@
                       /f/<%= file.slug %>
                     </a>
                   </div>
+                  <%- include('partials/tag-chips', { tags: file.tags }) %>
                 </div>
 
                 <!-- Badges -->
@@ -637,7 +621,7 @@
           <%
             const pasteName = (paste.title && paste.title.trim()) ? paste.title : '(untitled paste)';
           %>
-          <div class="url-item" data-type="paste" data-created-at="<%= paste.createdAt %>" id="paste-item-<%= paste.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
+          <div class="url-item" data-type="paste" data-created-at="<%= paste.createdAt %>" data-tags="<%= tagNames(paste) %>" id="paste-item-<%= paste.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
             <div style="padding: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
 
               <!-- Type Icon: document -->
@@ -656,6 +640,7 @@
                     /p/<%= paste.slug %>
                   </a>
                 </div>
+                <%- include('partials/tag-chips', { tags: paste.tags }) %>
               </div>
 
               <!-- Badges -->
@@ -775,6 +760,12 @@
             <div id="editBundleItemsList" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
             <button type="button" onclick="addEditBundleItem()" class="btn" style="margin-top: 0.5rem; width: 100%;">+ Add Link</button>
           </div>
+          <% if (can.tags) { %>
+          <div class="form-group">
+            <label class="form-label">Tags</label>
+            <div id="editBundleTagSelector"></div>
+          </div>
+          <% } %>
           <input type="hidden" id="editBundleId">
         </div>
       </div>
@@ -998,6 +989,22 @@
   <script src="/js/tagSelector.js"></script>
   <script src="/js/dashboard.js"></script>
   <script>
+    // ─── Row filters: type pill + selected tags, both apply ─
+    let dashTypeFilter = 'all';
+    const dashSelectedTags = new Set();
+    const DASH_TYPE_MAP = { links: 'link', bundles: 'bundle', files: 'file', pastes: 'paste' };
+
+    function applyRowFilters() {
+      const itemList = document.getElementById('itemList');
+      if (!itemList) return;
+      itemList.querySelectorAll(':scope > [data-type]').forEach(item => {
+        const typeMatch = dashTypeFilter === 'all' || item.dataset.type === DASH_TYPE_MAP[dashTypeFilter];
+        const rowTags = (item.dataset.tags || '').split(',').filter(Boolean);
+        const tagMatch = dashSelectedTags.size === 0 || rowTags.some(tag => dashSelectedTags.has(tag));
+        item.style.display = typeMatch && tagMatch ? '' : 'none';
+      });
+    }
+
     // ─── Dashboard Filter Pills ───────────────────────────
     function setDashFilter(filter) {
       ['all', 'links', 'bundles', 'files', 'pastes'].forEach(f => {
@@ -1005,7 +1012,6 @@
         if (pill) pill.classList.toggle('active', f === filter);
       });
 
-      const typeMap = { links: 'link', bundles: 'bundle', files: 'file', pastes: 'paste' };
       const itemList = document.getElementById('itemList');
 
       const perTypeMsgs = ['noBundlesMsg', 'noFilesMsg', 'noPastesMsg']
@@ -1019,14 +1025,13 @@
         return;
       }
 
-      itemList.querySelectorAll(':scope > [data-type]').forEach(item => {
-        item.style.display = (filter === 'all' || item.dataset.type === typeMap[filter]) ? '' : 'none';
-      });
+      dashTypeFilter = filter;
+      applyRowFilters();
 
       const msgFor = { bundles: 'noBundlesMsg', files: 'noFilesMsg', pastes: 'noPastesMsg' };
       perTypeMsgs.forEach(el => { el.style.display = 'none'; });
       if (msgFor[filter]) {
-        const hasType = itemList.querySelectorAll(':scope > [data-type="' + typeMap[filter] + '"]').length > 0;
+        const hasType = itemList.querySelectorAll(':scope > [data-type="' + DASH_TYPE_MAP[filter] + '"]').length > 0;
         const el = document.getElementById(msgFor[filter]);
         if (el && !hasType) el.style.display = 'block';
       }
@@ -1043,6 +1048,15 @@
         return db - da;
       });
       items.forEach(item => list.appendChild(item));
+    }
+
+    // ─── Tag selectors in the edit modals (only rendered for roles with tags) ─
+    const editSelectors = {};
+    function editSelector(id) {
+      if (!editSelectors[id] && document.getElementById(id) && typeof TagSelector !== 'undefined') {
+        editSelectors[id] = new TagSelector(id, { placeholder: 'Add tags...' });
+      }
+      return editSelectors[id] || null;
     }
 
     // ─── Bundle Edit / Delete ─────────────────────────────
@@ -1062,6 +1076,8 @@
           const list = document.getElementById('editBundleItemsList');
           list.innerHTML = '';
           (data.items || []).forEach((item, i) => addEditBundleItem(item.url, item.label));
+          const bundleTags = editSelector('editBundleTagSelector');
+          if (bundleTags) bundleTags.setValue((data.tags || []).map(t => t.name).join(','));
 
           document.getElementById('editBundleLoading').style.display = 'none';
           document.getElementById('editBundleContent').style.display = 'block';
@@ -1103,12 +1119,15 @@
       if (items.length < 2) { alert('At least 2 links are required.'); return; }
 
       const description = document.getElementById('editBundleDescription').value.trim();
+      const body = { title, description: description || null, items };
+      const bundleTags = editSelector('editBundleTagSelector');
+      if (bundleTags) body.tags = bundleTags.getValue();
 
       try {
         const res = await fetch('/api/bundles/' + id, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, description: description || null, items })
+          body: JSON.stringify(body)
         });
         const data = await res.json();
         if (data.success) {
@@ -1208,10 +1227,9 @@
       sortItemsByDate();
 
       const filterButtons = document.querySelectorAll('.tag-filter-btn');
-      const urlRows = document.querySelectorAll('.url-row');
       const activeFiltersDiv = document.getElementById('activeFilters');
       const filterCountSpan = document.getElementById('filterCount');
-      let selectedTags = new Set();
+      const selectedTags = dashSelectedTags;
 
       function updateFilters() {
         // Update button visuals
@@ -1238,20 +1256,8 @@
           activeFiltersDiv.style.display = 'none';
         }
 
-        // Filter rows
-        urlRows.forEach(row => {
-          const rowTags = row.getAttribute('data-tags');
-          const tagArray = rowTags ? rowTags.split(',').filter(t => t.trim()) : [];
-
-          if (selectedTags.size === 0) {
-            // No filters active - show all
-            row.style.display = '';
-          } else {
-            // Check if row has ANY of the selected tags
-            const hasMatchingTag = tagArray.some(tag => selectedTags.has(tag));
-            row.style.display = hasMatchingTag ? '' : 'none';
-          }
-        });
+        // Rows with ANY of the selected tags (within the chosen type)
+        applyRowFilters();
       }
 
       filterButtons.forEach(btn => {
@@ -1325,6 +1331,9 @@
           addFeChip({ id: uid, username: 'uid:' + uid });
         });
 
+        const fileTags = editSelector('feTagSelector');
+        if (fileTags) fileTags.setValue((f.tags || []).map(t => t.name).join(','));
+
         openModal('fileEditModal');
       });
     }
@@ -1360,6 +1369,8 @@
         sharingMode: document.getElementById('feSharingMode').value,
         allowedUsers: document.getElementById('feAllowedUsersHidden').value
       };
+      const fileTags = editSelector('feTagSelector');
+      if (fileTags) body.tags = fileTags.getValue();
       try {
         const res = await fetch(`/api/files/${currentFileId}`, {
           method: 'PATCH',
@@ -1465,6 +1476,13 @@
           </div>
           <input type="hidden" id="feAllowedUsersHidden" value="[]">
         </div>
+
+        <% if (can.tags) { %>
+        <div>
+          <label class="form-label">Tags</label>
+          <div id="feTagSelector"></div>
+        </div>
+        <% } %>
       </div>
       <div class="modal-footer">
         <button class="btn" style="background:var(--secondary);color:var(--foreground);" onclick="closeModal('fileEditModal')">Cancel</button>

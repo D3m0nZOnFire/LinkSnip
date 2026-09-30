@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { CONTENT_TYPES, contentType } = require('../services/contentTypes');
 
 // Predefined color palette for tags
 const TAG_COLORS = [
@@ -93,109 +94,41 @@ class Tag {
   }
 
   /**
-   * Get tags for a specific URL
-   * @param {number} urlId
+   * Tags on one item of any content type, by name
+   * @param {'url'|'bundle'|'paste'|'file'} type
+   * @param {number} id
    * @returns {array}
    */
-  static findByUrlId(urlId) {
-    const stmt = db.prepare(`
+  static forItem(type, id) {
+    contentType(type);
+    return db.prepare(`
       SELECT t.* FROM tags t
-      INNER JOIN url_tags ut ON t.id = ut.tagId
-      WHERE ut.urlId = ?
+      INNER JOIN taggables tg ON tg.tagId = t.id
+      WHERE tg.targetType = ? AND tg.targetId = ?
       ORDER BY t.name ASC
-    `);
-    return stmt.all(urlId);
+    `).all(type, id);
   }
 
   /**
-   * Attach tags to a URL
-   * @param {number} urlId
-   * @param {array} tagNames - Array of tag names
-   * @param {number} userId
+   * Replace an item's tags (an empty list removes them all). Tags belong to the
+   * item's owner, whoever edits it; an item without an owner gets none.
+   * @param {'url'|'bundle'|'paste'|'file'} type
+   * @param {number} id
+   * @param {array} tagNames
    */
-  static attachToUrl(urlId, tagNames, userId = null) {
-    if (!Array.isArray(tagNames) || tagNames.length === 0) {
-      return;
-    }
+  static setForItem(type, id, tagNames) {
+    const { table, ownerColumn } = contentType(type);
+    const item = db.prepare(`SELECT ${ownerColumn} AS ownerId FROM ${table} WHERE id = ?`).get(id);
+    const ownerId = item ? item.ownerId : null;
+    const names = ownerId == null ? [] : [...new Set((tagNames || [])
+      .map(name => String(name).trim().toLowerCase())
+      .filter(Boolean))];
 
-    // First, remove existing tags
-    this.detachFromUrl(urlId);
-
-    // Create tags if they don't exist and attach them
-    const stmt = db.prepare(`
-      INSERT INTO url_tags (urlId, tagId)
-      VALUES (?, ?)
-    `);
-
-    for (const tagName of tagNames) {
-      if (!tagName || !tagName.trim()) continue;
-
-      // Create or get existing tag
-      const tag = this.create(tagName, userId);
-
-      // Attach to URL
-      try {
-        stmt.run(urlId, tag.id);
-      } catch (error) {
-        // Ignore if already attached
-        if (!error.message.includes('UNIQUE')) {
-          throw error;
-        }
-      }
-    }
-  }
-
-  /**
-   * Remove all tags from a URL
-   * @param {number} urlId
-   */
-  static detachFromUrl(urlId) {
-    const stmt = db.prepare('DELETE FROM url_tags WHERE urlId = ?');
-    stmt.run(urlId);
-  }
-
-  /**
-   * Attach tags to a file (creates tags if they don't exist)
-   * @param {number} fileId
-   * @param {array} tagNames - Array of tag names
-   * @param {number} userId
-   */
-  static attachToFile(fileId, tagNames, userId = null) {
-    if (!Array.isArray(tagNames) || tagNames.length === 0) {
-      db.prepare('DELETE FROM file_tags WHERE fileId = ?').run(fileId);
-      return;
-    }
-
-    db.prepare('DELETE FROM file_tags WHERE fileId = ?').run(fileId);
-
-    const stmt = db.prepare('INSERT OR IGNORE INTO file_tags (fileId, tagId) VALUES (?, ?)');
-    for (const tagName of tagNames) {
-      if (!tagName || !tagName.trim()) continue;
-      const tag = this.create(tagName, userId);
-      stmt.run(fileId, tag.id);
-    }
-  }
-
-  /**
-   * Attach tags to a paste (creates tags if they don't exist)
-   * @param {number} pasteId
-   * @param {array} tagNames - Array of tag names
-   * @param {number} userId
-   */
-  static attachToPaste(pasteId, tagNames, userId = null) {
-    if (!Array.isArray(tagNames) || tagNames.length === 0) {
-      db.prepare('DELETE FROM paste_tags WHERE pasteId = ?').run(pasteId);
-      return;
-    }
-
-    db.prepare('DELETE FROM paste_tags WHERE pasteId = ?').run(pasteId);
-
-    const stmt = db.prepare('INSERT OR IGNORE INTO paste_tags (pasteId, tagId) VALUES (?, ?)');
-    for (const tagName of tagNames) {
-      if (!tagName || !tagName.trim()) continue;
-      const tag = this.create(tagName, userId);
-      stmt.run(pasteId, tag.id);
-    }
+    db.transaction(() => {
+      db.prepare('DELETE FROM taggables WHERE targetType = ? AND targetId = ?').run(type, id);
+      const insert = db.prepare('INSERT OR IGNORE INTO taggables (tagId, targetType, targetId) VALUES (?, ?, ?)');
+      for (const name of names) insert.run(this.create(name, ownerId).id, type, id);
+    })();
   }
 
   /**
@@ -246,43 +179,83 @@ class Tag {
   }
 
   /**
-   * Get tag statistics
-   * @param {number} tagId
-   * @returns {object}
+   * All of a user's tags, each with its tagged items per type (`counts`), their
+   * total (`itemCount`) and their visits (analytics events, bundle item clicks
+   * left out). Only the given types count (leave out switched-off features).
+   * @param {number} userId
+   * @param {array} types
+   * @returns {array}
    */
-  static getStats(tagId) {
-    const stmt = db.prepare(`
-      SELECT
-        COUNT(DISTINCT ut.urlId) as urlCount,
-        SUM(u.clicks) as totalClicks
-      FROM url_tags ut
-      LEFT JOIN urls u ON ut.urlId = u.id
-      WHERE ut.tagId = ?
-    `);
+  static getAllWithStats(userId, types = Object.keys(CONTENT_TYPES)) {
+    const tags = this.findByUserId(userId);
+    if (!types.length) return tags.map(tag => ({ ...tag, counts: {}, itemCount: 0, visits: 0 }));
 
-    return stmt.get(tagId) || { urlCount: 0, totalClicks: 0 };
+    const rows = db.prepare(`
+      SELECT tg.tagId, tg.targetType,
+             COUNT(*) AS items,
+             SUM((SELECT COUNT(*) FROM analytics_events e
+                  WHERE e.targetType = tg.targetType AND e.targetId = tg.targetId AND e.subTargetId IS NULL)) AS visits
+      FROM taggables tg
+      INNER JOIN tags t ON t.id = tg.tagId
+      WHERE t.userId = ? AND tg.targetType IN (${types.map(() => '?').join(',')})
+      GROUP BY tg.tagId, tg.targetType
+    `).all(userId, ...types);
+
+    return tags.map(tag => {
+      const counts = Object.fromEntries(types.map(type => [type, 0]));
+      let visits = 0;
+      for (const row of rows.filter(r => r.tagId === tag.id)) {
+        counts[row.targetType] = row.items;
+        visits += row.visits;
+      }
+      const itemCount = Object.values(counts).reduce((sum, n) => sum + n, 0);
+      return { ...tag, counts, itemCount, visits };
+    });
   }
 
   /**
-   * Get all tags with their statistics for a user
-   * @param {number} userId
+   * The items carrying a tag, newest first: { type, id, slug, name, visits, createdAt }
+   * (`name` is the type's destination: the long URL, title or file name).
+   * @param {number} tagId
+   * @param {array} types
    * @returns {array}
    */
-  static getAllWithStats(userId) {
-    const stmt = db.prepare(`
-      SELECT
-        t.*,
-        COUNT(DISTINCT ut.urlId) as urlCount,
-        COALESCE(SUM(u.clicks), 0) as totalClicks
-      FROM tags t
-      LEFT JOIN url_tags ut ON t.id = ut.tagId
-      LEFT JOIN urls u ON ut.urlId = u.id
-      WHERE t.userId = ?
-      GROUP BY t.id
-      ORDER BY t.name ASC
-    `);
+  static itemsFor(tagId, types = Object.keys(CONTENT_TYPES)) {
+    if (!types.length) return [];
+    const selects = types.map(type => {
+      const { table, destination } = contentType(type);
+      return `
+        SELECT '${type}' AS type, x.id AS id, x.slug AS slug, x.${destination} AS name, x.createdAt AS createdAt,
+               (SELECT COUNT(*) FROM analytics_events e
+                WHERE e.targetType = '${type}' AND e.targetId = x.id AND e.subTargetId IS NULL) AS visits
+        FROM ${table} x
+        INNER JOIN taggables tg ON tg.targetType = '${type}' AND tg.targetId = x.id
+        WHERE tg.tagId = @tagId`;
+    });
+    return db.prepare(`
+      SELECT * FROM (${selects.join('\n        UNION ALL')})
+      ORDER BY createdAt DESC, type ASC, id DESC
+    `).all({ tagId });
+  }
 
-    return stmt.all(userId);
+  /**
+   * Visits per day summed over every item carrying a tag, the last `days` days
+   * (days without visits left out).
+   * @param {number} tagId
+   * @param {array} types
+   * @param {number} days
+   * @returns {Array<{ date, count }>}
+   */
+  static dailyVisits(tagId, types = Object.keys(CONTENT_TYPES), days = 30) {
+    if (!types.length) return [];
+    return db.prepare(`
+      SELECT DATE(e.timestamp) AS date, COUNT(*) AS count
+      FROM analytics_events e
+      INNER JOIN taggables tg ON tg.targetType = e.targetType AND tg.targetId = e.targetId
+      WHERE tg.tagId = ? AND e.subTargetId IS NULL AND e.targetType IN (${types.map(() => '?').join(',')})
+        AND e.timestamp >= datetime('now', '-' || ? || ' days')
+      GROUP BY DATE(e.timestamp) ORDER BY date ASC
+    `).all(tagId, ...types, days);
   }
 
   /**

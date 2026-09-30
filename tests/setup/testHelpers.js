@@ -205,14 +205,13 @@ function createMockNext() {
 }
 
 /**
- * Link a tag to a URL
- * @param {number} urlId - URL ID
+ * Put a tag on an item of any content type
+ * @param {'url'|'bundle'|'paste'|'file'} type
+ * @param {number} id - Item ID
  * @param {number} tagId - Tag ID
  */
-function linkTagToUrl(urlId, tagId) {
-  const db = getTestDatabase();
-  const stmt = db.prepare('INSERT INTO url_tags (urlId, tagId) VALUES (?, ?)');
-  stmt.run(urlId, tagId);
+function tagItem(type, id, tagId) {
+  getTestDatabase().prepare('INSERT INTO taggables (tagId, targetType, targetId) VALUES (?, ?, ?)').run(tagId, type, id);
 }
 
 let reportCounter = 0;
@@ -392,7 +391,7 @@ module.exports = {
   createMockRequest,
   createMockResponse,
   createMockNext,
-  linkTagToUrl,
+  tagItem,
   createTestReport,
   createTestBundle,
   createTestBundleItem,

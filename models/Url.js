@@ -90,7 +90,7 @@ class Url {
     // Attach tags to each URL
     return urls.map(url => ({
       ...url,
-      tags: Tag.findByUrlId(url.id)
+      tags: Tag.forItem('url', url.id)
     }));
   }
 
@@ -142,7 +142,7 @@ class Url {
     }
 
     const urls = db.prepare(query).all(...params);
-    return urls.map(url => ({ ...url, tags: Tag.findByUrlId(url.id) }));
+    return urls.map(url => ({ ...url, tags: Tag.forItem('url', url.id) }));
   }
 
   /**
@@ -198,7 +198,7 @@ class Url {
     // Attach tags to each URL
     return urls.map(url => ({
       ...url,
-      tags: Tag.findByUrlId(url.id)
+      tags: Tag.forItem('url', url.id)
     }));
   }
 
@@ -410,7 +410,7 @@ class Url {
 
     return urls.map(url => ({
       ...url,
-      tags: Tag.findByUrlId(url.id)
+      tags: Tag.forItem('url', url.id)
     }));
   }
 

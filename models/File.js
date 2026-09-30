@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const Tag = require('./Tag');
 
 class File {
   static create({ userId, slug, originalName, storedName, mimeType, size, expiresAt, activateAt, deactivateAt, maxDownloads, password, sharingMode, allowedUsers }) {
@@ -27,13 +28,13 @@ class File {
 
   static findById(id) {
     const file = db.prepare('SELECT * FROM files WHERE id = ?').get(id);
-    if (file) file.tags = this.getTags(file.id);
+    if (file) file.tags = Tag.forItem('file', file.id);
     return file;
   }
 
   static findBySlug(slug) {
     const file = db.prepare('SELECT * FROM files WHERE slug = ?').get(slug);
-    if (file) file.tags = this.getTags(file.id);
+    if (file) file.tags = Tag.forItem('file', file.id);
     return file;
   }
 
@@ -51,7 +52,7 @@ class File {
       params.push(limit, offset);
     }
     const rows = db.prepare(query).all(...params);
-    return rows.map(f => ({ ...f, tags: this.getTags(f.id) }));
+    return rows.map(f => ({ ...f, tags: Tag.forItem('file', f.id) }));
   }
 
   /** Total bytes of all of a user's files (for the storage quota). */
@@ -89,7 +90,7 @@ class File {
       params.push(limit, offset);
     }
     const rows = db.prepare(query).all(...params);
-    return rows.map(f => ({ ...f, tags: this.getTags(f.id) }));
+    return rows.map(f => ({ ...f, tags: Tag.forItem('file', f.id) }));
   }
 
   static countAll(search = '') {
@@ -119,7 +120,7 @@ class File {
     return db.prepare('UPDATE files SET downloads = downloads + 1 WHERE id = ?').run(id);
   }
 
-  static update(id, { expiresAt, activateAt, deactivateAt, maxDownloads, password, sharingMode, allowedUsers, tagIds }) {
+  static update(id, { expiresAt, activateAt, deactivateAt, maxDownloads, password, sharingMode, allowedUsers }) {
     const current = this.findById(id);
     if (!current) return null;
 
@@ -139,33 +140,7 @@ class File {
       id
     );
 
-    if (tagIds !== undefined) {
-      this.replaceTags(id, tagIds);
-    }
-
     return this.findById(id);
-  }
-
-  static getTags(fileId) {
-    return db.prepare(`
-      SELECT tags.* FROM tags
-      INNER JOIN file_tags ON tags.id = file_tags.tagId
-      WHERE file_tags.fileId = ?
-      ORDER BY tags.name ASC
-    `).all(fileId);
-  }
-
-  static replaceTags(fileId, tagIds) {
-    const replaceTx = db.transaction((fid, ids) => {
-      db.prepare('DELETE FROM file_tags WHERE fileId = ?').run(fid);
-      if (ids && ids.length > 0) {
-        const insert = db.prepare('INSERT OR IGNORE INTO file_tags (fileId, tagId) VALUES (?, ?)');
-        for (const tagId of ids) {
-          insert.run(fid, tagId);
-        }
-      }
-    });
-    replaceTx(fileId, tagIds);
   }
 
   static slugExists(slug) {

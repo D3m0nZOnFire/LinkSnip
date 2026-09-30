@@ -1,5 +1,5 @@
 const Database = require('better-sqlite3');
-const { migrateAnalyticsShareLinks, migrateQuarantine, migrateReports, migrateAnalytics } = require('../../config/migrations');
+const { migrateAnalyticsShareLinks, migrateQuarantine, migrateReports, migrateAnalytics, migrateTags } = require('../../config/migrations');
 
 let db = null;
 
@@ -46,30 +46,6 @@ function createTestDatabase() {
       deactivateAt DATETIME DEFAULT NULL,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (creatorId) REFERENCES users(id) ON DELETE SET NULL
-    )
-  `);
-
-  // Create Tags table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS tags (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT UNIQUE NOT NULL,
-      color TEXT DEFAULT '#34d399',
-      userId INTEGER,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-    )
-  `);
-
-  // Create url_tags junction table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS url_tags (
-      urlId INTEGER NOT NULL,
-      tagId INTEGER NOT NULL,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (urlId, tagId),
-      FOREIGN KEY (urlId) REFERENCES urls(id) ON DELETE CASCADE,
-      FOREIGN KEY (tagId) REFERENCES tags(id) ON DELETE CASCADE
     )
   `);
 
@@ -149,17 +125,6 @@ function createTestDatabase() {
     )
   `);
 
-  // Create file_tags junction table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS file_tags (
-      fileId INTEGER NOT NULL,
-      tagId  INTEGER NOT NULL,
-      PRIMARY KEY (fileId, tagId),
-      FOREIGN KEY (fileId) REFERENCES files(id) ON DELETE CASCADE,
-      FOREIGN KEY (tagId)  REFERENCES tags(id)  ON DELETE CASCADE
-    )
-  `);
-
   // Create pastes table
   db.exec(`
     CREATE TABLE IF NOT EXISTS pastes (
@@ -181,32 +146,15 @@ function createTestDatabase() {
     )
   `);
 
-  // Create paste_tags junction table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS paste_tags (
-      pasteId INTEGER NOT NULL,
-      tagId   INTEGER NOT NULL,
-      PRIMARY KEY (pasteId, tagId),
-      FOREIGN KEY (pasteId) REFERENCES pastes(id) ON DELETE CASCADE,
-      FOREIGN KEY (tagId)   REFERENCES tags(id)   ON DELETE CASCADE
-    )
-  `);
-
   // Create indexes
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_slug ON urls(slug);
     CREATE INDEX IF NOT EXISTS idx_creatorId ON urls(creatorId);
     CREATE INDEX IF NOT EXISTS idx_username ON users(username);
     CREATE INDEX IF NOT EXISTS idx_email ON users(email);
-    CREATE INDEX IF NOT EXISTS idx_tags_userId ON tags(userId);
-    CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
-    CREATE INDEX IF NOT EXISTS idx_url_tags_urlId ON url_tags(urlId);
-    CREATE INDEX IF NOT EXISTS idx_url_tags_tagId ON url_tags(tagId);
     CREATE INDEX IF NOT EXISTS idx_pastes_slug ON pastes(slug);
     CREATE INDEX IF NOT EXISTS idx_pastes_userId ON pastes(userId);
     CREATE INDEX IF NOT EXISTS idx_pastes_expiresAt ON pastes(expiresAt);
-    CREATE INDEX IF NOT EXISTS idx_paste_tags_pasteId ON paste_tags(pasteId);
-    CREATE INDEX IF NOT EXISTS idx_paste_tags_tagId ON paste_tags(tagId);
   `);
 
   // Tables with a testable migration are created by that migration, not mirrored by hand
@@ -214,6 +162,7 @@ function createTestDatabase() {
   migrateQuarantine(db, { log: () => {} });
   migrateReports(db, { log: () => {} });
   migrateAnalytics(db, { log: () => {} });
+  migrateTags(db, { log: () => {} });
 
   return db;
 }
@@ -239,12 +188,10 @@ function clearTestDatabase() {
   db.exec('DELETE FROM reports');
   db.exec('DELETE FROM bundle_items');
   db.exec('DELETE FROM bundles');
-  db.exec('DELETE FROM paste_tags');
   db.exec('DELETE FROM pastes');
-  db.exec('DELETE FROM file_tags');
   db.exec('DELETE FROM files');
   db.exec('DELETE FROM analytics_shares');
-  db.exec('DELETE FROM url_tags');
+  db.exec('DELETE FROM taggables');
   db.exec('DELETE FROM analytics_events');
   db.exec('DELETE FROM audit_logs');
   db.exec('DELETE FROM tags');

@@ -1,4 +1,5 @@
 const Bundle = require('../models/Bundle');
+const Tag = require('../models/Tag');
 const AnalyticsService = require('../services/analyticsService');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
 const { checkAccess, sendAccessDenied } = require('../services/accessService');
@@ -13,7 +14,7 @@ const MAX_ITEMS_ANONYMOUS = 5;
  * Create a new bundle (rate limited, auth optional)
  */
 async function createBundle(req, res) {
-  const { title, description, customSlug, items } = req.body;
+  const { title, description, customSlug, items, tags } = req.body;
 
   // Parse items — can arrive as JSON string or already parsed by express
   let parsedItems;
@@ -68,7 +69,7 @@ async function createBundle(req, res) {
     return res.status(400).json({ error: error.message });
   }
 
-  const denied = deniedPermission(req.user || null, settings.uses);
+  const denied = deniedPermission(req.user || null, { ...settings.uses, tags: filled(tags) });
   if (denied) return denyJson(res, denied);
 
   // Generate or validate slug
@@ -100,6 +101,7 @@ async function createBundle(req, res) {
     label: item.label ? item.label.trim() : null
   }));
   Bundle.replaceItems(bundle.id, cleanItems);
+  if (tags) Tag.setForItem('bundle', bundle.id, Tag.parseTagString(tags));
 
   // Audit log
   try {
@@ -148,7 +150,7 @@ async function updateBundle(req, res) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
 
-  const { title, description, items } = req.body;
+  const { title, description, items, tags } = req.body;
 
   // Only the settings sent change (the edit form sends title, description and items);
   // role features count only when newly set
@@ -159,7 +161,7 @@ async function updateBundle(req, res) {
     if (!(error instanceof SettingsError)) throw error;
     return res.status(400).json({ error: error.message });
   }
-  const denied = deniedPermission(req.user, settings.uses);
+  const denied = deniedPermission(req.user, { ...settings.uses, tags: tagsChanged('bundle', id, tags) });
   if (denied) return denyJson(res, denied);
 
   // Validate title
@@ -208,6 +210,7 @@ async function updateBundle(req, res) {
     label: item.label ? item.label.trim() : null
   }));
   Bundle.replaceItems(id, cleanItems);
+  if (tags !== undefined) Tag.setForItem('bundle', id, Tag.parseTagString(tags));
 
   try {
     logAdminAction(ACTIONS.UPDATE_BUNDLE, req, 'bundle', id,

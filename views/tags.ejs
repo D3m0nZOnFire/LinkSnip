@@ -20,7 +20,7 @@
     <div class="header-section">
       <div>
         <h2>Your Tags</h2>
-        <p>Organize URLs by campaign, platform, or project</p>
+        <p>Organize links, bundles, pastes and files by campaign, platform, or project</p>
       </div>
       <a href="/dashboard" class="btn" style="color: var(--primary-foreground);">Back to Dashboard</a>
     </div>
@@ -36,9 +36,9 @@
         <div style="font-size: 0.875rem;">
           <p style="margin: 0 0 0.5rem 0; font-weight: 500; color: var(--foreground);">How to use tags:</p>
           <ul style="margin: 0; padding-left: 1.25rem; color: var(--muted-foreground);">
-            <li style="margin-bottom: 0.25rem;">Add tags when creating URLs (e.g., <code style="background: rgba(52,211,153,0.15); padding: 2px 6px; border-radius: 3px;">email-campaign</code>, <code style="background: rgba(52,211,153,0.15); padding: 2px 6px; border-radius: 3px;">twitter</code>)</li>
-            <li style="margin-bottom: 0.25rem;">Filter URLs by tag in your dashboard</li>
-            <li style="margin-bottom: 0.25rem;">View analytics for all URLs with a specific tag</li>
+            <li style="margin-bottom: 0.25rem;">Add tags when creating or editing an item (e.g., <code style="background: rgba(52,211,153,0.15); padding: 2px 6px; border-radius: 3px;">email-campaign</code>, <code style="background: rgba(52,211,153,0.15); padding: 2px 6px; border-radius: 3px;">twitter</code>)</li>
+            <li style="margin-bottom: 0.25rem;">Filter your dashboard by tag</li>
+            <li style="margin-bottom: 0.25rem;">View analytics for everything with a specific tag</li>
             <li>Track performance across campaigns and platforms</li>
           </ul>
         </div>
@@ -50,9 +50,9 @@
       <div class="empty-state">
         <p>No tags yet</p>
         <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-top: 0.5rem;">
-          Tags are created automatically when you add them to URLs
+          Tags are created automatically when you add them to an item
         </p>
-        <a href="/" class="btn btn-small" style="margin-top: 1rem;">Create a new URL with tags</a>
+        <a href="/" class="btn btn-small" style="margin-top: 1rem;">Create a new link with tags</a>
       </div>
     <% } else { %>
       <div class="table-container">
@@ -62,8 +62,8 @@
               <tr>
                 <th>Tag Name</th>
                 <th>Color</th>
-                <th class="text-right">URLs</th>
-                <th class="text-right">Total Clicks</th>
+                <th class="text-right">Items</th>
+                <th class="text-right">Visits</th>
                 <th>Created</th>
                 <th class="text-center">Actions</th>
               </tr>
@@ -82,8 +82,10 @@
                       <code style="color: var(--muted-foreground); font-size: 0.875rem;"><%= tag.color %></code>
                     </div>
                   </td>
-                  <td class="text-right"><%= tag.urlCount || 0 %></td>
-                  <td class="text-right"><%= tag.totalClicks || 0 %></td>
+                  <% const breakdown = Object.entries(tag.counts).filter(([, n]) => n > 0)
+                       .map(([type, n]) => `${n} ${typeNouns[type]}${n === 1 ? '' : 's'}`).join(', '); %>
+                  <td class="text-right" title="<%= breakdown %>"><%= tag.itemCount %></td>
+                  <td class="text-right"><%= tag.visits %></td>
                   <td><%= new Date(tag.createdAt).toLocaleDateString('en-GB') %></td>
                   <td class="text-center">
                     <div class="actions">
@@ -125,12 +127,12 @@
             <p style="font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= tags.length %></p>
           </div>
           <div>
-            <p style="color: var(--muted-foreground); font-size: 0.875rem;">Tagged URLs</p>
-            <p style="font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= tags.reduce((sum, t) => sum + (t.urlCount || 0), 0) %></p>
+            <p style="color: var(--muted-foreground); font-size: 0.875rem;">Tag uses</p>
+            <p style="font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= tags.reduce((sum, t) => sum + t.itemCount, 0) %></p>
           </div>
           <div>
-            <p style="color: var(--muted-foreground); font-size: 0.875rem;">Total Clicks</p>
-            <p style="font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= tags.reduce((sum, t) => sum + (t.totalClicks || 0), 0) %></p>
+            <p style="color: var(--muted-foreground); font-size: 0.875rem;">Visits</p>
+            <p style="font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= tags.reduce((sum, t) => sum + t.visits, 0) %></p>
           </div>
         </div>
       </div>
@@ -258,7 +260,7 @@
 
     // Delete tag
     async function deleteTag(id, name) {
-      if (!confirmAction(`Are you sure you want to delete the tag "${name}"? This will remove it from all URLs.`)) {
+      if (!confirmAction(`Are you sure you want to delete the tag "${name}"? This will remove it from every item.`)) {
         return;
       }
 

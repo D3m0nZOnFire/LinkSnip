@@ -1,6 +1,5 @@
 const File = require('../../../models/File');
-const { createTestUser, createTestTag, createTestFile } = require('../../setup/testHelpers');
-const { getTestDatabase } = require('../../setup/testDatabase');
+const { createTestUser, createTestTag, createTestFile, tagItem } = require('../../setup/testHelpers');
 
 // Helpers
 const future = (ms = 86400000) => new Date(Date.now() + ms).toISOString();
@@ -94,7 +93,7 @@ describe('File Model', () => {
       const user = await createTestUser();
       const tag  = createTestTag({ name: 'docs', userId: user.id });
       const f    = createTestFile(user.id, { slug: 'tagged1' });
-      getTestDatabase().prepare('INSERT INTO file_tags (fileId, tagId) VALUES (?, ?)').run(f.id, tag.id);
+      tagItem('file', f.id, tag.id);
 
       const file = File.findBySlug('tagged1');
       expect(file.tags).toHaveLength(1);
@@ -314,65 +313,8 @@ describe('File Model', () => {
       expect(JSON.parse(updated.allowedUsers)).toEqual([1, 2, 3]);
     });
 
-    it('replaces tags when tagIds is provided', async () => {
-      const user  = await createTestUser();
-      const tagA  = createTestTag({ name: 'alpha', userId: user.id });
-      const tagB  = createTestTag({ name: 'beta',  userId: user.id });
-      const file  = createTestFile(user.id, { slug: 'upd05' });
-      getTestDatabase().prepare('INSERT INTO file_tags (fileId, tagId) VALUES (?, ?)').run(file.id, tagA.id);
-
-      const updated = File.update(file.id, { tagIds: [tagB.id] });
-      const tagNames = updated.tags.map(t => t.name);
-      expect(tagNames).not.toContain('alpha');
-      expect(tagNames).toContain('beta');
-    });
-
     it('returns null for a non-existent file', async () => {
       expect(File.update(99999, { maxDownloads: 1 })).toBeNull();
-    });
-  });
-
-  // ─── replaceTags ───────────────────────────────────────────
-  describe('replaceTags', () => {
-    it('replaces all existing tags with new ones', async () => {
-      const user = await createTestUser();
-      const tagA = createTestTag({ name: 'old', userId: user.id });
-      const tagB = createTestTag({ name: 'new', userId: user.id });
-      const file = createTestFile(user.id, { slug: 'rt001' });
-      getTestDatabase().prepare('INSERT INTO file_tags (fileId, tagId) VALUES (?, ?)').run(file.id, tagA.id);
-
-      File.replaceTags(file.id, [tagB.id]);
-      const tags = File.getTags(file.id);
-      expect(tags.map(t => t.name)).toEqual(['new']);
-    });
-
-    it('removes all tags when passed an empty array', async () => {
-      const user = await createTestUser();
-      const tag  = createTestTag({ name: 'gone', userId: user.id });
-      const file = createTestFile(user.id, { slug: 'rt002' });
-      getTestDatabase().prepare('INSERT INTO file_tags (fileId, tagId) VALUES (?, ?)').run(file.id, tag.id);
-
-      File.replaceTags(file.id, []);
-      expect(File.getTags(file.id)).toHaveLength(0);
-    });
-  });
-
-  // ─── getTags ───────────────────────────────────────────────
-  describe('getTags', () => {
-    it('returns tags for a file', async () => {
-      const user = await createTestUser();
-      const tag  = createTestTag({ name: 'mytag', userId: user.id });
-      const file = createTestFile(user.id, { slug: 'gt001' });
-      getTestDatabase().prepare('INSERT INTO file_tags (fileId, tagId) VALUES (?, ?)').run(file.id, tag.id);
-
-      expect(File.getTags(file.id)).toHaveLength(1);
-      expect(File.getTags(file.id)[0].name).toBe('mytag');
-    });
-
-    it('returns empty array for a file with no tags', async () => {
-      const user = await createTestUser();
-      const file = createTestFile(user.id, { slug: 'gt002' });
-      expect(File.getTags(file.id)).toEqual([]);
     });
   });
 

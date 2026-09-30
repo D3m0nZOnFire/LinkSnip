@@ -96,7 +96,7 @@ class ImportExportController {
             // Replace semicolons with commas for Tag.parseTagString which expects comma-separated
             const tagsWithCommas = item.tags.replace(/;/g, ',');
             const tagArray = Tag.parseTagString(tagsWithCommas);
-            Tag.attachToUrl(url.id, tagArray, req.user.id);
+            Tag.setForItem('url', url.id, tagArray);
           }
 
           results.success++;
