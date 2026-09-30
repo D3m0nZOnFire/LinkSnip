@@ -28,7 +28,12 @@ describe('docs/CONFIGURATION.md', () => {
     expect(doc).toMatch(/\| `urlsPerHour` \|[^\n]*\| 10 \| 100 \| 500 \| unlimited \|/);
   });
 
-  it('warns about ip-api.com being non-commercial', () => {
-    expect(renderConfigurationDoc()).toMatch(/ip-api\.com[^\n]*non-commercial/i);
+  it('explains the local country lookup: DB-IP credit, no IPs sent, what to do offline', () => {
+    const doc = renderConfigurationDoc();
+    expect(doc).toMatch(/DB-IP Lite/);
+    expect(doc).toMatch(/CC BY 4\.0/);
+    expect(doc).toMatch(/Visitor IPs never leave the server/);
+    expect(doc).toMatch(/Without outbound access/);
+    expect(doc).not.toMatch(/ip-api/);
   });
 });
