@@ -223,37 +223,25 @@ async function updateBundle(req, res) {
     }
   }
 
-  // Handle expiration
-  let expiresAt = null;
-  if (expirationDays && parseInt(expirationDays) > 0) {
-    const expDate = new Date();
-    expDate.setDate(expDate.getDate() + parseInt(expirationDays));
-    expiresAt = expDate.toISOString();
+  // Only the settings the request sends change: a field left out keeps its value (the
+  // edit form sends title, description and items only), an empty one removes it.
+  const sent = (key) => Object.prototype.hasOwnProperty.call(req.body, key);
+  const changes = { title: title.trim() };
+
+  if (sent('description')) changes.description = (description && String(description).trim()) || null;
+  if (sent('maxUses')) changes.maxUses = parseInt(maxUses) > 0 ? parseInt(maxUses) : null;
+  if (sent('expirationDays')) {
+    const days = parseInt(expirationDays);
+    changes.expiresAt = days > 0 ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString() : null;
   }
-
-  // Handle password
-  let hashedPassword = undefined; // undefined = keep existing
-  if (password === '' || password === null) {
-    hashedPassword = null; // Remove password
-  } else if (password && password.trim()) {
-    hashedPassword = await bcrypt.hash(password.trim(), 10);
+  if (sent('password')) {
+    if (password === '' || password === null) changes.password = null;
+    else if (password && String(password).trim()) changes.password = await bcrypt.hash(String(password).trim(), 10);
   }
+  if (sent('activateDateTime')) changes.activateAt = activateDateTime ? activateDateTime + ':00.000Z' : null;
+  if (sent('deactivateDateTime')) changes.deactivateAt = deactivateDateTime ? deactivateDateTime + ':00.000Z' : null;
 
-  // Parse scheduling dates
-  let activateAt = null;
-  let deactivateAt = null;
-  if (activateDateTime) activateAt = activateDateTime + ':00.000Z';
-  if (deactivateDateTime) deactivateAt = deactivateDateTime + ':00.000Z';
-
-  Bundle.update(id, {
-    title: title.trim(),
-    description: description ? description.trim() : null,
-    maxUses: maxUses ? parseInt(maxUses) : null,
-    expiresAt,
-    password: hashedPassword,
-    activateAt,
-    deactivateAt
-  });
+  Bundle.update(id, changes);
 
   const cleanItems = parsedItems.map(item => ({
     url: item.url.trim(),
