@@ -41,9 +41,10 @@ describe('PUT /api/bundles/:id keeps what it is not sent', () => {
     }));
   });
 
+  // Password: '' means unchanged (forms leave it empty), null or removePassword removes it
   it('an empty value removes a setting', async () => {
     await update(bundle, {
-      title: 'T', items: ITEMS, password: '', maxUses: null, expirationDays: null, activateDateTime: '', deactivateDateTime: null
+      title: 'T', items: ITEMS, password: null, maxUses: null, expirationDays: null, activateDateTime: '', deactivateDateTime: null
     });
     expect(Bundle.findById(bundle.id)).toEqual(expect.objectContaining({
       password: null, maxUses: null, expiresAt: null, activateAt: null, deactivateAt: null

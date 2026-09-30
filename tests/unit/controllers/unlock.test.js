@@ -142,6 +142,22 @@ describe('remembering', () => {
   });
 });
 
+describe('passwords stored before 2.5', () => {
+  // Links stored the password as typed; pastes, files and bundles trimmed it first
+  it('an untrimmed stored password still unlocks with what was typed', async () => {
+    createTestUrl({ slug: 'it', password: await bcrypt.hash(' spaced ', 4) });
+    const { app } = makeApp();
+    expect((await unlock(app, 'url', ' spaced ')).status).toBe(302);
+  });
+
+  it('a trimmed stored password unlocks even with the spaces typed again', async () => {
+    createTestPaste(owner.id, { slug: 'it', password: await bcrypt.hash('spaced', 4) });
+    const { app } = makeApp();
+    expect((await unlock(app, 'paste', ' spaced ')).status).toBe(302);
+    expect((await unlock(app, 'paste', 'other')).status).toBe(401);
+  });
+});
+
 describe('what is not found', () => {
   it('404s an unknown type or slug', async () => {
     MAKE.url();

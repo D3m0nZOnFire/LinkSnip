@@ -74,7 +74,10 @@ exports.unlock = async (req, res) => {
   if (!record.password) return res.redirect(`${info.publicPrefix}${slug}`);
 
   const { password, remember } = req.body || {};
-  const correct = await bcrypt.compare(String(password || ''), record.password);
+  // Passwords are stored trimmed; links stored them as typed before, so try that first
+  const typed = String(password || '');
+  const correct = await bcrypt.compare(typed, record.password) ||
+    (typed.trim() !== typed && await bcrypt.compare(typed.trim(), record.password));
   if (!correct) return renderPage(req, res, type, found, 'Incorrect password. Please try again.', 401);
 
   unlocks.grant(req.session, type, record.id, remember === '1');

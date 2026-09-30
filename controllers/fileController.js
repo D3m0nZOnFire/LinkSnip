@@ -1,6 +1,5 @@
 const path = require('path');
 const fs = require('fs');
-const bcrypt = require('bcrypt');
 const File = require('../models/File');
 const Tag = require('../models/Tag');
 const User = require('../models/User');
@@ -9,6 +8,7 @@ const { UPLOADS_DIR } = require('../config/paths');
 const AnalyticsService = require('../services/analyticsService');
 const { checkAccess, sendAccessDenied, withAccessStatus } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
+const { readSettings, SettingsError } = require('../services/itemSettings');
 
 // Ensure uploads directory exists
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -30,21 +30,23 @@ exports.upload = async (req, res) => {
   }
 
   try {
-    const { expiresAt, activateAt, deactivateAt, maxDownloads, password, sharingMode, allowedUsers, tags } = req.body;
+    const { sharingMode, allowedUsers, tags } = req.body;
+    const discardUpload = () => { try { fs.unlinkSync(path.join(UPLOADS_DIR, req.file.filename)); } catch (_) {} };
 
-    const denied = deniedPermission(req.user, {
-      passwordProtection: filled(password),
-      scheduling: filled(activateAt) || filled(deactivateAt),
-      tags: filled(tags)
-    });
-    if (denied) {
-      try { fs.unlinkSync(path.join(UPLOADS_DIR, req.file.filename)); } catch (_) {}
-      return denyJson(res, denied);
+    // Expiry, schedule, download limit, password
+    let settings;
+    try {
+      settings = await readSettings('file', req.body, { user: req.user });
+    } catch (error) {
+      if (!(error instanceof SettingsError)) throw error;
+      discardUpload();
+      return res.status(400).json({ success: false, error: error.message });
     }
 
-    let hashedPassword = null;
-    if (password && password.trim()) {
-      hashedPassword = await bcrypt.hash(password.trim(), 10);
+    const denied = deniedPermission(req.user, { ...settings.uses, tags: filled(tags) });
+    if (denied) {
+      discardUpload();
+      return denyJson(res, denied);
     }
 
     let parsedAllowedUsers = [];
@@ -63,11 +65,7 @@ exports.upload = async (req, res) => {
       storedName: req.file.filename,
       mimeType: req.file.mimetype,
       size: req.file.size,
-      expiresAt: expiresAt || null,
-      activateAt: activateAt || null,
-      deactivateAt: deactivateAt || null,
-      maxDownloads: maxDownloads ? parseInt(maxDownloads) : null,
-      password: hashedPassword,
+      ...settings.values,
       sharingMode: sharingMode || 'public',
       allowedUsers: parsedAllowedUsers
     });
@@ -150,23 +148,18 @@ exports.updateSettings = async (req, res) => {
   }
 
   try {
-    const { expiresAt, activateAt, deactivateAt, maxDownloads, password, removePassword, sharingMode, allowedUsers, tags } = req.body;
+    const { sharingMode, allowedUsers, tags } = req.body;
 
-    // Role features: only newly set values count; removals are always allowed
-    const denied = deniedPermission(req.user, {
-      passwordProtection: filled(password) && !(removePassword === '1' || removePassword === true),
-      scheduling: (filled(activateAt) && activateAt !== file.activateAt) ||
-                  (filled(deactivateAt) && deactivateAt !== file.deactivateAt),
-      tags: tagsChanged('file', file.id, tags)
-    });
-    if (denied) return denyJson(res, denied);
-
-    let newPassword = undefined;
-    if (removePassword === '1' || removePassword === true) {
-      newPassword = null;
-    } else if (password && password.trim()) {
-      newPassword = await bcrypt.hash(password.trim(), 10);
+    // Only the settings sent change; role features count only when newly set
+    let settings;
+    try {
+      settings = await readSettings('file', req.body, { user: req.user, existing: file });
+    } catch (error) {
+      if (!(error instanceof SettingsError)) throw error;
+      return res.status(400).json({ error: error.message });
     }
+    const denied = deniedPermission(req.user, { ...settings.uses, tags: tagsChanged('file', file.id, tags) });
+    if (denied) return denyJson(res, denied);
 
     let parsedAllowedUsers = undefined;
     if (allowedUsers !== undefined) {
@@ -174,11 +167,7 @@ exports.updateSettings = async (req, res) => {
     }
 
     const updated = File.update(file.id, {
-      expiresAt,
-      activateAt,
-      deactivateAt,
-      maxDownloads: maxDownloads !== undefined ? (maxDownloads ? parseInt(maxDownloads) : null) : undefined,
-      password: newPassword,
+      ...settings.values,
       sharingMode,
       allowedUsers: parsedAllowedUsers
     });

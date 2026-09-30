@@ -128,6 +128,8 @@ async function editUrl(id) {
     } else {
       document.getElementById('editExpirationDays').value = '';
     }
+    // Days are rounded: only a changed field is sent, so saving doesn't move the expiry
+    document.getElementById('editExpirationDays').dataset.original = document.getElementById('editExpirationDays').value;
 
     // Populate scheduling fields
     // activateAt is stored as "2025-11-21T21:16:00.000Z" but we want "2025-11-21T21:16" for input
@@ -193,11 +195,14 @@ async function saveUrlEdit() {
       longUrl: longUrl,
       customSlug: customSlug || null,
       maxUses: maxUses ? parseInt(maxUses) : null,
-      expirationDays: expirationDays ? parseInt(expirationDays) : null,
       tags: tags || '',
       activateDateTime: activateDateTime || null,
       deactivateDateTime: deactivateDateTime || null
     };
+
+    if (expirationDays !== document.getElementById('editExpirationDays').dataset.original) {
+      body.expirationDays = expirationDays ? parseInt(expirationDays) : null;
+    }
 
     // Handle password updates
     if (removePassword) {
