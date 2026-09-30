@@ -236,6 +236,7 @@ app.listen(PORT, () => {
 
   // Initialize scheduled tasks after server starts
   ScheduledTasks.init();
+  ScheduledTasks.updateGeoDatabase(); // fetch the country database on first start (doesn't block)
 
   // No admin yet: print the one-time setup code (last, so it isn't buried in startup logs)
   require('./services/setupService').start();

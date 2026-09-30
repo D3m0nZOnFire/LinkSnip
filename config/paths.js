@@ -34,5 +34,7 @@ module.exports = {
   BACKUPS_DIR: path.join(DATA_DIR, 'backups'),
   SETTINGS_PATH: path.join(DATA_DIR, 'settings.json'),
   ROLES_PATH: path.join(DATA_DIR, 'roles.json'),
+  GEO_DIR: path.join(DATA_DIR, 'geo'),
+  GEO_DB_PATH: path.join(DATA_DIR, 'geo', 'dbip-country-lite.mmdb'),
   ensureDataDir
 };

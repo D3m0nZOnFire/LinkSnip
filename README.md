@@ -96,8 +96,9 @@ The built-in roles are `anonymous`, `user` (the default for new accounts), `trus
 
 Every option is listed in **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)**.
 
-> **Country lookup** uses ip-api.com, which is free for non-commercial use only and receives visitor IPs.
-> Set `geo.enabled` to `false` in `settings.json` if that doesn't suit you.
+> **Country lookup** is local: LinkSnip downloads the free [DB-IP Lite](https://db-ip.com) country database (CC BY 4.0)
+> into `data/geo/` and refreshes it monthly. Visitor IPs never leave your server. Set `geo.enabled` to `false` in
+> `settings.json` to record no countries at all.
 
 ## Backups and restoring
 

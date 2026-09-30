@@ -15,6 +15,7 @@ backups/
 *.db-shm
 /settings.json
 /roles.json
+/geo/
 
 # Local editor / tool settings
 .claude/settings.local.json

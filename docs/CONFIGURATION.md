@@ -33,7 +33,7 @@ and the last good configuration stays in use.
 | Key | Default | Description |
 |---|---|---|
 | `registration.open` | `true` | Anyone can create an account. When false, only admins can create accounts. |
-| `geo.enabled` | `true` | Look up visitor countries via ip-api.com (non-commercial terms; sends visitor IPs to a third party). |
+| `geo.enabled` | `true` | Record visitor countries, looked up in a local DB-IP Lite database (DATA_DIR/geo, downloaded monthly from db-ip.com; visitor IPs never leave the server). |
 | `features.pastes` | `true` | Text pastes (/p/…). |
 | `features.bundles` | `true` | Link bundles. |
 | `features.files` | `true` | File hosting (/f/…). |
@@ -53,8 +53,11 @@ and the last good configuration stays in use.
 Switching off a `features.*` key removes that feature for everyone, admins included: its pages and API
 return 404 and its buttons and menus are hidden.
 
-**Country lookup:** `geo.enabled` uses ip-api.com, which is free for non-commercial use only and receives your
-visitors' IP addresses. Companies should set `geo.enabled` to `false`.
+**Country lookup:** `geo.enabled` looks countries up in a local DB-IP Lite database, `DATA_DIR/geo/dbip-country-lite.mmdb`
+(CC BY 4.0; analytics pages credit DB-IP). Visitor IPs never leave the server. LinkSnip downloads the file on start
+and checks daily for the monthly update; the only thing sent to db-ip.com is the month. Without outbound access,
+download `dbip-country-lite-YYYY-MM.mmdb.gz` from https://db-ip.com/db/download/ip-to-country-lite yourself, unpack
+it to that path, and it's picked up within a minute. Without the file, countries are recorded as Unknown.
 
 ## roles.json
 

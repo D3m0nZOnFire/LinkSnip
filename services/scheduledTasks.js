@@ -9,6 +9,7 @@ const File = require('../models/File');
 const Paste = require('../models/Paste');
 const paths = require('../config/paths');
 const configService = require('./configService');
+const geo = require('./geoService');
 
 /**
  * Scheduled Tasks Service
@@ -47,12 +48,32 @@ class ScheduledTasks {
       this.cleanupExpiredFiles();
     });
 
+    // Check the country database daily at 5:45 AM (downloads only when DB-IP has a newer month)
+    cron.schedule('45 5 * * *', () => {
+      this.updateGeoDatabase();
+    });
+
     console.log('⏰ Scheduled tasks initialized:');
     console.log('   - Audit log cleanup: Daily at 2:00 AM');
     console.log('   - Database backup: Daily at 3:00 AM');
     console.log('   - Inactive URL cleanup (expired + deactivated, anonymous immediately / registered with grace period): Daily at 4:00 AM');
     console.log('   - Expired analytics shares cleanup: Daily at 5:00 AM');
     console.log('   - Expired file cleanup: Daily at 5:30 AM');
+    console.log('   - Country database check (DB-IP Lite, monthly file): Daily at 5:45 AM');
+  }
+
+  /**
+   * Download a newer DB-IP country database if there is one (also run at startup).
+   * Never throws: without the file, countries are recorded as Unknown.
+   */
+  static async updateGeoDatabase() {
+    const result = await geo.update();
+    if (result.status === 'updated') {
+      console.log(`🌍 Country database updated (DB-IP Lite ${result.month})`);
+    } else if (result.status === 'failed') {
+      console.warn(`⚠️  Country database not updated: ${result.error}. ` +
+        'Without it, visitor countries are recorded as Unknown. Retrying daily at 5:45.');
+    }
   }
 
   /**
