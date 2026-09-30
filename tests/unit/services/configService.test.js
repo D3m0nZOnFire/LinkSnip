@@ -382,7 +382,7 @@ describe('ConfigService', () => {
       expect(settings.anonymous).toEqual({ urlExpirationDays: 14, pasteExpirationDays: 7 });
       expect(settings.pastes.maxSizeKB).toBe(256);
       expect(settings.files.globalMaxFileSizeMB).toBe(50);
-      expect(settings.retention).toEqual({ auditLogDays: 30, expiredGraceDays: 60 });
+      expect(settings.retention).toEqual({ auditLogDays: 30, expiredGraceDays: 60, analyticsDays: null }); // every key is seeded
     });
 
     it('ignores an invalid legacy env var and logs it', () => {

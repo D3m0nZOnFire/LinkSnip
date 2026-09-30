@@ -122,6 +122,15 @@ class AnalyticsEvent {
     `).all(...(days ? [days] : []), limit);
   }
 
+  /**
+   * Delete events older than `days` days (bundle item clicks included). null deletes nothing.
+   * @returns {number} how many were deleted
+   */
+  static deleteOlderThan(days) {
+    if (days == null) return 0;
+    return db.prepare("DELETE FROM analytics_events WHERE timestamp < datetime('now', '-' || ? || ' days')").run(days).changes;
+  }
+
   static countAll(type) {
     return db.prepare('SELECT COUNT(*) AS n FROM analytics_events WHERE targetType = ? AND subTargetId IS NULL').get(type).n;
   }

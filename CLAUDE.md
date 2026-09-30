@@ -212,7 +212,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Recording: `AnalyticsService.record(req, type, id, subId)` on link redirects, bundle launches, bundle item clicks
   (`subId` = the item), paste views and file downloads. `models/AnalyticsEvent.js` reads: `getSummary(type, id)`
   (same fields for every type: `total`, `uniqueVisitors`, `byDate`, breakdowns), `getItemClicks(bundleId)`,
-  `getTopUrls`. Summaries count only events without `subTargetId`.
+  `getTopUrls`, `deleteOlderThan(days)` (nightly when `retention.analyticsDays` is set; item counters such as `clicks`
+  are not affected). Summaries count only events without `subTargetId`.
 - Share links (`controllers/analyticsShareController.js`): `POST/GET /api/share-links/:type/:id`,
   `DELETE /api/share-links/:id`, public `GET /stats/:token` (read-only `analytics.ejs` with `readOnly: true`,
   `noindex`). The token is shown once; only its hash is stored. Limited by `shareLinksPerUrl` (per item).
@@ -274,7 +275,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `MIGRATE_REPORTS` (old → new bundle report IDs).
 
 ### Scheduled tasks (`services/scheduledTasks.js`, node-cron)
-2:00 audit log cleanup (`retention.auditLogDays`) · 3:00 backup · 4:00 inactive content cleanup · 5:00 expired
+2:00 audit log cleanup (`retention.auditLogDays`) · 2:15 analytics cleanup (`retention.analyticsDays`, null = keep
+forever) · 3:00 backup · 4:00 inactive content cleanup · 5:00 expired
 share links · 5:30 expired files · 5:45 country database check.
 
 ## Docker

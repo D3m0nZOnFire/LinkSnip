@@ -186,3 +186,30 @@ describe('across items', () => {
     expect(AnalyticsEvent.countAll('url')).toBe(2);
   });
 });
+
+describe('deleteOlderThan', () => {
+  it('deletes events older than the given days, bundle item clicks included, and keeps newer ones', () => {
+    const url = MAKE.url();
+    const bundle = MAKE.bundle();
+    const old = event('url', url.id);
+    const oldClick = event('bundle', bundle.id, { subTargetId: 7 });
+    const recent = event('url', url.id);
+    const fresh = event('paste', url.id);
+    const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString().replace('T', ' ').slice(0, 19);
+    at(old.id, daysAgo(31));
+    at(oldClick.id, daysAgo(400));
+    at(recent.id, daysAgo(29));
+
+    expect(AnalyticsEvent.deleteOlderThan(30)).toBe(2);
+
+    const left = getTestDatabase().prepare('SELECT id FROM analytics_events ORDER BY id').all().map(r => r.id);
+    expect(left).toEqual([recent.id, fresh.id]);
+  });
+
+  it('deletes nothing without a number of days (keep forever)', () => {
+    const e = event('url', MAKE.url().id);
+    at(e.id, '2000-01-01 00:00:00');
+    expect(AnalyticsEvent.deleteOlderThan(null)).toBe(0);
+    expect(AnalyticsEvent.getTotal('url', getTestDatabase().prepare('SELECT targetId FROM analytics_events').get().targetId)).toBe(1);
+  });
+});

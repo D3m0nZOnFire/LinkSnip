@@ -48,6 +48,7 @@ and the last good configuration stays in use.
 | `pastes.maxSizeKB` | `512` | Largest paste, in KB. Seeded once from `MAX_PASTE_SIZE_KB` if set when the file is first created. |
 | `files.globalMaxFileSizeMB` | `null` | Hard cap on upload size, in MB, for every role except unlimited. null means no cap. Seeded once from `MAX_FILE_SIZE_MB` if set when the file is first created. |
 | `retention.auditLogDays` | `90` | Days audit log entries are kept. Seeded once from `AUDIT_LOG_RETENTION_DAYS` if set when the file is first created. |
+| `retention.analyticsDays` | `null` | Days analytics events (visits) are kept; older ones are deleted nightly. null keeps them forever. The counters on items (clicks, views, downloads) are not affected. |
 | `retention.expiredGraceDays` | `90` | Days an expired registered user's link or paste is kept before it is deleted. Seeded once from `EXPIRED_URL_GRACE_PERIOD_DAYS` if set when the file is first created. |
 
 Switching off a `features.*` key removes that feature for everyone, admins included: its pages and API
