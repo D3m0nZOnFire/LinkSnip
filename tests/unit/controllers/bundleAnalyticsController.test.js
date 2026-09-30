@@ -1,7 +1,6 @@
 // Mock models before requiring the controller
 jest.mock('../../../models/Bundle');
 jest.mock('../../../services/analyticsService');
-jest.mock('../../../services/qrcodeService');
 jest.mock('../../../config/database', () => ({
   prepare: jest.fn(() => ({ get: jest.fn() }))
 }));
@@ -9,7 +8,6 @@ jest.mock('../../../config/database', () => ({
 const BundleAnalyticsController = require('../../../controllers/bundleAnalyticsController');
 const Bundle = require('../../../models/Bundle');
 const AnalyticsService = require('../../../services/analyticsService');
-const QRCodeService = require('../../../services/qrcodeService');
 const db = require('../../../config/database');
 
 function makeReq(overrides = {}) {
@@ -104,76 +102,5 @@ describe('trackBundleItemClick', () => {
     await BundleAnalyticsController.trackBundleItemClick(req, res);
 
     expect(res.redirect).toHaveBeenCalledWith('https://example.com');
-  });
-});
-
-// ─── getBundleQRCode ──────────────────────────────────────────────────────────
-
-describe('getBundleQRCode', () => {
-  it('should return 404 when bundle not found', async () => {
-    Bundle.findById.mockReturnValue(null);
-    const req = makeReq({ params: { id: '99' }, query: {} });
-    const res = makeRes();
-
-    await BundleAnalyticsController.getBundleQRCode(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Bundle not found' });
-  });
-
-  it('should send a PNG buffer for a valid bundle', async () => {
-    Bundle.findById.mockReturnValue(mockBundle);
-    const fakeBuffer = Buffer.from('pngdata');
-    QRCodeService.generateBuffer.mockResolvedValue(fakeBuffer);
-
-    const req = makeReq({ params: { id: '10' }, query: { theme: 'light' } });
-    const res = makeRes();
-
-    await BundleAnalyticsController.getBundleQRCode(req, res);
-
-    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'image/png');
-    expect(res.send).toHaveBeenCalledWith(fakeBuffer);
-  });
-
-  it('should return 500 if QR generation fails', async () => {
-    Bundle.findById.mockReturnValue(mockBundle);
-    QRCodeService.generateBuffer.mockRejectedValue(new Error('QR fail'));
-
-    const req = makeReq({ params: { id: '10' }, query: {} });
-    const res = makeRes();
-
-    await BundleAnalyticsController.getBundleQRCode(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Failed to generate QR code' });
-  });
-});
-
-// ─── downloadBundleQRCode ─────────────────────────────────────────────────────
-
-describe('downloadBundleQRCode', () => {
-  it('should return 404 when bundle not found', async () => {
-    Bundle.findById.mockReturnValue(null);
-    const req = makeReq({ params: { id: '99' }, query: {} });
-    const res = makeRes();
-
-    await BundleAnalyticsController.downloadBundleQRCode(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  it('should set Content-Disposition header with bundle slug', async () => {
-    Bundle.findById.mockReturnValue(mockBundle);
-    QRCodeService.generateBuffer.mockResolvedValue(Buffer.from('data'));
-
-    const req = makeReq({ params: { id: '10' }, query: {} });
-    const res = makeRes();
-
-    await BundleAnalyticsController.downloadBundleQRCode(req, res);
-
-    expect(res.setHeader).toHaveBeenCalledWith(
-      'Content-Disposition',
-      `attachment; filename="qrcode-bundle-${mockBundle.slug}.png"`
-    );
   });
 });

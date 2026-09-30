@@ -3,10 +3,8 @@ const router = express.Router();
 const { isAuthenticated, isAdmin } = require('../middleware/auth');
 const { apiLimiter, createPasteLimiter } = require('../middleware/rateLimiter');
 const requirePermission = require('../middleware/requirePermission');
-const { requireFeature } = require('../middleware/requireFeature');
 const PasteController = require('../controllers/pasteController');
 
-const qrCodes = requireFeature('qrCodes');
 
 // ── API — create is anonymous-allowed (limiter only, no auth), like /api/bundles
 router.post('/api/pastes', requirePermission('createPastes'), createPasteLimiter, PasteController.create);
@@ -27,9 +25,6 @@ router.post('/api/admin/pastes/:id/block', isAuthenticated, isAdmin, PasteContro
 router.post('/api/admin/pastes/:id/unblock', isAuthenticated, isAdmin, PasteController.unblockPaste);
 
 // ── QR (public)
-router.get('/qrcode/paste/:slug/download', qrCodes, PasteController.qrDownload); // before /qrcode/paste/:slug
-router.get('/qrcode/paste/:slug', qrCodes, PasteController.qr);
-router.get('/api/qrcode/paste/:slug/dataurl', qrCodes, PasteController.qrDataUrl);
 
 
 // ── Public info/preview page (mirrors /info/:slug for short links)

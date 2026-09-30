@@ -924,15 +924,15 @@
     let currentQRCodeId = null;
 
     function showQRCode(urlId, slug) {
-      currentQRCodeId = urlId;
+      currentQRCodeId = slug;
       const qrcodeImage = document.getElementById('qrcodeImage');
-      qrcodeImage.src = `/qrcode/${urlId}?theme=light`;
+      qrcodeImage.src = `/qrcode/url/${slug}?theme=light`;
       openModal('qrcodeModal');
     }
 
     document.getElementById('downloadQRBtn').addEventListener('click', () => {
       if (currentQRCodeId) {
-        window.location.href = `/qrcode/${currentQRCodeId}/download?theme=light`;
+        window.location.href = `/qrcode/url/${currentQRCodeId}/download?theme=light`;
       }
     });
 

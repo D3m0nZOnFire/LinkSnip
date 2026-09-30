@@ -62,8 +62,13 @@ describe('feature switches on real routes', () => {
   });
 
   it('404s paste QR codes when qrCodes are off, while pastes stay up', async () => {
+    const owner = await createTestUser({ username: 'qrowner' });
+    getTestDatabase().prepare("INSERT INTO pastes (slug, content, userId) VALUES ('abc', 'hi', ?)").run(owner.id);
     setSettings({ features: { qrCodes: false } });
-    const app = pasteApp();
+    const app = appWith(a => {
+      a.use('/', featureRoutes('pastes', require('../../../routes/pasteRoutes')));
+      a.use('/', featureRoutes('qrCodes', require('../../../routes/qrcodeRoutes')));
+    });
 
     expect((await request(app).get('/qrcode/paste/abc')).status).toBe(404);
     expect((await request(app).get('/api/qrcode/paste/abc/dataurl')).status).toBe(404);

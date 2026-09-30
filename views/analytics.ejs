@@ -42,7 +42,7 @@
     <!-- Item Info -->
     <%
       const TARGET_LABEL = { url: 'Long URL', bundle: 'Title', paste: 'Title', file: 'File' };
-      const qrForThisType = type === 'url' && features.qrCodes;
+      const qrForThisType = features.qrCodes;
     %>
     <div class="url-info">
       <div style="display: flex; justify-content: space-between; align-items: start; gap: 2rem;">
@@ -66,7 +66,7 @@
             </a>
             <% } %>
             <% if (qrForThisType) { %>
-            <button class="btn" onclick="showQRCode(<%= item.id %>)" style="display: inline-flex; align-items: center; color: var(--primary-foreground);">
+            <button class="btn" onclick="showQRCode()" style="display: inline-flex; align-items: center; color: var(--primary-foreground);">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 0.5rem;">
                 <rect x="3" y="3" width="7" height="7"></rect>
                 <rect x="14" y="3" width="7" height="7"></rect>
@@ -90,7 +90,7 @@
         </div>
         <% if (qrForThisType) { %>
         <div style="flex-shrink: 0;">
-          <img src="/qrcode/<%= item.id %>?theme=light" alt="QR Code" style="width: 150px; height: 150px; border-radius: 8px; border: 2px solid var(--chart-border);">
+          <img src="/qrcode/<%= type %>/<%= item.slug %>?theme=light" alt="QR Code" style="width: 150px; height: 150px; border-radius: 8px; border: 2px solid var(--chart-border);">
         </div>
         <% } %>
       </div>
@@ -99,7 +99,7 @@
     <%- include('partials/analytics-summary', { summary, eventLabel, itemClicks }) %>
   </main>
 
-  <% if (type === 'url' && features.qrCodes) { %>
+  <% if (features.qrCodes) { %>
   <!-- QR Code Modal -->
   <div id="qrcodeModal" class="modal-overlay">
     <div class="modal">
@@ -117,7 +117,7 @@
         <div id="qrcodeContainer" style="margin: 2rem 0;">
           <img id="qrcodeImage" src="" alt="QR Code" style="max-width: 400px; width: 100%; border-radius: 8px;">
         </div>
-        <p style="color: var(--chart-muted-text); margin-bottom: 1rem;">Scan this QR code to access the short URL</p>
+        <p style="color: var(--chart-muted-text); margin-bottom: 1rem;">Scan this QR code to open this <%= noun %></p>
       </div>
 
       <div class="modal-footer">
@@ -175,21 +175,17 @@
 
   <script src="/js/main.js"></script>
   <script>
-    <% if (type === 'url' && features.qrCodes) { %>
-    // QR Code functionality
-    let currentQRCodeId = <%= item.id %>;
+    <% if (features.qrCodes) { %>
+    // QR Code functionality (by slug, for every type)
+    const QR_PATH = '/qrcode/<%= type %>/<%= item.slug %>';
 
-    function showQRCode(urlId) {
-      currentQRCodeId = urlId;
-      const qrcodeImage = document.getElementById('qrcodeImage');
-      qrcodeImage.src = `/qrcode/${urlId}?theme=light`;
+    function showQRCode() {
+      document.getElementById('qrcodeImage').src = `${QR_PATH}?theme=light`;
       openModal('qrcodeModal');
     }
 
     document.getElementById('downloadQRBtn').addEventListener('click', () => {
-      if (currentQRCodeId) {
-        window.location.href = `/qrcode/${currentQRCodeId}/download?theme=light`;
-      }
+      window.location.href = `${QR_PATH}/download?theme=light`;
     });
     <% } %>
 

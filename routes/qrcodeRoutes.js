@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const QRCodeController = require('../controllers/qrcodeController');
-const { isAuthenticated } = require('../middleware/auth');
 
-// QR Code routes (authenticated users only, or anonymous URLs)
-router.get('/qrcode/:id', QRCodeController.generateQRCode);
-router.get('/qrcode/:id/download', QRCodeController.downloadQRCode);
-router.get('/api/qrcode/:id/dataurl', QRCodeController.getQRCodeDataURL);
+// QR codes for every type, by slug (the type's feature switch is checked inside).
+// The old ID-based /qrcode/:id and /qrcode/bundle/:id are gone on purpose: counting IDs revealed every slug.
+router.get('/qrcode/:type/:slug/download', QRCodeController.download);
+router.get('/qrcode/:type/:slug', QRCodeController.image);
+router.get('/api/qrcode/:type/:slug/dataurl', QRCodeController.dataUrl);
 
 module.exports = router;
