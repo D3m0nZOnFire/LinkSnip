@@ -31,7 +31,7 @@ class DashboardController {
     // Number of active analytics share links per URL, and the deletion countdown
     const urlsWithShares = withAccessStatus('url', urls).map(url => ({
       ...url,
-      shareCount: AnalyticsShare.countActiveByUrlId(url.id),
+      shareCount: AnalyticsShare.countActive('url', url.id),
       deletesInDays: deletesInDays('url', url)
     }));
 

@@ -26,18 +26,29 @@ class Bundle {
   }
 
   /**
-   * Replace all items for a bundle (used for create and update)
-   * Runs in a transaction: delete existing items, then insert new ones.
+   * Set a bundle's items (create and update), in the given order. An existing item with
+   * the same URL keeps its ID, and so its click history; its label and position are
+   * updated. Items no longer listed are deleted (their clicks with them).
    */
   static replaceItems(bundleId, items) {
-    const replaceTransaction = db.transaction((bId, itemList) => {
-      db.prepare('DELETE FROM bundle_items WHERE bundleId = ?').run(bId);
+    db.transaction(() => {
+      const unused = db.prepare('SELECT id, url FROM bundle_items WHERE bundleId = ? ORDER BY position, id').all(bundleId);
+      const update = db.prepare('UPDATE bundle_items SET label = ?, position = ? WHERE id = ?');
       const insert = db.prepare('INSERT INTO bundle_items (bundleId, url, label, position) VALUES (?, ?, ?, ?)');
-      itemList.forEach((item, index) => {
-        insert.run(bId, item.url, item.label || null, index);
+
+      items.forEach((item, position) => {
+        const match = unused.findIndex(existing => existing.url === item.url);
+        if (match === -1) {
+          insert.run(bundleId, item.url, item.label || null, position);
+        } else {
+          update.run(item.label || null, position, unused[match].id);
+          unused.splice(match, 1);
+        }
       });
-    });
-    replaceTransaction(bundleId, items);
+
+      const remove = db.prepare('DELETE FROM bundle_items WHERE id = ?');
+      for (const gone of unused) remove.run(gone.id);
+    })();
   }
 
   /**

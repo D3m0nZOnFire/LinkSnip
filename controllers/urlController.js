@@ -16,7 +16,6 @@ function parseScheduleDate(value) {
   return value + ':00.000Z';
 }
 const SlugGenerator = require('../services/slugGenerator');
-const Analytics = require('../models/Analytics');
 const AnalyticsService = require('../services/analyticsService');
 const Tag = require('../models/Tag');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
@@ -209,10 +208,9 @@ class UrlController {
     // Increment clicks
     Url.incrementClicks(slug);
 
-    // Capture analytics data (async with geolocation)
+    // Record the visit (async with geolocation)
     try {
-      const analyticsData = await AnalyticsService.captureAnalytics(req, url.id);
-      Analytics.record(analyticsData);
+      await AnalyticsService.record(req, 'url', url.id);
     } catch (error) {
       // Don't fail the redirect if analytics fails
       console.error('Analytics recording failed:', error);

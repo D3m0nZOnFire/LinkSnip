@@ -6,6 +6,7 @@ const Tag = require('../models/Tag');
 const User = require('../models/User');
 const { logAdminAction, logAccountChange, ACTIONS } = require('../services/auditService');
 const { UPLOADS_DIR } = require('../config/paths');
+const AnalyticsService = require('../services/analyticsService');
 const { checkAccess, sendAccessDenied, withAccessStatus } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 
@@ -246,6 +247,7 @@ exports.download = async (req, res) => {
   }
 
   File.incrementDownloads(file.id);
+  AnalyticsService.record(req, 'file', file.id).catch(() => { /* non-critical */ });
 
   if (file.sharingMode === 'restricted' || file.password) {
     logAccountChange(ACTIONS.DOWNLOAD_FILE, req, { fileId: file.id, slug: file.slug, originalName: file.originalName });

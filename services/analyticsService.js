@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const AnalyticsEvent = require('../models/AnalyticsEvent');
 const configService = require('./configService');
 
 class AnalyticsService {
@@ -104,12 +105,11 @@ class AnalyticsService {
   }
 
   /**
-   * Prepare analytics data from request
+   * The visit details of a request (hashed IP, referrer, user agent and what it parses to, country)
    * @param {object} req - Express request object
-   * @param {number} urlId - URL ID
-   * @returns {Promise<object>} Analytics data ready for database insertion
+   * @returns {Promise<object>} Fields for AnalyticsEvent.record
    */
-  static async captureAnalytics(req, urlId) {
+  static async captureAnalytics(req) {
     const ip = this.getIpAddress(req);
     const ipHash = this.hashIp(ip);
     const referrer = req.headers.referer || req.headers.referrer || 'Direct';
@@ -118,7 +118,6 @@ class AnalyticsService {
     const country = await this.getCountryFromIp(ip);
 
     return {
-      urlId,
       ipHash,
       referrer,
       userAgent: userAgent.substring(0, 255), // Limit length
@@ -127,6 +126,17 @@ class AnalyticsService {
       device,
       country
     };
+  }
+
+  /**
+   * Record one visit of an item (the one capture path for every type).
+   * @param {string} type - content type (url, bundle, paste, file)
+   * @param {number} id - the item
+   * @param {number|null} subId - a bundle item, for clicks on a bundle's items
+   */
+  static async record(req, type, id, subId = null) {
+    const details = await this.captureAnalytics(req);
+    return AnalyticsEvent.record({ targetType: type, targetId: id, subTargetId: subId, ...details });
   }
 }
 

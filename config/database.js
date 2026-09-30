@@ -2,7 +2,8 @@ const Database = require('better-sqlite3');
 const { DB_PATH, ensureDataDir } = require('./paths');
 const { configureDatabase } = require('./dbSetup');
 const {
-  migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports
+  migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
+  migrateAnalytics
 } = require('./migrations');
 
 // Initialize database (DATA_DIR must exist and be writable)
@@ -109,26 +110,8 @@ if (!urlColumnNames.includes('deactivateAt')) {
 // ANALYTICS TABLE
 // ============================================================================
 
-const analyticsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='analytics'").get();
-
-if (!analyticsExists) {
-  console.log('  📊 Creating analytics table...');
-  db.exec(`
-    CREATE TABLE analytics (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      urlId INTEGER NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      ipHash TEXT,
-      referrer TEXT,
-      userAgent TEXT,
-      browser TEXT,
-      os TEXT,
-      device TEXT,
-      country TEXT,
-      FOREIGN KEY (urlId) REFERENCES urls(id) ON DELETE CASCADE
-    )
-  `);
-}
+// One analytics_events table for every content type: created (and the old per-type
+// analytics tables moved into it) by migrateAnalytics, after all content tables exist.
 
 // ============================================================================
 // TAGS SYSTEM
@@ -428,27 +411,6 @@ if (!pasteTagsExists) {
   `);
 }
 
-const pasteAnalyticsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='paste_analytics'").get();
-
-if (!pasteAnalyticsExists) {
-  console.log('  📊 Creating paste_analytics table...');
-  db.exec(`
-    CREATE TABLE paste_analytics (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-      pasteId   INTEGER NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      ipHash    TEXT,
-      referrer  TEXT,
-      userAgent TEXT,
-      browser   TEXT,
-      os        TEXT,
-      device    TEXT,
-      country   TEXT,
-      FOREIGN KEY (pasteId) REFERENCES pastes(id) ON DELETE CASCADE
-    )
-  `);
-}
-
 // ============================================================================
 // INDEXES - Create all performance indexes
 // ============================================================================
@@ -462,16 +424,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_username ON users(username);
   CREATE INDEX IF NOT EXISTS idx_email ON users(email);
 `);
-
-// Analytics indexes (if table exists)
-const analyticsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='analytics'").get();
-if (analyticsTableExists) {
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_analytics_urlId ON analytics(urlId);
-    CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp);
-    CREATE INDEX IF NOT EXISTS idx_analytics_urlId_timestamp ON analytics(urlId, timestamp);
-  `);
-}
 
 // Tags indexes (if tables exist)
 const tagsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tags'").get();
@@ -540,66 +492,6 @@ if (bundleItemsTableExists) {
 migrateQuarantine(db);
 migrateReports(db);
 
-// ============================================================================
-// BUNDLE ANALYTICS SYSTEM
-// ============================================================================
-
-const bundleAnalyticsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='bundle_analytics'").get();
-
-if (!bundleAnalyticsExists) {
-  console.log('  📊 Creating bundle_analytics table...');
-  db.exec(`
-    CREATE TABLE bundle_analytics (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      bundleId INTEGER NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      ipHash TEXT,
-      referrer TEXT,
-      userAgent TEXT,
-      browser TEXT,
-      os TEXT,
-      device TEXT,
-      country TEXT,
-      FOREIGN KEY (bundleId) REFERENCES bundles(id) ON DELETE CASCADE
-    )
-  `);
-}
-
-const bundleItemAnalyticsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='bundle_item_analytics'").get();
-
-if (!bundleItemAnalyticsExists) {
-  console.log('  📊 Creating bundle_item_analytics table...');
-  db.exec(`
-    CREATE TABLE bundle_item_analytics (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      bundleItemId INTEGER NOT NULL,
-      bundleId INTEGER NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      ipHash TEXT,
-      FOREIGN KEY (bundleItemId) REFERENCES bundle_items(id) ON DELETE CASCADE,
-      FOREIGN KEY (bundleId) REFERENCES bundles(id) ON DELETE CASCADE
-    )
-  `);
-}
-
-// Bundle analytics indexes
-const bundleAnalyticsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='bundle_analytics'").get();
-if (bundleAnalyticsTableExists) {
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_bundle_analytics_bundleId ON bundle_analytics(bundleId);
-    CREATE INDEX IF NOT EXISTS idx_bundle_analytics_timestamp ON bundle_analytics(timestamp);
-    CREATE INDEX IF NOT EXISTS idx_bundle_analytics_bundleId_timestamp ON bundle_analytics(bundleId, timestamp);
-  `);
-}
-
-const bundleItemAnalyticsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='bundle_item_analytics'").get();
-if (bundleItemAnalyticsTableExists) {
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_bundle_item_analytics_bundleItemId ON bundle_item_analytics(bundleItemId);
-    CREATE INDEX IF NOT EXISTS idx_bundle_item_analytics_bundleId ON bundle_item_analytics(bundleId);
-  `);
-}
-
 // Files indexes (if tables exist)
 const filesTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='files'").get();
 const fileTagsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='file_tags'").get();
@@ -633,14 +525,12 @@ if (pasteTagsTableExists) {
     CREATE INDEX IF NOT EXISTS idx_paste_tags_tagId ON paste_tags(tagId);
   `);
 }
-const pasteAnalyticsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='paste_analytics'").get();
-if (pasteAnalyticsTableExists) {
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_paste_analytics_pasteId ON paste_analytics(pasteId);
-    CREATE INDEX IF NOT EXISTS idx_paste_analytics_timestamp ON paste_analytics(timestamp);
-    CREATE INDEX IF NOT EXISTS idx_paste_analytics_pasteId_timestamp ON paste_analytics(pasteId, timestamp);
-  `);
-}
+
+// ============================================================================
+// ANALYTICS (one events table for every type; share links by type + item)
+// ============================================================================
+
+migrateAnalytics(db);
 
 console.log('\n✅ Database initialized and migrations completed successfully\n');
 

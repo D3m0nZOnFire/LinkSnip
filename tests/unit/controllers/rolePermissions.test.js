@@ -234,8 +234,8 @@ describe('role permissions on routes', () => {
   it.each([
     ['tags', 'tagRoutes', 'get', '/api/tags'],
     ['tags', 'tagRoutes', 'put', '/api/tags/1'],
-    ['analytics', 'analyticsRoutes', 'get', '/api/analytics/1'],
-    ['analytics', 'bundleRoutes', 'get', '/api/bundle-analytics/1'],
+    ['analytics', 'analyticsRoutes', 'get', '/api/analytics/url/1'],
+    ['analytics', 'analyticsRoutes', 'get', '/api/analytics/bundle/1'],
     ['bioPage', 'bioPageRoutes', 'put', '/api/bio'],
     ['bioPage', 'bioPageRoutes', 'post', '/api/bio/urls/1/toggle']
   ])('%s gates %s %s %s', async (perm, routerFile, method, path) => {
@@ -250,9 +250,9 @@ describe('role permissions on routes', () => {
 
   it.each([
     ['tagRoutes', '/tags'],
-    ['analyticsRoutes', '/analytics/1'],
-    ['pasteRoutes', '/pastes/1/analytics'],
-    ['bundleRoutes', '/bundle-analytics/1'],
+    ['analyticsRoutes', '/analytics/url/1'],
+    ['analyticsRoutes', '/analytics/paste/1'],
+    ['analyticsRoutes', '/analytics/bundle/1'],
     ['bioPageRoutes', '/bio/settings']
   ])('redirects %s %s pages home for a role without the permission', async (routerFile, path) => {
     revokeFromUser('tags', 'analytics', 'bioPage');

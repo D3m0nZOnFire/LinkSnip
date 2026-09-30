@@ -1,5 +1,5 @@
 const Database = require('better-sqlite3');
-const { migrateAnalyticsShareLinks, migrateQuarantine, migrateReports } = require('../../config/migrations');
+const { migrateAnalyticsShareLinks, migrateQuarantine, migrateReports, migrateAnalytics } = require('../../config/migrations');
 
 let db = null;
 
@@ -46,23 +46,6 @@ function createTestDatabase() {
       deactivateAt DATETIME DEFAULT NULL,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (creatorId) REFERENCES users(id) ON DELETE SET NULL
-    )
-  `);
-
-  // Create Analytics table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS analytics (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      urlId INTEGER NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      ipHash TEXT,
-      referrer TEXT,
-      userAgent TEXT,
-      browser TEXT,
-      os TEXT,
-      device TEXT,
-      country TEXT,
-      FOREIGN KEY (urlId) REFERENCES urls(id) ON DELETE CASCADE
     )
   `);
 
@@ -142,36 +125,6 @@ function createTestDatabase() {
     )
   `);
 
-  // Create bundle_analytics table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS bundle_analytics (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      bundleId INTEGER NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      ipHash TEXT,
-      referrer TEXT,
-      userAgent TEXT,
-      browser TEXT,
-      os TEXT,
-      device TEXT,
-      country TEXT,
-      FOREIGN KEY (bundleId) REFERENCES bundles(id) ON DELETE CASCADE
-    )
-  `);
-
-  // Create bundle_item_analytics table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS bundle_item_analytics (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      bundleItemId INTEGER NOT NULL,
-      bundleId INTEGER NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      ipHash TEXT,
-      FOREIGN KEY (bundleItemId) REFERENCES bundle_items(id) ON DELETE CASCADE,
-      FOREIGN KEY (bundleId) REFERENCES bundles(id) ON DELETE CASCADE
-    )
-  `);
-
   // Create files table
   db.exec(`
     CREATE TABLE IF NOT EXISTS files (
@@ -239,30 +192,12 @@ function createTestDatabase() {
     )
   `);
 
-  // Create paste_analytics table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS paste_analytics (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-      pasteId   INTEGER NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      ipHash    TEXT,
-      referrer  TEXT,
-      userAgent TEXT,
-      browser   TEXT,
-      os        TEXT,
-      device    TEXT,
-      country   TEXT,
-      FOREIGN KEY (pasteId) REFERENCES pastes(id) ON DELETE CASCADE
-    )
-  `);
-
   // Create indexes
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_slug ON urls(slug);
     CREATE INDEX IF NOT EXISTS idx_creatorId ON urls(creatorId);
     CREATE INDEX IF NOT EXISTS idx_username ON users(username);
     CREATE INDEX IF NOT EXISTS idx_email ON users(email);
-    CREATE INDEX IF NOT EXISTS idx_analytics_urlId ON analytics(urlId);
     CREATE INDEX IF NOT EXISTS idx_tags_userId ON tags(userId);
     CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
     CREATE INDEX IF NOT EXISTS idx_url_tags_urlId ON url_tags(urlId);
@@ -272,14 +207,13 @@ function createTestDatabase() {
     CREATE INDEX IF NOT EXISTS idx_pastes_expiresAt ON pastes(expiresAt);
     CREATE INDEX IF NOT EXISTS idx_paste_tags_pasteId ON paste_tags(pasteId);
     CREATE INDEX IF NOT EXISTS idx_paste_tags_tagId ON paste_tags(tagId);
-    CREATE INDEX IF NOT EXISTS idx_paste_analytics_pasteId ON paste_analytics(pasteId);
-    CREATE INDEX IF NOT EXISTS idx_paste_analytics_timestamp ON paste_analytics(timestamp);
   `);
 
   // Tables with a testable migration are created by that migration, not mirrored by hand
   migrateAnalyticsShareLinks(db, { log: () => {} });
   migrateQuarantine(db, { log: () => {} });
   migrateReports(db, { log: () => {} });
+  migrateAnalytics(db, { log: () => {} });
 
   return db;
 }
@@ -303,25 +237,22 @@ function clearTestDatabase() {
 
   // Delete in order respecting foreign key constraints
   db.exec('DELETE FROM reports');
-  db.exec('DELETE FROM bundle_item_analytics');
-  db.exec('DELETE FROM bundle_analytics');
   db.exec('DELETE FROM bundle_items');
   db.exec('DELETE FROM bundles');
-  db.exec('DELETE FROM paste_analytics');
   db.exec('DELETE FROM paste_tags');
   db.exec('DELETE FROM pastes');
   db.exec('DELETE FROM file_tags');
   db.exec('DELETE FROM files');
   db.exec('DELETE FROM analytics_shares');
   db.exec('DELETE FROM url_tags');
-  db.exec('DELETE FROM analytics');
+  db.exec('DELETE FROM analytics_events');
   db.exec('DELETE FROM audit_logs');
   db.exec('DELETE FROM tags');
   db.exec('DELETE FROM urls');
   db.exec('DELETE FROM users');
 
   // Reset autoincrement counters
-  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'urls', 'analytics', 'tags', 'reports', 'audit_logs', 'bundles', 'bundle_items', 'bundle_analytics', 'bundle_item_analytics', 'files', 'pastes', 'paste_analytics', 'analytics_shares')");
+  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'urls', 'analytics_events', 'tags', 'reports', 'audit_logs', 'bundles', 'bundle_items', 'files', 'pastes', 'analytics_shares')");
 }
 
 /**

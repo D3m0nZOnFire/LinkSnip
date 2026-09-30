@@ -1,6 +1,5 @@
 const bcrypt = require('bcrypt');
 const Paste = require('../models/Paste');
-const PasteAnalytics = require('../models/PasteAnalytics');
 const Tag = require('../models/Tag');
 const User = require('../models/User');
 const SlugGenerator = require('../services/slugGenerator');
@@ -287,10 +286,7 @@ exports.view = (req, res) => {
   Paste.incrementViews(paste.id);
 
   // Record view-level analytics (async, non-blocking)
-  AnalyticsService.captureAnalytics(req, paste.id).then(data => {
-    const { urlId, ...rest } = data;
-    PasteAnalytics.record({ pasteId: paste.id, ...rest });
-  }).catch(() => { /* non-critical */ });
+  AnalyticsService.record(req, 'paste', paste.id).catch(() => { /* non-critical */ });
 
   const canEdit = !!(req.user && (req.user.isAdmin || req.user.id === paste.userId));
 
@@ -318,32 +314,6 @@ exports.showEditPage = (req, res) => {
     return res.redirect('/dashboard');
   }
   return res.render('paste-edit', { user: req.user, paste });
-};
-
-/**
- * GET /pastes/:id/analytics  — full-page analytics (owner or admin)
- */
-exports.showAnalyticsPage = (req, res) => {
-  const paste = Paste.findById(parseInt(req.params.id));
-  if (!paste) {
-    return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
-  }
-  if (paste.userId !== req.user.id && !req.user.isAdmin) {
-    return res.redirect('/dashboard');
-  }
-
-  const analytics = PasteAnalytics.getSummary(paste.id);
-  const owner = (paste.userId && User.findById(paste.userId)) || { username: 'Anonymous' };
-
-  return res.render('paste-analytics', {
-    user: req.user,
-    paste,
-    owner,
-    analytics,
-    sizeChars: paste.content ? paste.content.length : 0,
-    baseUrl: `${req.protocol}://${req.get('host')}`,
-    currentPage: 'dashboard'
-  });
 };
 
 /**

@@ -47,7 +47,7 @@ beforeEach(async () => {
 });
 
 const create = (user, body = {}) =>
-  request(app).post(`/api/urls/${url.id}/share-links`).set('x-user', as(user)).send(body);
+  request(app).post(`/api/share-links/url/${url.id}`).set('x-user', as(user)).send(body);
 
 describe('creating share links', () => {
   it('gives the owner a /stats/<token> link, shown once', async () => {
@@ -58,7 +58,7 @@ describe('creating share links', () => {
     expect(res.body.link).toEqual(expect.objectContaining({ label: 'Client' }));
     expect(new Date(res.body.link.expiresAt) > new Date()).toBe(true);
 
-    const list = await request(app).get(`/api/urls/${url.id}/share-links`).set('x-user', as(owner));
+    const list = await request(app).get(`/api/share-links/url/${url.id}`).set('x-user', as(owner));
     expect(list.body.links).toHaveLength(1);
     expect(JSON.stringify(list.body)).not.toContain(res.body.shareUrl.split('/stats/')[1]);
   });
@@ -75,7 +75,7 @@ describe('creating share links', () => {
   });
 
   it('requires login and the analyticsShareLinks permission', async () => {
-    expect((await request(app).post(`/api/urls/${url.id}/share-links`).set('Accept', 'application/json')).status).toBe(401);
+    expect((await request(app).post(`/api/share-links/url/${url.id}`).set('Accept', 'application/json')).status).toBe(401);
 
     setFile(paths.ROLES_PATH, { roles: { user: { permissions: { analyticsShareLinks: false } } } });
     const res = await create(owner);
@@ -85,7 +85,7 @@ describe('creating share links', () => {
 
   it('enforces shareLinksPerUrl, counting only active links', async () => {
     setFile(paths.ROLES_PATH, { roles: { user: { limits: { shareLinksPerUrl: 2 } } } });
-    AnalyticsShare.create({ urlId: url.id, createdBy: owner.id, expiresAt: '2000-01-01T00:00:00.000Z' }); // expired
+    AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id, expiresAt: '2000-01-01T00:00:00.000Z' }); // expired
 
     expect((await create(owner)).status).toBe(201);
     expect((await create(owner)).status).toBe(201);
@@ -107,7 +107,7 @@ describe('creating share links', () => {
   });
 
   it('404s for an unknown URL', async () => {
-    const res = await request(app).post('/api/urls/99999/share-links').set('x-user', as(owner)).send({});
+    const res = await request(app).post('/api/share-links/url/99999').set('x-user', as(owner)).send({});
     expect(res.status).toBe(404);
   });
 });
@@ -121,20 +121,20 @@ describe('viewing /stats/:token', () => {
     expect(res.status).toBe(200);
     expect(res.body.view).toBe('analytics');
     expect(res.body.readOnly).toBe(true);
-    expect(res.body.url.slug).toBe('abc');
-    expect(res.body.summary).toEqual(expect.objectContaining({ totalClicks: 0 }));
+    expect(res.body.item.slug).toBe('abc');
+    expect(res.body.summary).toEqual(expect.objectContaining({ total: 0 }));
   });
 
   it('counts views of the link', async () => {
-    const { token, link } = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+    const { token, link } = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
     await request(app).get(`/stats/${token}`);
     await request(app).get(`/stats/${token}`);
     expect(AnalyticsShare.findById(link.id).viewCount).toBe(2);
   });
 
   it('404s for an unknown, expired or revoked token', async () => {
-    const expired = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id, expiresAt: '2000-01-01T00:00:00.000Z' }).token;
-    const revoked = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+    const expired = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id, expiresAt: '2000-01-01T00:00:00.000Z' }).token;
+    const revoked = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
     AnalyticsShare.revoke(revoked.link.id);
 
     for (const token of ['nope', expired, revoked.token]) {
@@ -143,7 +143,7 @@ describe('viewing /stats/:token', () => {
   });
 
   it('404s when the feature is switched off', async () => {
-    const { token } = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+    const { token } = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
     setFile(paths.SETTINGS_PATH, { features: { analyticsShareLinks: false } });
     expect((await request(app).get(`/stats/${token}`)).status).toBe(404);
   });
@@ -153,7 +153,7 @@ describe('revoking', () => {
   const revoke = (user, id) => request(app).delete(`/api/share-links/${id}`).set('x-user', as(user));
 
   it('lets the owner revoke, which kills the link', async () => {
-    const { token, link } = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+    const { token, link } = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
 
     expect((await revoke(owner, link.id)).status).toBe(200);
     expect((await request(app).get(`/stats/${token}`)).status).toBe(404);
@@ -161,7 +161,7 @@ describe('revoking', () => {
   });
 
   it('refuses other users, allows admins', async () => {
-    const { link } = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+    const { link } = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
 
     expect((await revoke(other, link.id)).status).toBe(403);
     expect((await revoke({ ...admin, isAdmin: 1 }, link.id)).status).toBe(200);
@@ -174,7 +174,7 @@ describe('revoking', () => {
 
 describe('Admin → Analytics Shares', () => {
   it('lists every active link for admins', async () => {
-    AnalyticsShare.create({ urlId: url.id, createdBy: owner.id, label: 'Client' });
+    AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id, label: 'Client' });
 
     const res = await request(app).get('/admin/analytics-shares').set('x-user', as({ ...admin, isAdmin: 1 }));
 

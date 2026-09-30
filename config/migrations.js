@@ -178,6 +178,118 @@ function migrateReports(db, logger = console) {
   })();
 }
 
+/**
+ * One analytics_events table for every content type (targetType + targetId, and
+ * subTargetId for a bundle item click), replacing analytics, bundle_analytics,
+ * bundle_item_analytics and paste_analytics; and analytics_shares moves from urlId
+ * to targetType + targetId. Rows are copied, then the old tables dropped, in one
+ * transaction. Link events keep their IDs. Triggers delete an item's events and
+ * share links with the item, and a bundle item's click events with the item.
+ */
+const OLD_ANALYTICS = [
+  // [table, targetType, target column, sub-target column, has the visit details]
+  ['analytics', 'url', 'urlId', null, true],
+  ['bundle_analytics', 'bundle', 'bundleId', null, true],
+  ['bundle_item_analytics', 'bundle', 'bundleId', 'bundleItemId', false],
+  ['paste_analytics', 'paste', 'pasteId', null, true]
+];
+
+function migrateAnalytics(db, logger = console) {
+  const tableExists = (name) =>
+    !!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?").get(name);
+  const columns = (table) => db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS analytics_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        targetType TEXT NOT NULL,
+        targetId INTEGER NOT NULL,
+        subTargetId INTEGER,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        ipHash TEXT,
+        referrer TEXT,
+        userAgent TEXT,
+        browser TEXT,
+        os TEXT,
+        device TEXT,
+        country TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_analytics_events_target ON analytics_events(targetType, targetId, timestamp);
+      CREATE INDEX IF NOT EXISTS idx_analytics_events_sub ON analytics_events(targetType, targetId, subTargetId);
+      CREATE INDEX IF NOT EXISTS idx_analytics_events_timestamp ON analytics_events(timestamp);
+    `);
+
+    for (const [table, type, fk, subFk, details] of OLD_ANALYTICS) {
+      if (!tableExists(table)) continue;
+      const keepId = table === 'analytics';
+      const detailColumns = details ? ', referrer, userAgent, browser, os, device, country' : '';
+      const { n } = db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get();
+      logger.log(`  📊 Moving ${n} ${table} row(s) into analytics_events...`);
+      db.exec(`
+        INSERT INTO analytics_events (${keepId ? 'id, ' : ''}targetType, targetId, subTargetId, timestamp, ipHash${detailColumns})
+        SELECT ${keepId ? 'id, ' : ''}'${type}', ${fk}, ${subFk || 'NULL'}, timestamp, ipHash${detailColumns}
+        FROM ${table} ORDER BY id;
+        DROP TABLE ${table};
+      `);
+    }
+
+    // Share links: urlId → targetType + targetId (SQLite can't change columns: rebuild)
+    const shareColumns = columns('analytics_shares');
+    if (!shareColumns.includes('targetType')) {
+      if (shareColumns.length) db.exec('ALTER TABLE analytics_shares RENAME TO analytics_shares_old');
+      db.exec(`
+        CREATE TABLE analytics_shares (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          targetType TEXT NOT NULL,
+          targetId INTEGER NOT NULL,
+          createdBy INTEGER,
+          tokenHash TEXT NOT NULL UNIQUE,
+          label TEXT,
+          expiresAt DATETIME,
+          viewCount INTEGER NOT NULL DEFAULT 0,
+          lastViewedAt DATETIME,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (createdBy) REFERENCES users(id) ON DELETE SET NULL
+        );
+      `);
+      if (shareColumns.length) {
+        logger.log('  🔗 Moving analytics share links to type + item...');
+        db.exec(`
+          INSERT INTO analytics_shares (id, targetType, targetId, createdBy, tokenHash, label, expiresAt, viewCount, lastViewedAt, createdAt)
+          SELECT id, 'url', urlId, createdBy, tokenHash, label, expiresAt, viewCount, lastViewedAt, createdAt
+          FROM analytics_shares_old;
+          DROP TABLE analytics_shares_old;
+        `);
+      }
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_analytics_shares_target ON analytics_shares(targetType, targetId);
+        CREATE INDEX IF NOT EXISTS idx_analytics_shares_expiresAt ON analytics_shares(expiresAt);
+      `);
+    }
+
+    for (const [type, table] of Object.entries(REPORT_TARGETS)) {
+      if (!tableExists(table)) continue;
+      db.exec(`
+        CREATE TRIGGER IF NOT EXISTS trg_analytics_delete_${table} AFTER DELETE ON ${table}
+        BEGIN
+          DELETE FROM analytics_events WHERE targetType = '${type}' AND targetId = OLD.id;
+          DELETE FROM analytics_shares WHERE targetType = '${type}' AND targetId = OLD.id;
+        END;
+      `);
+    }
+    if (tableExists('bundle_items')) {
+      db.exec(`
+        CREATE TRIGGER IF NOT EXISTS trg_analytics_delete_bundle_items AFTER DELETE ON bundle_items
+        BEGIN
+          DELETE FROM analytics_events WHERE targetType = 'bundle' AND subTargetId = OLD.id;
+        END;
+      `);
+    }
+  })();
+}
+
 module.exports = {
-  migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports
+  migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
+  migrateAnalytics
 };

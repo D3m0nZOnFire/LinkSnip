@@ -1,6 +1,5 @@
 const bcrypt = require('bcrypt');
 const Bundle = require('../models/Bundle');
-const BundleAnalytics = require('../models/BundleAnalytics');
 const AnalyticsService = require('../services/analyticsService');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
 const configService = require('../services/configService');
@@ -326,10 +325,7 @@ async function launchBundle(req, res) {
   Bundle.incrementClicks(slug);
 
   // Record bundle-level analytics (async, non-blocking)
-  AnalyticsService.captureAnalytics(req, bundle.id).then(data => {
-    const { urlId, ...rest } = data;
-    BundleAnalytics.record({ bundleId: bundle.id, ...rest });
-  }).catch(() => { /* non-critical */ });
+  AnalyticsService.record(req, 'bundle', bundle.id).catch(() => { /* non-critical */ });
 
   // Load items
   const items = Bundle.getItems(bundle.id);

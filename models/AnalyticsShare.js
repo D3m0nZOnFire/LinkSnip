@@ -1,8 +1,10 @@
 const crypto = require('crypto');
 const db = require('../config/database');
+const { CONTENT_TYPES, contentType } = require('../services/contentTypes');
 
 /**
- * Analytics share links: read-only, revocable /stats/<token> links for one URL.
+ * Analytics share links: read-only, revocable /stats/<token> links for one item of any
+ * content type (targetType + targetId).
  *
  * The token (32 random bytes, base64url) is returned once by create() and never
  * stored; the table keeps its SHA-256 hash. An expired link behaves as if it
@@ -13,20 +15,20 @@ const hashToken = (token) => crypto.createHash('sha256').update(String(token)).d
 const now = () => new Date().toISOString();
 
 // Every column except the hash, which never leaves this model.
-const PUBLIC_COLUMNS = 's.id, s.urlId, s.createdBy, s.label, s.expiresAt, s.viewCount, s.lastViewedAt, s.createdAt';
+const PUBLIC_COLUMNS = 's.id, s.targetType, s.targetId, s.createdBy, s.label, s.expiresAt, s.viewCount, s.lastViewedAt, s.createdAt';
 const ACTIVE = '(s.expiresAt IS NULL OR s.expiresAt > ?)';
 
 class AnalyticsShare {
   /**
-   * @param {{ urlId: number, createdBy: number, label?: string, expiresAt?: string }} data
+   * @param {{ targetType: string, targetId: number, createdBy: number, label?: string, expiresAt?: string }} data
    * @returns {{ token: string, link: object }} token is only available here
    */
-  static create({ urlId, createdBy, label = null, expiresAt = null }) {
+  static create({ targetType, targetId, createdBy, label = null, expiresAt = null }) {
     const token = crypto.randomBytes(32).toString('base64url');
     const result = db.prepare(`
-      INSERT INTO analytics_shares (urlId, createdBy, tokenHash, label, expiresAt)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(urlId, createdBy, hashToken(token), label, expiresAt);
+      INSERT INTO analytics_shares (targetType, targetId, createdBy, tokenHash, label, expiresAt)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(targetType, targetId, createdBy, hashToken(token), label, expiresAt);
 
     return { token, link: this.findById(result.lastInsertRowid) };
   }
@@ -42,29 +44,34 @@ class AnalyticsShare {
       .get(hashToken(token), now()) || null;
   }
 
-  static findActiveByUrlId(urlId) {
+  static findActive(targetType, targetId) {
     return db.prepare(`
       SELECT ${PUBLIC_COLUMNS} FROM analytics_shares s
-      WHERE s.urlId = ? AND ${ACTIVE}
+      WHERE s.targetType = ? AND s.targetId = ? AND ${ACTIVE}
       ORDER BY s.createdAt DESC, s.id DESC
-    `).all(urlId, now());
+    `).all(targetType, targetId, now());
   }
 
-  static countActiveByUrlId(urlId) {
-    return db.prepare(`SELECT COUNT(*) AS n FROM analytics_shares s WHERE s.urlId = ? AND ${ACTIVE}`).get(urlId, now()).n;
+  static countActive(targetType, targetId) {
+    return db.prepare(`SELECT COUNT(*) AS n FROM analytics_shares s WHERE s.targetType = ? AND s.targetId = ? AND ${ACTIVE}`)
+      .get(targetType, targetId, now()).n;
   }
 
-  /** Active links across all URLs, with slug and creator, for Admin → Analytics Shares. */
+  /**
+   * Active links of every type, with the item's slug, public path and target (its link,
+   * title or file name) and the creator, for Admin → Analytics Shares.
+   */
   static findAll({ limit = 50, offset = 0 } = {}) {
-    return db.prepare(`
-      SELECT ${PUBLIC_COLUMNS}, u.slug, u.longUrl, c.username AS createdByUsername
+    const branches = Object.entries(CONTENT_TYPES).map(([type, info]) => `
+      SELECT ${PUBLIC_COLUMNS}, item.slug, item.${info.destination} AS target, c.username AS createdByUsername
       FROM analytics_shares s
-      JOIN urls u ON u.id = s.urlId
+      JOIN ${info.table} item ON s.targetType = '${type}' AND item.id = s.targetId
       LEFT JOIN users c ON c.id = s.createdBy
-      WHERE ${ACTIVE}
-      ORDER BY s.createdAt DESC, s.id DESC
-      LIMIT ? OFFSET ?
-    `).all(now(), limit, offset);
+      WHERE ${ACTIVE}`);
+    const rows = db.prepare(`
+      SELECT * FROM (${branches.join(' UNION ALL ')}) ORDER BY createdAt DESC, id DESC LIMIT ? OFFSET ?
+    `).all(...branches.map(() => now()), limit, offset);
+    return rows.map(row => ({ ...row, path: `${contentType(row.targetType).publicPrefix}${row.slug}` }));
   }
 
   static countAll() {
