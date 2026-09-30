@@ -5,6 +5,7 @@ const AuditLog = require('../models/AuditLog');
 const Url = require('../models/Url');
 const Bundle = require('../models/Bundle');
 const AnalyticsShare = require('../models/AnalyticsShare');
+const AnalyticsEvent = require('../models/AnalyticsEvent');
 const File = require('../models/File');
 const Paste = require('../models/Paste');
 const paths = require('../config/paths');
@@ -22,6 +23,11 @@ class ScheduledTasks {
     cron.schedule('0 2 * * *', () => {
       console.log('🧹 Running scheduled audit log cleanup...');
       this.cleanupAuditLogs();
+    });
+
+    // Delete old analytics events daily at 2:15 AM (only when retention.analyticsDays is set)
+    cron.schedule('15 2 * * *', () => {
+      this.cleanupAnalytics();
     });
 
     // Run database backup daily at 3 AM
@@ -55,6 +61,7 @@ class ScheduledTasks {
 
     console.log('⏰ Scheduled tasks initialized:');
     console.log('   - Audit log cleanup: Daily at 2:00 AM');
+    console.log('   - Analytics cleanup (retention.analyticsDays, off by default): Daily at 2:15 AM');
     console.log('   - Database backup: Daily at 3:00 AM');
     console.log('   - Inactive URL cleanup (expired + deactivated, anonymous immediately / registered with grace period): Daily at 4:00 AM');
     console.log('   - Expired analytics shares cleanup: Daily at 5:00 AM');
@@ -92,6 +99,20 @@ class ScheduledTasks {
       }
     } catch (error) {
       console.error('❌ Audit log cleanup failed:', error);
+    }
+  }
+
+  /**
+   * Delete analytics events older than retention.analyticsDays (null: keep forever).
+   */
+  static cleanupAnalytics() {
+    try {
+      const days = configService.get('retention.analyticsDays');
+      if (days == null) return;
+      const deleted = AnalyticsEvent.deleteOlderThan(days);
+      console.log(`📊 Deleted ${deleted} analytics event(s) older than ${days} days`);
+    } catch (error) {
+      console.error('❌ Analytics cleanup failed:', error);
     }
   }
 

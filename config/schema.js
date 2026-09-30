@@ -50,6 +50,10 @@ const SETTINGS = {
     type: 'integer', min: 1, default: 90, env: 'AUDIT_LOG_RETENTION_DAYS',
     description: 'Days audit log entries are kept.'
   },
+  'retention.analyticsDays': {
+    type: 'integer', min: 1, nullable: true, default: null,
+    description: 'Days analytics events (visits) are kept; older ones are deleted nightly. null keeps them forever. The counters on items (clicks, views, downloads) are not affected.'
+  },
   'retention.expiredGraceDays': {
     type: 'integer', min: 0, default: 90, env: 'EXPIRED_URL_GRACE_PERIOD_DAYS',
     description: "Days an expired registered user's link or paste is kept before it is deleted."
