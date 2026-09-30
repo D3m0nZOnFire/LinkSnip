@@ -38,6 +38,7 @@ function makeApp() {
     next();
   });
   app.use(require('../../../routes/fileRoutes'));
+  app.use(require('../../../routes/adminItemRoutes'));
   app.use((req, res) => res.status(404).json({ notFound: true }));
   return app;
 }
@@ -172,11 +173,11 @@ describe('blocking files', () => {
   it('lets admins block and unblock, audit-logged', async () => {
     const file = storedFile();
 
-    expect((await request(app).post(`/api/admin/files/${file.id}/block`).set('x-user', admin)).status).toBe(200);
+    expect((await request(app).post(`/api/admin/file/${file.id}/block`).set('x-user', admin)).status).toBe(200);
     expect(File.findById(file.id).isBlocked).toBe(1);
     expect((await request(app).get('/f/doc/download')).status).toBe(403);
 
-    expect((await request(app).post(`/api/admin/files/${file.id}/unblock`).set('x-user', admin)).status).toBe(200);
+    expect((await request(app).post(`/api/admin/file/${file.id}/unblock`).set('x-user', admin)).status).toBe(200);
     expect((await request(app).get('/f/doc/download')).status).toBe(200);
 
     const actions = getTestDatabase().prepare("SELECT action FROM audit_logs WHERE action LIKE '%BLOCK_FILE'").all().map(r => r.action);
@@ -185,13 +186,13 @@ describe('blocking files', () => {
 
   it('keeps non-admins from blocking', async () => {
     const file = storedFile();
-    const res = await request(app).post(`/api/admin/files/${file.id}/block`).set('x-user', JSON.stringify(trusted));
+    const res = await request(app).post(`/api/admin/file/${file.id}/block`).set('x-user', JSON.stringify(trusted));
     expect(res.status).toBe(302);
     expect(File.findById(file.id).isBlocked).toBe(0);
   });
 
   it('404s blocking an unknown file', async () => {
-    expect((await request(app).post('/api/admin/files/99999/block').set('x-user', admin)).status).toBe(404);
+    expect((await request(app).post('/api/admin/file/99999/block').set('x-user', admin)).status).toBe(404);
   });
 });
 

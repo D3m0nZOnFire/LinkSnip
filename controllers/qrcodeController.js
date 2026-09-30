@@ -1,7 +1,6 @@
 const db = require('../config/database');
 const QRCodeService = require('../services/qrcodeService');
-const configService = require('../services/configService');
-const { CONTENT_TYPES } = require('../services/contentTypes');
+const { CONTENT_TYPES, isTypeEnabled } = require('../services/contentTypes');
 
 /**
  * QR codes for every content type, found by slug: /qrcode/:type/:slug. Someone who can
@@ -13,9 +12,8 @@ const { CONTENT_TYPES } = require('../services/contentTypes');
 /** The address to encode for :type/:slug, or null (unknown type, feature off, no such item). */
 function qrTarget(req) {
   const { type, slug } = req.params;
+  if (!isTypeEnabled(type)) return null;
   const info = CONTENT_TYPES[type];
-  if (!info) return null;
-  if (info.feature && !configService.get(`features.${info.feature}`)) return null;
   const item = db.prepare(`SELECT slug FROM ${info.table} WHERE slug = ?`).get(slug);
   if (!item) return null;
   const base = `${req.protocol}://${req.get('host')}`;

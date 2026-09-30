@@ -78,13 +78,13 @@ describe('feature switches on real routes', () => {
   it('404s bundle reports and admin bundle blocking when bundles are off', async () => {
     setSettings({ features: { bundles: false } });
     const app = appWith(a => {
-      a.use('/', require('../../../routes/adminRoutes'));
+      a.use('/', require('../../../routes/adminItemRoutes'));
       a.use('/', featureRoutes('reports', require('../../../routes/reportRoutes')));
     });
 
     const bundle = createTestBundle({ slug: 'bb' });
     expect((await request(app).post('/api/reports').send({ type: 'bundle', id: bundle.id, reason: 'SPAM' })).status).toBe(404);
-    expect((await request(app).post('/api/admin/bundles/1/block').set('x-user', admin)).status).toBe(404);
+    expect((await request(app).post(`/api/admin/bundle/${bundle.id}/block`).set('x-user', admin)).status).toBe(404);
   });
 
   it('404s link reports when reports are off', async () => {

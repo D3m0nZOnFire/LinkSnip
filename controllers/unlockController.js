@@ -1,9 +1,8 @@
 const bcrypt = require('bcrypt');
 const db = require('../config/database');
-const configService = require('../services/configService');
 const unlocks = require('../services/unlockService');
 const { sendIfUnavailable } = require('../services/accessService');
-const { CONTENT_TYPES } = require('../services/contentTypes');
+const { CONTENT_TYPES, isTypeEnabled } = require('../services/contentTypes');
 const { logSecurity, ACTIONS } = require('../services/auditService');
 
 /**
@@ -13,9 +12,8 @@ const { logSecurity, ACTIONS } = require('../services/auditService');
 
 /** The record behind /unlock/:type/:slug, or null (unknown type, feature off, no such slug). */
 function findRecord(type, slug) {
+  if (!isTypeEnabled(type)) return null;
   const info = CONTENT_TYPES[type];
-  if (!info) return null;
-  if (info.feature && !configService.get(`features.${info.feature}`)) return null;
   const record = db.prepare(`SELECT * FROM ${info.table} WHERE slug = ?`).get(slug);
   return record ? { info, record } : null;
 }

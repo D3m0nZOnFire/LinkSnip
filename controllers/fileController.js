@@ -3,7 +3,7 @@ const fs = require('fs');
 const File = require('../models/File');
 const Tag = require('../models/Tag');
 const User = require('../models/User');
-const { logAdminAction, logAccountChange, ACTIONS } = require('../services/auditService');
+const { logAccountChange, ACTIONS } = require('../services/auditService');
 const { UPLOADS_DIR } = require('../config/paths');
 const AnalyticsService = require('../services/analyticsService');
 const { checkAccess, sendAccessDenied, withAccessStatus } = require('../services/accessService');
@@ -264,48 +264,3 @@ exports.adminList = (req, res) => {
   });
 };
 
-/**
- * POST /api/admin/files/:id/block and /unblock
- */
-function setBlocked(blocked) {
-  return (req, res) => {
-    const file = File.findById(parseInt(req.params.id));
-    if (!file) return res.status(404).json({ success: false, error: 'File not found' });
-
-    if (blocked) File.block(file.id);
-    else File.unblock(file.id);
-
-    logAdminAction(blocked ? ACTIONS.BLOCK_FILE : ACTIONS.UNBLOCK_FILE, req, 'file', file.id, file.originalName, {
-      slug: file.slug,
-      owner: file.userId
-    });
-    return res.json({ success: true });
-  };
-}
-
-exports.adminBlock = setBlocked(true);
-exports.adminUnblock = setBlocked(false);
-
-/**
- * DELETE /api/admin/files/:id
- */
-exports.adminDelete = (req, res) => {
-  const { id } = req.params;
-  const file = File.findById(parseInt(id));
-
-  if (!file) return res.status(404).json({ error: 'File not found' });
-
-  try {
-    const filePath = path.join(UPLOADS_DIR, file.storedName);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-  } catch (_) {}
-
-  File.delete(file.id);
-
-  logAdminAction(ACTIONS.ADMIN_DELETE_FILE, req, 'file', file.id, file.originalName, {
-    slug: file.slug,
-    owner: file.userId
-  });
-
-  return res.json({ success: true });
-};

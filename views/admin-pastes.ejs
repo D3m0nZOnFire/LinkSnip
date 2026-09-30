@@ -117,7 +117,7 @@
     async function deletePaste(id, name) {
       if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
       try {
-        const res = await fetch(`/api/admin/pastes/${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/admin/paste/${id}`, { method: 'DELETE' });
         const data = await res.json();
         if (data.success) {
           document.querySelector(`tr[data-paste-id="${id}"]`).remove();
@@ -132,7 +132,7 @@
     async function toggleBlock(id, isBlocked) {
       const action = isBlocked ? 'unblock' : 'block';
       try {
-        const res = await fetch(`/api/admin/pastes/${id}/${action}`, { method: 'POST' });
+        const res = await fetch(`/api/admin/paste/${id}/${action}`, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
           location.reload();

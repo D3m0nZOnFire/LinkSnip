@@ -113,7 +113,7 @@
       const action = isBlocked ? 'unblock' : 'block';
       if (!isBlocked && !confirm('Block this file? Nobody will be able to download it until it is unblocked.')) return;
       try {
-        const res = await fetch(`/api/admin/files/${id}/${action}`, { method: 'POST' });
+        const res = await fetch(`/api/admin/file/${id}/${action}`, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
           location.reload();
@@ -128,7 +128,7 @@
     async function deleteFile(id, name) {
       if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
       try {
-        const res = await fetch(`/api/admin/files/${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/admin/file/${id}`, { method: 'DELETE' });
         const data = await res.json();
         if (data.success) {
           document.querySelector(`tr[data-file-id="${id}"]`).remove();
