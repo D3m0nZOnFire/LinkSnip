@@ -157,5 +157,65 @@ describe('Auth Middleware', () => {
       expect(next).toHaveBeenCalled();
       expect(req.user).toBeNull();
     });
+
+    // The session is set at login; the database is the truth on every request after that
+    describe('keeps the session in step with the database', () => {
+      const run = (session) => {
+        const req = createMockRequest({ session });
+        const next = createMockNext();
+        attachUser(req, createMockResponse(), next);
+        return { req, next };
+      };
+
+      it('logs out a user who was banned after logging in', async () => {
+        const user = await createTestUser({ username: 'banned', isBanned: 1 });
+        const { req, next } = run({ userId: user.id, isAdmin: false });
+
+        expect(next).toHaveBeenCalled();
+        expect(req.user).toBeNull();
+        expect(req.session.userId).toBeUndefined();
+        expect(req.session.isAdmin).toBeUndefined();
+      });
+
+      it('does not mark a banned user as active', async () => {
+        const user = await createTestUser({ username: 'banned', isBanned: 1 });
+        run({ userId: user.id });
+        expect(getTestDatabase().prepare('SELECT lastActive FROM users WHERE id = ?').get(user.id).lastActive).toBeNull();
+      });
+
+      it('logs out a session whose user no longer exists', () => {
+        const { req, next } = run({ userId: 99999, isAdmin: true });
+
+        expect(next).toHaveBeenCalled();
+        expect(req.user).toBeNull();
+        expect(req.session.userId).toBeUndefined();
+        expect(req.session.isAdmin).toBeUndefined();
+      });
+
+      it('takes admin rights away from an admin who was demoted', async () => {
+        const user = await createTestUser({ username: 'demoted', isAdmin: 0 });
+        const { req } = run({ userId: user.id, isAdmin: true });
+
+        expect(req.session.isAdmin).toBe(false);
+
+        const next = createMockNext();
+        const res = createMockResponse();
+        isAdmin(req, res, next);
+        expect(next).not.toHaveBeenCalled();
+        expect(res.redirect).toHaveBeenCalledWith('/');
+      });
+
+      it('gives admin rights to a user who was promoted', async () => {
+        const user = await createTestUser({ username: 'promoted', isAdmin: 1 });
+        const { req } = run({ userId: user.id, isAdmin: false });
+        expect(req.session.isAdmin).toBe(true);
+      });
+
+      it('keeps other session data (unlocks, quarantine acknowledgments) when logging out', async () => {
+        const user = await createTestUser({ username: 'banned', isBanned: 1 });
+        const { req } = run({ userId: user.id, unlockedUrls: [3] });
+        expect(req.session.unlockedUrls).toEqual([3]);
+      });
+    });
   });
 });
