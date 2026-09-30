@@ -69,9 +69,9 @@ class Url {
     let query = `
       SELECT
         urls.*,
-        COUNT(CASE WHEN url_reports.status = 'pending' THEN 1 END) as reportCount
+        COUNT(CASE WHEN reports.status = 'pending' THEN 1 END) as reportCount
       FROM urls
-      LEFT JOIN url_reports ON urls.id = url_reports.urlId
+      LEFT JOIN reports ON reports.targetType = 'url' AND reports.targetId = urls.id
       WHERE creatorId = ?
       GROUP BY urls.id
       ORDER BY urls.createdAt DESC
@@ -114,9 +114,9 @@ class Url {
     const { limit = null, offset = 0, search = '', sort = 'newest' } = options;
 
     let query = `
-      SELECT urls.*, COUNT(CASE WHEN url_reports.status = 'pending' THEN 1 END) as reportCount
+      SELECT urls.*, COUNT(CASE WHEN reports.status = 'pending' THEN 1 END) as reportCount
       FROM urls
-      LEFT JOIN url_reports ON urls.id = url_reports.urlId
+      LEFT JOIN reports ON reports.targetType = 'url' AND reports.targetId = urls.id
       WHERE urls.creatorId = ?
     `;
     const params = [creatorId];
@@ -177,10 +177,10 @@ class Url {
         urls.*,
         users.username as creatorUsername,
         users.isAdmin as creatorIsAdmin,
-        COUNT(CASE WHEN url_reports.status = 'pending' THEN 1 END) as reportCount
+        COUNT(CASE WHEN reports.status = 'pending' THEN 1 END) as reportCount
       FROM urls
       LEFT JOIN users ON urls.creatorId = users.id
-      LEFT JOIN url_reports ON urls.id = url_reports.urlId
+      LEFT JOIN reports ON reports.targetType = 'url' AND reports.targetId = urls.id
       GROUP BY urls.id
       ORDER BY urls.createdAt DESC
     `;
@@ -319,10 +319,10 @@ class Url {
         urls.*,
         users.username as creatorUsername,
         users.isAdmin as creatorIsAdmin,
-        COUNT(CASE WHEN url_reports.status = 'pending' THEN 1 END) as reportCount
+        COUNT(CASE WHEN reports.status = 'pending' THEN 1 END) as reportCount
       FROM urls
       LEFT JOIN users ON urls.creatorId = users.id
-      LEFT JOIN url_reports ON urls.id = url_reports.urlId
+      LEFT JOIN reports ON reports.targetType = 'url' AND reports.targetId = urls.id
     `;
 
     const allConditions = [];
@@ -425,10 +425,10 @@ class Url {
     // For counting with HAVING clause, we need a subquery
     let query = `
       SELECT COUNT(*) as count FROM (
-        SELECT urls.id, COUNT(CASE WHEN url_reports.status = 'pending' THEN 1 END) as reportCount
+        SELECT urls.id, COUNT(CASE WHEN reports.status = 'pending' THEN 1 END) as reportCount
         FROM urls
         LEFT JOIN users ON urls.creatorId = users.id
-        LEFT JOIN url_reports ON urls.id = url_reports.urlId
+        LEFT JOIN reports ON reports.targetType = 'url' AND reports.targetId = urls.id
     `;
 
     const allConditions = [];

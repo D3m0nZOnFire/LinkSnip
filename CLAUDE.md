@@ -88,8 +88,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 - `config/database.js` opens `DB_PATH`, applies `config/dbSetup.js` (WAL, `busy_timeout = 5000`, foreign keys), and
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
-  `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`); they're idempotent and also build
-  the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there.
+  `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`); they're idempotent
+  and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
 - Migration pattern: `CREATE TABLE IF NOT EXISTS`, check `PRAGMA table_info` before `ALTER TABLE`,
   `CREATE INDEX IF NOT EXISTS`.
@@ -101,13 +101,15 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - **users**: `isAdmin`, `isBanned`, `role`, `email`, `lastActive`
 - **urls**: `slug`, `longUrl`, `creatorId` (→ users, SET NULL), `clicks`, `maxUses`, `expiresAt`, `activateAt`,
   `deactivateAt` (datetime-local + `:00.000Z`, no timezone conversion), `password` (bcrypt), `isBlocked`, `isQuarantined`
-- **pastes**, **files**, **bundles** (+ `bundle_items`): same access fields as urls. Pastes use `userId`/`views`/`maxViews`,
-  files `userId`/`downloads`/`maxDownloads`/`size`/`sharingMode`/`allowedUsers`, bundles have `isQuarantined` too
+- **pastes**, **files**, **bundles** (+ `bundle_items`): same access fields as urls, `isQuarantined` included. Pastes use
+  `userId`/`views`/`maxViews`, files `userId`/`downloads`/`maxDownloads`/`size`/`sharingMode`/`allowedUsers`
 - **analytics**, **bundle_analytics**, **bundle_item_analytics**, **paste_analytics**: per-visit rows (`ipHash`
   SHA-256, never raw IPs)
 - **tags** (user-scoped, lowercase) with `url_tags`, `paste_tags`, `file_tags`
-- **url_reports**, **bundle_reports**: `reporterIpHash`, `reason`, `status` (`pending` / `reviewed` / `blocked` /
-  `dismissed`). One report per IP per item. Only **pending** reports are counted.
+- **reports** (every type): `targetType` + `targetId`, `reporterIpHash`, `reason`, `description`, `status` (`pending` /
+  `reviewed` / `blocked` / `dismissed`), `reviewedBy`. A unique index allows one report per IP per item; triggers
+  delete an item's reports when the item is deleted (no foreign key can point at four tables). Only **pending**
+  reports are counted. (Replaced `url_reports` / `bundle_reports` in `migrateReports`.)
 - **analytics_shares**: share links: `urlId`, `createdBy`, `tokenHash` (SHA-256, unique), `label`, `expiresAt`,
   `viewCount`, `lastViewedAt`
 - **audit_logs**: append-only; `action`, `category` (`AUTH`, `ADMIN_ACTION`, `ACCOUNT_CHANGE`, `SECURITY`), target,
@@ -172,13 +174,20 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Country lookup uses ip-api.com unless `geo.enabled` is false.
 
 ### Reports and quarantine
-- `services/moderationService.js`: after a report, `afterReport(type, id, req)` quarantines a link or bundle once
+- Every type is reportable: `POST /api/reports` `{ type, id, reason, description }` (`controllers/reportController.js`,
+  model `models/Report.js`). Only live items (`isLive`), the type's feature must be on, one report per IP. Owners may
+  report their own items. Pages add a button and `partials/report-modal.ejs` (`{ type, id, noun }`; the reasons come
+  from `app.locals.reportReasons`).
+- `services/moderationService.js`: after a report, `afterReport(type, id, req)` quarantines the item once
   its pending reports reach `moderation.reportThreshold` (0 = off). Owners who are admins or whose role has
-  `skipAutoModeration` are exempt.
+  `skipAutoModeration` are exempt. `setBlockedFromReport` and `banOwnerFromReport` back the per-report admin
+  actions; banning blocks everything the owner has (links, bundles, pastes, files).
 - Quarantined items show visitors `views/quarantine.ejs` first (the `quarantined` access status); "Continue anyway"
   (`?confirmed=1`) is remembered in `req.session.quarantineAck`. The warning comes before the password prompt.
-- Admin → Reports lists quarantined items on top. `POST /api/admin/moderation/:type/:id/block` (hard block, reports →
-  `blocked`) or `/clear` (reports → `dismissed`, warning lifted).
+- Admin → Reports (`?type=all|url|bundle|paste|file&status=…`) lists quarantined items on top.
+  `POST /api/admin/moderation/:type/:id/block` (hard block, reports → `blocked`) or `/clear` (reports → `dismissed`,
+  warning lifted). Per report: `PUT /api/admin/reports/:id` (`{ action: 'block'|'unblock' }` or `{ status }`),
+  `DELETE /api/admin/reports/:id`, `POST /api/admin/reports/:id/ban-user`.
 
 ### Rate limiting (`middleware/rateLimiter.js`)
 - Creation limits come from the role and are read per request: `createRoleLimiter(limitName, { prefix, noun })` →
@@ -196,7 +205,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Audit logging (`services/auditService.js`)
 - `logAuth`, `logAdminAction`, `logAccountChange`, `logSecurity`. Add new action names to `ACTIONS`.
 - Recent ones: `CREATE_USER`, `SETUP_ADMIN`, `UPDATE_SETTINGS`, `CREATE_SHARE_LINK`, `REVOKE_SHARE_LINK`, `BLOCK_FILE`,
-  `UNBLOCK_FILE`, `QUARANTINE_URL`, `QUARANTINE_BUNDLE`, `CLEAR_QUARANTINE`.
+  `UNBLOCK_FILE`, `QUARANTINE_URL` / `_BUNDLE` / `_PASTE` / `_FILE`, `CLEAR_QUARANTINE`, `MIGRATE_REPORTS` (old → new
+  bundle report IDs).
 
 ### Scheduled tasks (`services/scheduledTasks.js`, node-cron)
 2:00 audit log cleanup (`retention.auditLogDays`) · 3:00 backup · 4:00 inactive content cleanup · 5:00 expired
@@ -235,7 +245,8 @@ share links · 5:30 expired files.
    Use `router.use('/f', …)` or per-route middleware.
 4. Never read settings or roles at module load; call `configService` / `RoleService` per request.
 5. `req.user` can be null (anonymous). Pass `req.user || null` to `RoleService`.
-6. Only pending reports count toward quarantine and the report badges.
+6. Only pending reports count toward quarantine and the report badges. Reports have no foreign key to their item;
+   the `trg_reports_delete_*` triggers clean them up. A new reportable table needs its own trigger.
 7. Analytics privacy: only `ipHash`, never raw IPs (audit logs are the exception, for security auditing).
 8. CSV import uses `;` between tags, since `,` separates columns.
 9. Tests stub `res.render`, so a template that crashes at render time only shows up in a real run. Smoke-test pages

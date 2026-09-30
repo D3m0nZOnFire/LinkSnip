@@ -13,7 +13,7 @@ const {
 const db = () => getTestDatabase();
 const urlRow = (id) => db().prepare('SELECT isBlocked, isQuarantined FROM urls WHERE id = ?').get(id);
 const bundleRow = (id) => db().prepare('SELECT isBlocked, isQuarantined FROM bundles WHERE id = ?').get(id);
-const reportStatuses = (table, col, id) => db().prepare(`SELECT status FROM ${table} WHERE ${col} = ? ORDER BY id`).all(id).map(r => r.status);
+const reportStatuses = (type, id) => db().prepare('SELECT status FROM reports WHERE targetType = ? AND targetId = ? ORDER BY id').all(type, id).map(r => r.status);
 const auditActions = () => db().prepare('SELECT action FROM audit_logs ORDER BY id').all().map(r => r.action);
 
 function setSettings(data) {
@@ -28,17 +28,13 @@ afterEach(() => {
 
 const adminReq = (admin) => createMockRequest({ user: admin, session: { userId: admin.id, isAdmin: true }, get: () => undefined });
 
-function reportUrl(urlId, ip) {
+function report(type, id, ip) {
   const res = createMockResponse();
-  ReportController.submitReport(createMockRequest({ body: { urlId, reason: 'SPAM' }, ip, get: () => undefined }), res);
+  ReportController.submit(createMockRequest({ body: { type, id, reason: 'SPAM' }, ip, get: () => undefined }), res);
   return res;
 }
-
-function reportBundle(bundleId, ip) {
-  const res = createMockResponse();
-  ReportController.submitBundleReport(createMockRequest({ body: { bundleId, reason: 'SPAM' }, ip, get: () => undefined }), res);
-  return res;
-}
+const reportUrl = (id, ip) => report('url', id, ip);
+const reportBundle = (id, ip) => report('bundle', id, ip);
 
 const reportFrom = (fn, id, count, start = 1) => {
   let res;
@@ -92,7 +88,7 @@ describe('quarantine after reports', () => {
     reportFrom(reportUrl, url.id, 6);
 
     expect(urlRow(url.id).isQuarantined).toBe(0);
-    expect(reportStatuses('url_reports', 'urlId', url.id)).toHaveLength(6);
+    expect(reportStatuses('url', url.id)).toHaveLength(6);
   });
 
   it('quarantines bundles the same way', () => {
@@ -121,7 +117,7 @@ describe('admin decisions', () => {
     moderation.block('url', url.id, adminReq(admin));
 
     expect(urlRow(url.id)).toEqual({ isBlocked: 1, isQuarantined: 0 });
-    expect(reportStatuses('url_reports', 'urlId', url.id)).toEqual(['blocked', 'blocked', 'blocked']);
+    expect(reportStatuses('url', url.id)).toEqual(['blocked', 'blocked', 'blocked']);
     expect(auditActions()).toContain('BLOCK_URL');
   });
 
@@ -132,7 +128,7 @@ describe('admin decisions', () => {
     moderation.clear('url', url.id, adminReq(admin));
 
     expect(urlRow(url.id)).toEqual({ isBlocked: 0, isQuarantined: 0 });
-    expect(reportStatuses('url_reports', 'urlId', url.id)).toEqual(['dismissed', 'dismissed', 'dismissed']);
+    expect(reportStatuses('url', url.id)).toEqual(['dismissed', 'dismissed', 'dismissed']);
     expect(auditActions()).toContain('CLEAR_QUARANTINE');
   });
 
@@ -158,12 +154,12 @@ describe('admin decisions', () => {
 
     expect(bundleRow(a.id)).toEqual({ isBlocked: 1, isQuarantined: 0 });
     expect(bundleRow(b.id)).toEqual({ isBlocked: 0, isQuarantined: 0 });
-    expect(reportStatuses('bundle_reports', 'bundleId', b.id)).toEqual(['dismissed', 'dismissed', 'dismissed']);
+    expect(reportStatuses('bundle', b.id)).toEqual(['dismissed', 'dismissed', 'dismissed']);
   });
 
   it('throws for an unknown item or type', () => {
     expect(() => moderation.block('url', 99999, adminReq(admin))).toThrow(/not found/i);
-    expect(() => moderation.clear('paste', 1, adminReq(admin))).toThrow(/type/i);
+    expect(() => moderation.clear('nope', 1, adminReq(admin))).toThrow(/type/i);
   });
 
   it('lists quarantined links and bundles with their pending report counts', () => {
@@ -214,7 +210,7 @@ describe('moderation routes', () => {
     expect(urlRow(bad.id).isBlocked).toBe(1);
     expect(urlRow(ok.id).isQuarantined).toBe(0);
     expect((await request(app).post('/api/admin/moderation/url/99999/clear')).status).toBe(404);
-    expect((await request(app).post('/api/admin/moderation/paste/1/clear')).status).toBe(400);
+    expect((await request(app).post('/api/admin/moderation/nope/1/clear')).status).toBe(400);
   });
 
   it('keeps non-admins out', async () => {

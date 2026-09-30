@@ -192,140 +192,20 @@
         </a>
         <% } %>
         <% if (features.reports) { %>
-        <button id="reportBtn" onclick="openReportModal()" style="background: none; border: none; cursor: pointer; color: var(--muted-foreground); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.75rem; border-radius: 6px; transition: color 0.15s, background 0.15s;" onmouseover="if(!this.disabled){this.style.color='var(--destructive)';this.style.background='var(--status-error-bg)'}" onmouseout="if(!this.disabled){this.style.color='var(--muted-foreground)';this.style.background='none'}">
+        <button id="reportBtn" data-report-button onclick="openReportModal()" style="background: none; border: none; cursor: pointer; color: var(--muted-foreground); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.75rem; border-radius: 6px; transition: color 0.15s, background 0.15s;" onmouseover="if(!this.disabled){this.style.color='var(--destructive)';this.style.background='var(--status-error-bg)'}" onmouseout="if(!this.disabled){this.style.color='var(--muted-foreground)';this.style.background='none'}">
           <svg id="reportBtnIcon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path>
           </svg>
-          <span id="reportBtnText">Report this bundle</span>
+          <span data-report-label>Report this bundle</span>
         </button>
         <% } %>
       </div>
     </div>
   </div>
 
-  <!-- Report Modal -->
-  <div id="reportBundleModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Report this bundle</h3>
-      <p style="margin: -0.75rem 0 1.25rem; font-size: 0.875rem; color: var(--muted-foreground);">Help keep the community safe by reporting inappropriate content.</p>
-
-      <div id="reportBundleError" class="modal-warning" style="display:none;"></div>
-      <div id="reportBundleSuccess" class="modal-info" style="display:none;"></div>
-
-      <form id="reportBundleForm" onsubmit="submitBundleReport(event)">
-        <div class="form-group">
-          <label>Reason <span style="color: var(--destructive);">*</span></label>
-          <select id="bundleReportReason" name="reason" required>
-            <option value="">Select a reason...</option>
-            <option value="FRAUD">Fraud/Scam</option>
-            <option value="PHISHING">Phishing</option>
-            <option value="MALWARE">Malware</option>
-            <option value="SPAM">Spam</option>
-            <option value="ADULT">Adult Content</option>
-            <option value="COPYRIGHT">Copyright Violation</option>
-            <option value="OTHER">Other</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Description <span style="color: var(--muted-foreground); font-weight: normal;">(optional)</span></label>
-          <textarea id="bundleReportDesc" name="description" rows="3" placeholder="Provide additional details..."></textarea>
-        </div>
-        <div class="form-actions">
-          <button type="button" onclick="closeReportModal()" class="btn">Cancel</button>
-          <button type="submit" id="reportBundleSubmit" class="btn btn-danger">Submit Report</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    const REPORTED_KEY = 'bundle_reported_<%= bundle.id %>';
-
-    function markAsReported() {
-      const btn = document.getElementById('reportBtn');
-      const icon = document.getElementById('reportBtnIcon');
-      if (!btn) return; // reports switched off
-      btn.disabled = true;
-      btn.style.cursor = 'default';
-      btn.style.opacity = '0.6';
-      document.getElementById('reportBtnText').textContent = 'Reported';
-      // Switch to checkmark icon
-      icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
-    }
-
-    // Check on page load if already reported
-    if (localStorage.getItem(REPORTED_KEY)) {
-      markAsReported();
-    }
-
-    function openReportModal() {
-      document.getElementById('reportBundleModal').classList.add('active');
-      document.getElementById('reportBundleError').style.display = 'none';
-      document.getElementById('reportBundleSuccess').style.display = 'none';
-    }
-
-    function closeReportModal() {
-      document.getElementById('reportBundleModal').classList.remove('active');
-      document.getElementById('reportBundleForm').reset();
-    }
-
-    // Close modal on backdrop click
-    document.getElementById('reportBundleModal').addEventListener('click', function(e) {
-      if (e.target === this) closeReportModal();
-    });
-
-    async function submitBundleReport(e) {
-      e.preventDefault();
-      const reason = document.getElementById('bundleReportReason').value;
-      const description = document.getElementById('bundleReportDesc').value;
-      const submitBtn = document.getElementById('reportBundleSubmit');
-      const errorEl = document.getElementById('reportBundleError');
-      const successEl = document.getElementById('reportBundleSuccess');
-
-      errorEl.style.display = 'none';
-      successEl.style.display = 'none';
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting...';
-
-      try {
-        const res = await fetch('/api/bundle-report', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bundleId: <%= bundle.id %>, reason, description })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          successEl.textContent = data.message || 'Report submitted. Thank you!';
-          successEl.style.display = 'block';
-          document.getElementById('reportBundleForm').style.display = 'none';
-          // Persist reported state and update button
-          localStorage.setItem(REPORTED_KEY, '1');
-          setTimeout(() => {
-            closeReportModal();
-            markAsReported();
-          }, 2000);
-        } else {
-          // If already reported server-side, mark button too
-          if (data.error && data.error.includes('already reported')) {
-            localStorage.setItem(REPORTED_KEY, '1');
-            closeReportModal();
-            markAsReported();
-          } else {
-            errorEl.textContent = data.error || 'Failed to submit report.';
-            errorEl.style.display = 'block';
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Report';
-          }
-        }
-      } catch {
-        errorEl.textContent = 'Network error. Please try again.';
-        errorEl.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Report';
-      }
-    }
-  </script>
+  <% if (features.reports) { %>
+    <%- include('partials/report-modal', { type: 'bundle', id: bundle.id, noun: 'bundle' }) %>
+  <% } %>
   <%- include('partials/footer') %>
 </body>
 </html>

@@ -6,6 +6,7 @@
   <title><%= paste.title ? paste.title : 'Paste' %> - LinkSnip</title>
   <link rel="icon" type="image/png" href="/logo.png">
   <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/modals.css">
   <script src="/js/theme.js"></script>
   <style>
     .paste-container {
@@ -222,6 +223,12 @@
           Edit
         </a>
         <% } %>
+        <% if (features.reports) { %>
+        <button type="button" class="btn" data-report-button onclick="openReportModal()">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>
+          <span data-report-label>Report</span>
+        </button>
+        <% } %>
       </div>
 
       <div class="paste-code">
@@ -233,6 +240,9 @@
     </div>
   </div>
 
+  <% if (features.reports) { %>
+    <%- include('partials/report-modal', { type: 'paste', id: paste.id, noun: 'paste' }) %>
+  <% } %>
   <script src="/js/main.js"></script>
   <%- include('partials/footer') %>
 </body>

@@ -35,7 +35,7 @@ class InfoController {
       }
 
       // Get report count for this URL (only pending reports)
-      const reportCount = Report.countByUrlId(url.id);
+      const reportCount = Report.countPending('url', url.id);
 
       // Calculate link age
       const createdDate = new Date(url.createdAt);
