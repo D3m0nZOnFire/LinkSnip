@@ -1,6 +1,5 @@
 const Bundle = require('../models/Bundle');
 const AnalyticsService = require('../services/analyticsService');
-const QRCodeService = require('../services/qrcodeService');
 const { checkAccess, sendAccessDenied } = require('../services/accessService');
 
 /**
@@ -35,54 +34,6 @@ async function trackBundleItemClick(req, res) {
   return res.redirect(item.url);
 }
 
-/**
- * GET /qrcode/bundle/:id
- * Generate QR code image for a bundle
- */
-async function getBundleQRCode(req, res) {
-  const id = parseInt(req.params.id);
-  const { theme = 'light' } = req.query;
-  const bundle = Bundle.findById(id);
-  if (!bundle) return res.status(404).json({ error: 'Bundle not found' });
-
-  const bundleUrl = `${req.protocol}://${req.get('host')}/b/${bundle.slug}`;
-  try {
-    const buffer = await QRCodeService.generateBuffer(bundleUrl, {
-      color: theme === 'dark' ? { dark: '#34d399', light: '#0a0a0a' } : undefined
-    });
-    res.setHeader('Content-Type', 'image/png');
-    res.send(buffer);
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to generate QR code' });
-  }
-}
-
-/**
- * GET /qrcode/bundle/:id/download
- * Download QR code for a bundle
- */
-async function downloadBundleQRCode(req, res) {
-  const id = parseInt(req.params.id);
-  const { theme = 'light' } = req.query;
-  const bundle = Bundle.findById(id);
-  if (!bundle) return res.status(404).json({ error: 'Bundle not found' });
-
-  const bundleUrl = `${req.protocol}://${req.get('host')}/b/${bundle.slug}`;
-  try {
-    const buffer = await QRCodeService.generateBuffer(bundleUrl, {
-      color: theme === 'dark' ? { dark: '#34d399', light: '#0a0a0a' } : undefined,
-      width: 1024
-    });
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Disposition', `attachment; filename="qrcode-bundle-${bundle.slug}.png"`);
-    res.send(buffer);
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to generate QR code' });
-  }
-}
-
 module.exports = {
-  trackBundleItemClick,
-  getBundleQRCode,
-  downloadBundleQRCode
+  trackBundleItemClick
 };

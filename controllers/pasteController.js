@@ -2,7 +2,6 @@ const Paste = require('../models/Paste');
 const Tag = require('../models/Tag');
 const User = require('../models/User');
 const SlugGenerator = require('../services/slugGenerator');
-const QRCodeService = require('../services/qrcodeService');
 const AnalyticsService = require('../services/analyticsService');
 const { logAdminAction, logAccountChange, ACTIONS } = require('../services/auditService');
 const {
@@ -388,86 +387,4 @@ exports.unblockPaste = (req, res) => {
   logAdminAction(ACTIONS.UNBLOCK_PASTE, req, 'paste', paste.id, `/p/${paste.slug}`, { slug: paste.slug, manual: true });
 
   return res.json({ success: true, message: 'Paste unblocked successfully' });
-};
-
-// ─── QR codes ─────────────────────────────────────────────────────────────────
-
-async function resolveQrTarget(req) {
-  const paste = Paste.findBySlug(req.params.slug);
-  if (!paste) return null;
-  return { paste, target: `${req.protocol}://${req.get('host')}/p/${paste.slug}` };
-}
-
-/**
- * GET /qrcode/paste/:slug
- */
-exports.qr = async (req, res) => {
-  const { format = 'png', theme = 'light' } = req.query;
-  try {
-    const resolved = await resolveQrTarget(req);
-    if (!resolved) return res.status(404).json({ error: 'Paste not found' });
-
-    if (format === 'svg') {
-      const svg = await QRCodeService.generateSVG(resolved.target);
-      res.setHeader('Content-Type', 'image/svg+xml');
-      return res.send(svg);
-    }
-
-    const buffer = await QRCodeService.generateBuffer(resolved.target, {
-      color: theme === 'dark' ? { dark: '#34d399', light: '#0a0a0a' } : undefined
-    });
-    res.setHeader('Content-Type', 'image/png');
-    res.send(buffer);
-  } catch (error) {
-    console.error('Paste QR generation error:', error);
-    res.status(500).json({ error: 'Failed to generate QR code' });
-  }
-};
-
-/**
- * GET /qrcode/paste/:slug/download
- */
-exports.qrDownload = async (req, res) => {
-  const { format = 'png', theme = 'light' } = req.query;
-  try {
-    const resolved = await resolveQrTarget(req);
-    if (!resolved) return res.status(404).json({ error: 'Paste not found' });
-
-    const filename = `qrcode-${resolved.paste.slug}.${format === 'svg' ? 'svg' : 'png'}`;
-
-    if (format === 'svg') {
-      const svg = await QRCodeService.generateSVG(resolved.target);
-      res.setHeader('Content-Type', 'image/svg+xml');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      return res.send(svg);
-    }
-
-    const buffer = await QRCodeService.generateBuffer(resolved.target, {
-      color: theme === 'dark' ? { dark: '#34d399', light: '#0a0a0a' } : undefined,
-      width: 1024
-    });
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(buffer);
-  } catch (error) {
-    console.error('Paste QR download error:', error);
-    res.status(500).json({ error: 'Failed to download QR code' });
-  }
-};
-
-/**
- * GET /api/qrcode/paste/:slug/dataurl
- */
-exports.qrDataUrl = async (req, res) => {
-  const { theme = 'light' } = req.query;
-  try {
-    const resolved = await resolveQrTarget(req);
-    if (!resolved) return res.status(404).json({ error: 'Paste not found' });
-
-    const dataURL = await QRCodeService.generateThemedDataURL(resolved.target, theme);
-    res.json({ dataURL, infoUrl: resolved.target });
-  } catch (error) {
-    console.error('Paste QR data URL error:', error);
-    res.status(500).json({ error: 'Failed to generate QR code' });
-  }
 };

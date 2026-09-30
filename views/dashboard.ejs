@@ -1163,8 +1163,8 @@
     let currentQRDownloadUrl = null;
 
     function showQRCode(urlId, slug) {
-      currentQRDownloadUrl = `/qrcode/${urlId}/download?theme=light`;
-      document.getElementById('qrcodeImage').src = `/qrcode/${urlId}?theme=light`;
+      currentQRDownloadUrl = `/qrcode/url/${slug}/download?theme=light`;
+      document.getElementById('qrcodeImage').src = `/qrcode/url/${slug}?theme=light`;
       openModal('qrcodeModal');
     }
 

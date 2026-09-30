@@ -256,7 +256,7 @@
       <% if (features.qrCodes) { %>
       <div class="qr-section">
         <h3 style="margin-bottom: 1rem; color: var(--muted-foreground);">Scan QR Code (opens this preview page)</h3>
-        <img src="/qrcode/<%= url.id %>?theme=light" alt="QR Code">
+        <img src="/qrcode/url/<%= url.slug %>?theme=light" alt="QR Code">
       </div>
       <% } %>
 

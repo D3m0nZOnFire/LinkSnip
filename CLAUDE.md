@@ -205,6 +205,14 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   Admin → Analytics Shares.
 - Country lookup uses ip-api.com unless `geo.enabled` is false.
 
+### QR codes (every content type)
+- `GET /qrcode/:type/:slug` (PNG, `?format=svg`, `?theme=dark`), `/qrcode/:type/:slug/download` (attachment
+  `qrcode-<type>-<slug>`), `/api/qrcode/:type/:slug/dataurl` (`{ dataURL, target }`), in
+  `controllers/qrcodeController.js`, behind `features.qrCodes` and the type's own switch. Links encode their info
+  page (a safety preview), the other types their public page.
+- Always by slug, never by ID: the old `/qrcode/:id` and `/qrcode/bundle/:id` let anyone read every slug by counting
+  IDs, so they were removed (not redirected: a redirect would reveal the slug too).
+
 ### Reports and quarantine
 - Every type is reportable: `POST /api/reports` `{ type, id, reason, description }` (`controllers/reportController.js`,
   model `models/Report.js`). Only live items (`isLive`), the type's feature must be on, one report per IP. Owners may
