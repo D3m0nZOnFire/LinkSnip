@@ -6,7 +6,7 @@ const Tag = require('../models/Tag');
 const User = require('../models/User');
 const { logAdminAction, logAccountChange, ACTIONS } = require('../services/auditService');
 const { UPLOADS_DIR } = require('../config/paths');
-const { checkAccess, sendAccessDenied, sendIfUnavailable, withAccessStatus } = require('../services/accessService');
+const { checkAccess, sendAccessDenied, withAccessStatus } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 
 // Ensure uploads directory exists
@@ -254,63 +254,6 @@ exports.download = async (req, res) => {
   // The bytes are never rendered in our origin: always an attachment, and sandboxed if opened anyway
   res.set('Content-Security-Policy', 'sandbox');
   return res.download(filePath, file.originalName);
-};
-
-// ─── Unlock file ──────────────────────────────────────────────────────────────
-
-/**
- * GET /unlock-file/:slug
- */
-exports.showUnlockFilePage = (req, res) => {
-  const file = File.findBySlug(req.params.slug);
-  if (!file) return res.status(404).render('error', { message: 'File not found', statusCode: 404 });
-
-  if (!file.password) return res.redirect(`/f/${file.slug}`);
-  if (sendIfUnavailable(req, res, 'file', file)) return;
-
-  return res.render('unlock-file', {
-    user: req.user || null,
-    slug: file.slug,
-    fileName: file.originalName,
-    error: null
-  });
-};
-
-/**
- * POST /unlock-file/:slug
- */
-exports.unlockFile = async (req, res) => {
-  const file = File.findBySlug(req.params.slug);
-  if (!file) return res.status(404).render('error', { message: 'File not found', statusCode: 404 });
-
-  if (!file.password) return res.redirect(`/f/${file.slug}`);
-  if (sendIfUnavailable(req, res, 'file', file)) return;
-
-  const { password, remember } = req.body;
-
-  try {
-    const correct = await bcrypt.compare(password || '', file.password);
-    if (!correct) {
-      return res.render('unlock-file', {
-        user: req.user || null,
-        slug: file.slug,
-        fileName: file.originalName,
-        error: 'Incorrect password. Please try again.'
-      });
-    }
-
-    if (remember === '1') {
-      if (!req.session.unlockedFiles) req.session.unlockedFiles = [];
-      if (!req.session.unlockedFiles.includes(file.id)) req.session.unlockedFiles.push(file.id);
-    } else {
-      req.session.tempUnlockFile = file.id;
-    }
-
-    return res.redirect(`/f/${file.slug}`);
-  } catch (err) {
-    console.error('File unlock error:', err);
-    return res.status(500).render('error', { message: 'An error occurred', statusCode: 500 });
-  }
 };
 
 // ─── Admin ────────────────────────────────────────────────────────────────────

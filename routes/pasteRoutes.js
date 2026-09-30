@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { isAuthenticated, isAdmin } = require('../middleware/auth');
-const { apiLimiter, authLimiter, createPasteLimiter } = require('../middleware/rateLimiter');
+const { apiLimiter, createPasteLimiter } = require('../middleware/rateLimiter');
 const requirePermission = require('../middleware/requirePermission');
 const { requireFeature } = require('../middleware/requireFeature');
 const PasteController = require('../controllers/pasteController');
@@ -34,9 +34,6 @@ router.get('/qrcode/paste/:slug/download', qrCodes, PasteController.qrDownload);
 router.get('/qrcode/paste/:slug', qrCodes, PasteController.qr);
 router.get('/api/qrcode/paste/:slug/dataurl', qrCodes, PasteController.qrDataUrl);
 
-// ── Unlock — authLimiter (unlockLimiter's 429 handler renders the URL-shaped `unlock` template)
-router.get('/unlock-paste/:slug', authLimiter, PasteController.showUnlockPastePage);
-router.post('/unlock-paste/:slug', authLimiter, PasteController.unlockPaste);
 
 // ── Public info/preview page (mirrors /info/:slug for short links)
 router.get('/p-info/:slug', PasteController.showInfoPage);

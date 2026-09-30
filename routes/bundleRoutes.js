@@ -3,7 +3,7 @@ const router = express.Router();
 const BundleController = require('../controllers/bundleController');
 const BundleAnalyticsController = require('../controllers/bundleAnalyticsController');
 const { isAuthenticated } = require('../middleware/auth');
-const { createBundleLimiter, apiLimiter, unlockLimiter } = require('../middleware/rateLimiter');
+const { createBundleLimiter, apiLimiter } = require('../middleware/rateLimiter');
 const requirePermission = require('../middleware/requirePermission');
 const { requireFeature } = require('../middleware/requireFeature');
 
@@ -24,9 +24,6 @@ router.get('/api/bundle-analytics/:id', isAuthenticated, canViewAnalytics, apiLi
 // Public bundle launcher
 router.get('/b/:slug', BundleController.launchBundle);
 
-// Password unlock for bundles
-router.get('/unlock-bundle/:slug', BundleController.getUnlockBundlePage);
-router.post('/unlock-bundle/:slug', unlockLimiter, BundleController.postUnlockBundle);
 
 // Bundle API
 router.post('/api/bundles', requirePermission('createBundles'), createBundleLimiter, BundleController.createBundle);

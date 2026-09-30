@@ -235,33 +235,33 @@ describe('accessService', () => {
       expect(req.session.quarantineAck).toBeUndefined();
     });
 
-    it.each([
-      ['url', 'unlockedUrls', 'tempUnlock'],
-      ['paste', 'unlockedPastes', 'tempUnlockPaste'],
-      ['file', 'unlockedFiles', 'tempUnlockFile']
-    ])('%s: a remembered unlock lasts, a one-time unlock is used up', (type, rememberKey, tempKey) => {
+    it.each(['url', 'bundle', 'paste', 'file'])('%s: a remembered unlock lasts, a one-time unlock is used up', (type) => {
       const record = insert(type, { password: 'hash' });
 
       expect(access.checkAccess(visit(), type, record).status).toBe('password_required');
-      expect(access.checkAccess(visit({ [rememberKey]: [record.id] }), type, record).status).toBe('active');
+      expect(access.checkAccess(visit({ unlocked: { [type]: [record.id] } }), type, record).status).toBe('active');
 
-      const session = { [tempKey]: record.id };
+      const session = { unlockOnce: { type, id: record.id } };
       expect(access.checkAccess(visit(session), type, record).status).toBe('active');
-      expect(session[tempKey]).toBeUndefined();
+      expect(session.unlockOnce).toBeUndefined();
       expect(access.checkAccess(visit(session), type, record).status).toBe('password_required');
     });
 
-    it('bundle: reads the remembered unlock', () => {
-      const bundle = insert('bundle', { password: 'hash' });
-      expect(access.checkAccess(visit({ unlockedBundles: [bundle.id] }), 'bundle', bundle).status).toBe('active');
+    it('an unlock of one type does not open the same ID of another type', () => {
+      const url = insert('url', { password: 'hash' });
+      const paste = insert('paste', { password: 'hash' });
+      const session = { unlocked: { url: [paste.id] }, unlockOnce: { type: 'url', id: paste.id } };
+      expect(paste.id).toBe(url.id); // same ID, different type
+      expect(access.checkAccess(visit(session), 'paste', paste).status).toBe('password_required');
+      expect(session.unlockOnce).toEqual({ type: 'url', id: paste.id });
     });
 
     it('does not use up a one-time unlock while the quarantine warning is shown', () => {
       const url = insert('url', { isQuarantined: 1, password: 'hash' });
-      const session = { tempUnlock: url.id };
+      const session = { unlockOnce: { type: 'url', id: url.id } };
 
       expect(access.checkAccess(visit(session), 'url', url).status).toBe('quarantined');
-      expect(session.tempUnlock).toBe(url.id);
+      expect(session.unlockOnce).toEqual({ type: 'url', id: url.id });
     });
 
     it('passes the logged-in user on for restricted files', () => {
@@ -313,10 +313,10 @@ describe('accessService', () => {
     });
 
     it.each([
-      ['url', '/unlock/abc'],
-      ['paste', '/unlock-paste/abc'],
-      ['file', '/unlock-file/abc'],
-      ['bundle', '/unlock-bundle/abc']
+      ['url', '/unlock/url/abc'],
+      ['paste', '/unlock/paste/abc'],
+      ['file', '/unlock/file/abc'],
+      ['bundle', '/unlock/bundle/abc']
     ])('%s password_required → %s', (type, target) => {
       expect(send(type, rec, 'password_required').redirect).toHaveBeenCalledWith(target);
     });
