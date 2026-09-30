@@ -1,6 +1,6 @@
 {
   "name": "linksnip",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Self-hosted URL shortener with pastes, file sharing, link bundles, analytics and roles. One container and a SQLite file.",
   "main": "app.js",
   "private": true,
