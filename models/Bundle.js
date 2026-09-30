@@ -104,22 +104,17 @@ class Bundle {
   /**
    * Update bundle metadata (not items)
    */
-  static update(id, { title, description, maxUses, expiresAt, password, activateAt, deactivateAt }) {
-    const stmt = db.prepare(`
-      UPDATE bundles
-      SET title = ?, description = ?, maxUses = ?, expiresAt = ?, password = ?, activateAt = ?, deactivateAt = ?
-      WHERE id = ?
-    `);
-    stmt.run(
-      title,
-      description || null,
-      maxUses || null,
-      expiresAt || null,
-      password !== undefined ? password : null,
-      activateAt || null,
-      deactivateAt || null,
-      id
-    );
+  /**
+   * Update the given fields only: a field that is left out (undefined) keeps its stored
+   * value, null removes it.
+   */
+  static update(id, changes) {
+    const columns = ['title', 'description', 'maxUses', 'expiresAt', 'password', 'activateAt', 'deactivateAt']
+      .filter(column => changes[column] !== undefined);
+    if (columns.length) {
+      db.prepare(`UPDATE bundles SET ${columns.map(c => `${c} = ?`).join(', ')} WHERE id = ?`)
+        .run(...columns.map(c => changes[c]), id);
+    }
     return this.findById(id);
   }
 
