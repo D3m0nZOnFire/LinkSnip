@@ -39,9 +39,6 @@ router.patch('/api/files/:id', canUpload, fileController.updateSettings);
 // ─── Admin routes ─────────────────────────────────────────────────────────────
 
 router.get('/admin/files', isAuthenticated, isAdmin, fileController.adminList);
-router.delete('/api/admin/files/:id', isAuthenticated, isAdmin, fileController.adminDelete);
-router.post('/api/admin/files/:id/block', isAuthenticated, isAdmin, fileController.adminBlock);
-router.post('/api/admin/files/:id/unblock', isAuthenticated, isAdmin, fileController.adminUnblock);
 
 // ─── Unlock file (password) ───────────────────────────────────────────────────
 

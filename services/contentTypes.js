@@ -93,12 +93,15 @@ function contentType(type) {
   return info;
 }
 
-/** The types whose feature switch is on (read live), in registry order. */
-function enabledTypes() {
-  return Object.keys(CONTENT_TYPES).filter(type => {
-    const { feature } = CONTENT_TYPES[type];
-    return !feature || configService.get(`features.${feature}`);
-  });
+/** Whether a type exists and its feature switch is on (read live). */
+function isTypeEnabled(type) {
+  const info = CONTENT_TYPES[type];
+  return !!info && (!info.feature || !!configService.get(`features.${info.feature}`));
 }
 
-module.exports = { CONTENT_TYPES, contentType, enabledTypes };
+/** The types whose feature switch is on (read live), in registry order. */
+function enabledTypes() {
+  return Object.keys(CONTENT_TYPES).filter(isTypeEnabled);
+}
+
+module.exports = { CONTENT_TYPES, contentType, isTypeEnabled, enabledTypes };

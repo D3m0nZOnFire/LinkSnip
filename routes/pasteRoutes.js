@@ -20,9 +20,6 @@ router.get('/pastes/:id/edit', isAuthenticated, PasteController.showEditPage);
 
 // ── Admin
 router.get('/admin/pastes', isAuthenticated, isAdmin, PasteController.adminList);
-router.delete('/api/admin/pastes/:id', isAuthenticated, isAdmin, PasteController.adminDelete);
-router.post('/api/admin/pastes/:id/block', isAuthenticated, isAdmin, PasteController.blockPaste);
-router.post('/api/admin/pastes/:id/unblock', isAuthenticated, isAdmin, PasteController.unblockPaste);
 
 // ── QR (public)
 

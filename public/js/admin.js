@@ -171,14 +171,14 @@ async function bulkBlock() {
   try {
     let blocked = 0;
     if (selectedUrls.size > 0) {
-      const result = await apiRequest('/api/admin/urls/bulk-block', {
+      const result = await apiRequest('/api/admin/url/bulk-block', {
         method: 'POST',
         body: JSON.stringify({ ids: Array.from(selectedUrls) })
       });
       blocked += result.blocked || 0;
     }
     if (selectedBundles.size > 0) {
-      const result = await apiRequest('/api/admin/bundles/bulk-block', {
+      const result = await apiRequest('/api/admin/bundle/bulk-block', {
         method: 'POST',
         body: JSON.stringify({ ids: Array.from(selectedBundles) })
       });
@@ -207,14 +207,14 @@ async function bulkUnblock() {
   try {
     let unblocked = 0;
     if (selectedUrls.size > 0) {
-      const result = await apiRequest('/api/admin/urls/bulk-unblock', {
+      const result = await apiRequest('/api/admin/url/bulk-unblock', {
         method: 'POST',
         body: JSON.stringify({ ids: Array.from(selectedUrls) })
       });
       unblocked += result.unblocked || 0;
     }
     if (selectedBundles.size > 0) {
-      const result = await apiRequest('/api/admin/bundles/bulk-unblock', {
+      const result = await apiRequest('/api/admin/bundle/bulk-unblock', {
         method: 'POST',
         body: JSON.stringify({ ids: Array.from(selectedBundles) })
       });
@@ -240,7 +240,7 @@ async function blockBundle(id, slug) {
   if (!confirmed) return;
 
   try {
-    await apiRequest(`/api/admin/bundles/${id}/block`, { method: 'POST' });
+    await apiRequest(`/api/admin/bundle/${id}/block`, { method: 'POST' });
     showToast('Bundle blocked successfully!');
     setTimeout(() => location.reload(), 1000);
   } catch (error) {
@@ -257,7 +257,7 @@ async function unblockBundle(id, slug) {
   if (!confirmed) return;
 
   try {
-    await apiRequest(`/api/admin/bundles/${id}/unblock`, { method: 'POST' });
+    await apiRequest(`/api/admin/bundle/${id}/unblock`, { method: 'POST' });
     showToast('Bundle unblocked successfully!');
     setTimeout(() => location.reload(), 1000);
   } catch (error) {
@@ -426,7 +426,7 @@ async function blockUrl(id, slug) {
   if (!confirmed) return;
 
   try {
-    await apiRequest(`/api/admin/urls/${id}/block`, {
+    await apiRequest(`/api/admin/url/${id}/block`, {
       method: 'POST'
     });
 
@@ -447,7 +447,7 @@ async function unblockUrl(id, slug) {
   if (!confirmed) return;
 
   try {
-    await apiRequest(`/api/admin/urls/${id}/unblock`, {
+    await apiRequest(`/api/admin/url/${id}/unblock`, {
       method: 'POST'
     });
 

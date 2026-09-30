@@ -185,7 +185,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `unlimited`/admins bypass both.
 - All `/f/*` responses send `X-Content-Type-Options: nosniff`; downloads also `Content-Security-Policy: sandbox`
   and are always attachments. Any file type is allowed.
-- Admin → Files can block/unblock (blocked → 403).
+- Admin → Files can block/unblock (blocked → 403) and delete (the upload too).
 - `sharingMode: 'restricted'` + `allowedUsers`: only the owner, listed users and admins (the `login_required` /
   `forbidden` access statuses).
 
@@ -260,6 +260,12 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `/admin/pastes`, `/admin/reports`, `/admin/analytics`, `/admin/analytics-shares`, `/admin/audit-logs` (also manual
   backup/cleanup), `/admin/settings` (form from the schema plus read-only role grids; `PUT /api/admin/settings`
   validates, writes and logs `UPDATE_SETTINGS` with the diff).
+- Block, unblock and delete for every type (`routes/adminItemRoutes.js`, `controllers/adminItemController.js`):
+  `POST /api/admin/:type/:id/block` | `/unblock`, `DELETE /api/admin/:type/:id`, `POST /api/admin/:type/bulk-block` |
+  `/bulk-unblock` (`{ ids }`, at most 200). `:type` is `url`/`bundle`/`paste`/`file`; an unknown type or a switched-off
+  feature falls through (404). Audit names stay per type (`BLOCK_URL`, `ADMIN_DELETE_FILE`, …); deleting a file also
+  removes the upload. (Replaced `/api/admin/urls|bundles|pastes|files/…`.)
+- A type's feature switch in shared code: `isTypeEnabled(type)` / `enabledTypes()` from `services/contentTypes.js`.
 
 ### Audit logging (`services/auditService.js`)
 - `logAuth`, `logAdminAction`, `logAccountChange`, `logSecurity`. Add new action names to `ACTIONS`.

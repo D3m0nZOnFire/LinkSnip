@@ -1,16 +1,15 @@
 const Report = require('../models/Report');
-const configService = require('../services/configService');
 const moderation = require('../services/moderationService');
 const { recordStatus, isLive } = require('../services/accessService');
-const { CONTENT_TYPES, contentType } = require('../services/contentTypes');
+const { CONTENT_TYPES, contentType, isTypeEnabled } = require('../services/contentTypes');
 const { logSecurity, ACTIONS } = require('../services/auditService');
 
 const db = require('../config/database');
 
 /** The item a report is about, or null when the type's feature is switched off or it doesn't exist. */
 function findTarget(type, id) {
+  if (!isTypeEnabled(type)) return null;
   const info = contentType(type);
-  if (info.feature && !configService.get(`features.${info.feature}`)) return null;
   return db.prepare(`SELECT * FROM ${info.table} WHERE id = ?`).get(id) || null;
 }
 

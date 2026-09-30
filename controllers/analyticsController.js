@@ -1,7 +1,6 @@
 const db = require('../config/database');
 const AnalyticsEvent = require('../models/AnalyticsEvent');
-const configService = require('../services/configService');
-const { CONTENT_TYPES } = require('../services/contentTypes');
+const { CONTENT_TYPES, isTypeEnabled } = require('../services/contentTypes');
 
 /**
  * Analytics pages for every content type: /analytics/:type/:id (owner or admin) and
@@ -10,9 +9,8 @@ const { CONTENT_TYPES } = require('../services/contentTypes');
 
 /** The item behind :type/:id, or null (unknown type, feature off, no such item). */
 function findItem(type, id) {
+  if (!isTypeEnabled(type)) return null;
   const info = CONTENT_TYPES[type];
-  if (!info) return null;
-  if (info.feature && !configService.get(`features.${info.feature}`)) return null;
   const item = db.prepare(`SELECT * FROM ${info.table} WHERE id = ?`).get(parseInt(id));
   return item ? { info, item } : null;
 }

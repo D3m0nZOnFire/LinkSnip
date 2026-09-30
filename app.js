@@ -36,6 +36,7 @@ const urlRoutes = require('./routes/urlRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const adminItemRoutes = require('./routes/adminItemRoutes');
 const tagRoutes = require('./routes/tagRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const analyticsShareRoutes = require('./routes/analyticsShareRoutes');
@@ -198,6 +199,7 @@ app.use('/', featureRoutes('bioPages', bioPageRoutes)); // Bio page routes (MUST
 app.use('/', dashboardRoutes);
 app.use('/', userRoutes);
 app.use('/', adminRoutes);
+app.use('/', adminItemRoutes); // block, unblock, delete for every type (a type's feature off: 404)
 app.use('/', analyticsRoutes);
 app.use('/', featureRoutes('analyticsShareLinks', analyticsShareRoutes));
 app.use('/', featureRoutes('qrCodes', qrcodeRoutes));

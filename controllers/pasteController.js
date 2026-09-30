@@ -3,7 +3,7 @@ const Tag = require('../models/Tag');
 const User = require('../models/User');
 const SlugGenerator = require('../services/slugGenerator');
 const AnalyticsService = require('../services/analyticsService');
-const { logAdminAction, logAccountChange, ACTIONS } = require('../services/auditService');
+const { logAccountChange, ACTIONS } = require('../services/auditService');
 const {
   checkAccess, sendAccessDenied, recordStatus, isLive, withAccessStatus, message: accessMessage
 } = require('../services/accessService');
@@ -341,44 +341,3 @@ exports.adminList = (req, res) => {
   });
 };
 
-/**
- * DELETE /api/admin/pastes/:id
- */
-exports.adminDelete = (req, res) => {
-  const paste = Paste.findById(parseInt(req.params.id));
-  if (!paste) return res.status(404).json({ error: 'Paste not found' });
-
-  Paste.delete(paste.id);
-  logAdminAction(ACTIONS.ADMIN_DELETE_PASTE, req, 'paste', paste.id, paste.title || paste.slug, {
-    slug: paste.slug,
-    owner: paste.userId
-  });
-
-  return res.json({ success: true });
-};
-
-/**
- * POST /api/admin/pastes/:id/block
- */
-exports.blockPaste = (req, res) => {
-  const paste = Paste.findById(parseInt(req.params.id));
-  if (!paste) return res.status(404).json({ error: 'Paste not found' });
-
-  Paste.block(paste.id);
-  logAdminAction(ACTIONS.BLOCK_PASTE, req, 'paste', paste.id, `/p/${paste.slug}`, { slug: paste.slug, manual: true });
-
-  return res.json({ success: true, message: 'Paste blocked successfully' });
-};
-
-/**
- * POST /api/admin/pastes/:id/unblock
- */
-exports.unblockPaste = (req, res) => {
-  const paste = Paste.findById(parseInt(req.params.id));
-  if (!paste) return res.status(404).json({ error: 'Paste not found' });
-
-  Paste.unblock(paste.id);
-  logAdminAction(ACTIONS.UNBLOCK_PASTE, req, 'paste', paste.id, `/p/${paste.slug}`, { slug: paste.slug, manual: true });
-
-  return res.json({ success: true, message: 'Paste unblocked successfully' });
-};
