@@ -1,10 +1,9 @@
-const bcrypt = require('bcrypt');
 const Bundle = require('../models/Bundle');
 const AnalyticsService = require('../services/analyticsService');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
-const configService = require('../services/configService');
 const { checkAccess, sendAccessDenied } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
+const { readSettings, SettingsError } = require('../services/itemSettings');
 
 const MAX_ITEMS_REGISTERED = 20;
 const MAX_ITEMS_ANONYMOUS = 5;
@@ -14,7 +13,7 @@ const MAX_ITEMS_ANONYMOUS = 5;
  * Create a new bundle (rate limited, auth optional)
  */
 async function createBundle(req, res) {
-  const { title, description, customSlug, items, maxUses, expirationDays, password, activateDateTime, deactivateDateTime } = req.body;
+  const { title, description, customSlug, items } = req.body;
 
   // Parse items — can arrive as JSON string or already parsed by express
   let parsedItems;
@@ -60,42 +59,17 @@ async function createBundle(req, res) {
     }
   }
 
-  const denied = deniedPermission(req.user || null, {
-    passwordProtection: filled(password),
-    scheduling: filled(activateDateTime) || filled(deactivateDateTime)
-  });
+  // Expiry (with the anonymous cap), schedule, usage limit, password
+  let settings;
+  try {
+    settings = await readSettings('bundle', req.body, { user: req.user || null });
+  } catch (error) {
+    if (!(error instanceof SettingsError)) throw error;
+    return res.status(400).json({ error: error.message });
+  }
+
+  const denied = deniedPermission(req.user || null, settings.uses);
   if (denied) return denyJson(res, denied);
-
-  // Handle expiration
-  let expiresAt = null;
-  const maxAnonymousExpiration = configService.get('anonymous.urlExpirationDays');
-
-  if (!req.user) {
-    // Anonymous: enforce expiration policy
-    let days = parseInt(expirationDays);
-    if (!days || isNaN(days) || days <= 0) {
-      days = maxAnonymousExpiration;
-    } else {
-      days = Math.min(days, maxAnonymousExpiration);
-    }
-    const expDate = new Date();
-    expDate.setDate(expDate.getDate() + days);
-    expiresAt = expDate.toISOString();
-  } else if (expirationDays && parseInt(expirationDays) > 0) {
-    const expDate = new Date();
-    expDate.setDate(expDate.getDate() + parseInt(expirationDays));
-    expiresAt = expDate.toISOString();
-  }
-
-  // Hash password if provided
-  let hashedPassword = null;
-  if (password && password.trim()) {
-    hashedPassword = await bcrypt.hash(password.trim(), 10);
-  }
-
-  // Parse scheduling dates (role permission checked above)
-  const activateAt = activateDateTime ? activateDateTime + ':00.000Z' : null;
-  const deactivateAt = deactivateDateTime ? deactivateDateTime + ':00.000Z' : null;
 
   // Generate or validate slug
   let slug;
@@ -113,11 +87,7 @@ async function createBundle(req, res) {
       title: title.trim(),
       description: description ? description.trim() : null,
       creatorId: req.user ? req.user.id : null,
-      maxUses: maxUses ? parseInt(maxUses) : null,
-      expiresAt,
-      password: hashedPassword,
-      activateAt,
-      deactivateAt
+      ...settings.values
     });
   } catch (err) {
     console.error('Bundle creation error:', err);
@@ -178,14 +148,18 @@ async function updateBundle(req, res) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
 
-  const { title, description, items, maxUses, expirationDays, password, activateDateTime, deactivateDateTime } = req.body;
+  const { title, description, items } = req.body;
 
-  // Role features: only newly set values count; removals are always allowed
-  const denied = deniedPermission(req.user, {
-    passwordProtection: filled(password),
-    scheduling: (filled(activateDateTime) && activateDateTime + ':00.000Z' !== bundle.activateAt) ||
-                (filled(deactivateDateTime) && deactivateDateTime + ':00.000Z' !== bundle.deactivateAt)
-  });
+  // Only the settings sent change (the edit form sends title, description and items);
+  // role features count only when newly set
+  let settings;
+  try {
+    settings = await readSettings('bundle', req.body, { user: req.user, existing: bundle });
+  } catch (error) {
+    if (!(error instanceof SettingsError)) throw error;
+    return res.status(400).json({ error: error.message });
+  }
+  const denied = deniedPermission(req.user, settings.uses);
   if (denied) return denyJson(res, denied);
 
   // Validate title
@@ -223,24 +197,10 @@ async function updateBundle(req, res) {
     }
   }
 
-  // Only the settings the request sends change: a field left out keeps its value (the
-  // edit form sends title, description and items only), an empty one removes it.
-  const sent = (key) => Object.prototype.hasOwnProperty.call(req.body, key);
-  const changes = { title: title.trim() };
-
-  if (sent('description')) changes.description = (description && String(description).trim()) || null;
-  if (sent('maxUses')) changes.maxUses = parseInt(maxUses) > 0 ? parseInt(maxUses) : null;
-  if (sent('expirationDays')) {
-    const days = parseInt(expirationDays);
-    changes.expiresAt = days > 0 ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString() : null;
+  const changes = { title: title.trim(), ...settings.values };
+  if (Object.prototype.hasOwnProperty.call(req.body, 'description')) {
+    changes.description = (description && String(description).trim()) || null;
   }
-  if (sent('password')) {
-    if (password === '' || password === null) changes.password = null;
-    else if (password && String(password).trim()) changes.password = await bcrypt.hash(String(password).trim(), 10);
-  }
-  if (sent('activateDateTime')) changes.activateAt = activateDateTime ? activateDateTime + ':00.000Z' : null;
-  if (sent('deactivateDateTime')) changes.deactivateAt = deactivateDateTime ? deactivateDateTime + ':00.000Z' : null;
-
   Bundle.update(id, changes);
 
   const cleanItems = parsedItems.map(item => ({

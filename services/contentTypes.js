@@ -10,6 +10,7 @@
  *   usedColumn    how often it was opened (clicks, views, downloads)
  *   limitColumn   the maximum for usedColumn (NULL = no limit)
  *   feature       features.* switch the type depends on (null: always on)
+ *   anonymousExpirySetting  the expiry cap for anonymous items (null: no anonymous items)
  *   quarantine    whether the table has isQuarantined (reports can quarantine it)
  *   restricted    whether sharingMode = 'restricted' + allowedUsers apply
  *   destination   column shown on the quarantine warning
@@ -21,6 +22,7 @@ const CONTENT_TYPES = {
   url: {
     table: 'urls',
     noun: 'link',
+    anonymousExpirySetting: 'anonymous.urlExpirationDays',
     eventLabel: 'Clicks',
     ownerColumn: 'creatorId',
     usedColumn: 'clicks',
@@ -36,6 +38,7 @@ const CONTENT_TYPES = {
   bundle: {
     table: 'bundles',
     noun: 'bundle',
+    anonymousExpirySetting: 'anonymous.urlExpirationDays',
     eventLabel: 'Opens',
     ownerColumn: 'creatorId',
     usedColumn: 'clicks',
@@ -51,6 +54,7 @@ const CONTENT_TYPES = {
   paste: {
     table: 'pastes',
     noun: 'paste',
+    anonymousExpirySetting: 'anonymous.pasteExpirationDays',
     eventLabel: 'Views',
     ownerColumn: 'userId',
     usedColumn: 'views',
@@ -66,6 +70,7 @@ const CONTENT_TYPES = {
   file: {
     table: 'files',
     noun: 'file',
+    anonymousExpirySetting: null,
     eventLabel: 'Downloads',
     ownerColumn: 'userId',
     usedColumn: 'downloads',

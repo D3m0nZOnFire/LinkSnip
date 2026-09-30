@@ -137,6 +137,18 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
     `partials/status-badge.ejs`. Never recompute a status in a template.
   - Dates without a timezone are UTC (as SQLite reads them); SQL compares with `julianday()`.
 
+### Item settings (every content type)
+- `services/itemSettings.js` `readSettings(type, body, { user, existing })` reads expiry, schedule, usage limit and
+  password from every create and update handler. Create: all settings (null when not sent), plus the anonymous expiry
+  cap from the registry (`anonymousExpirySetting`). Update (`existing`): only what is sent; empty removes, a new value
+  replaces, the stored value sent back is unchanged (the paste/file forms show the expiry as a date only).
+- Accepted names: `expirationDays` (days) or `expiresAt` (date); `activateDateTime`/`activateAt`,
+  `deactivateDateTime`/`deactivateAt`; the type's limit (`maxUses`, `maxViews`, `maxDownloads`). Dates are stored as ISO
+  UTC (zone-less input is UTC). Unreadable values throw `SettingsError` (400).
+- Password: `''` or absent keeps it, `null` or `removePassword` removes it, stored trimmed. Unlock also accepts the
+  password as typed (links stored it untrimmed before).
+- It also returns `uses` (password / scheduling newly set) for `permissionGate.deniedPermission`.
+
 ### Password unlock (every content type)
 - One page and route: `GET/POST /unlock/:type/:slug` (`controllers/unlockController.js`, `routes/unlockRoutes.js`,
   `views/unlock.ejs`). The old `/unlock/:slug`, `/unlock-bundle|paste|file/:slug` answer 308 to the new address.

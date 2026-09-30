@@ -1,27 +1,11 @@
-const bcrypt = require('bcrypt');
 const Url = require('../models/Url');
-
-/**
- * Accept a schedule datetime value from the client.
- * The creation form sends a full UTC ISO string (already converted by JS).
- * The edit modal (and any legacy path) may still send a raw datetime-local
- * string ("YYYY-MM-DDTHH:MM") — in that case fall back to appending Z so
- * it is at least stored consistently.
- */
-function parseScheduleDate(value) {
-  if (!value) return null;
-  // Already a timezone-aware ISO string (ends with Z or has +HH:MM offset)
-  if (value.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(value)) return value;
-  // Legacy fallback: raw datetime-local → treat as UTC
-  return value + ':00.000Z';
-}
 const SlugGenerator = require('../services/slugGenerator');
 const AnalyticsService = require('../services/analyticsService');
 const Tag = require('../models/Tag');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
-const configService = require('../services/configService');
 const { checkAccess, sendAccessDenied } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
+const { readSettings, SettingsError } = require('../services/itemSettings');
 
 class UrlController {
   /**
@@ -50,7 +34,7 @@ class UrlController {
    * POST /create
    */
   static async createShortUrl(req, res) {
-    const { longUrl, customSlug, maxUses, expirationDays, tags, password, activateDateTime, deactivateDateTime } = req.body;
+    const { longUrl, customSlug, tags } = req.body;
 
     // Validation
     if (!longUrl) {
@@ -85,11 +69,16 @@ class UrlController {
       });
     }
 
-    const denied = deniedPermission(req.user || null, {
-      passwordProtection: filled(password),
-      scheduling: filled(activateDateTime) || filled(deactivateDateTime),
-      tags: filled(tags)
-    });
+    // Expiry (with the anonymous cap), schedule, usage limit, password
+    let settings;
+    try {
+      settings = await readSettings('url', req.body, { user: req.user || null });
+    } catch (error) {
+      if (!(error instanceof SettingsError)) throw error;
+      return res.status(400).render('index', { user: req.user || null, prefillUrl: longUrl, error: error.message, success: null });
+    }
+
+    const denied = deniedPermission(req.user || null, { ...settings.uses, tags: filled(tags) });
     if (denied) {
       return res.status(403).render('index', {
         user: req.user || null,
@@ -103,56 +92,12 @@ class UrlController {
       // Generate or validate slug
       const { slug } = SlugGenerator.getValidSlug(customSlug || null);
 
-      // Calculate expiration date
-      let expiresAt = null;
-      let finalExpirationDays = expirationDays;
-
-      // For anonymous users, enforce expiration policy
-      if (!req.user) {
-        const maxAnonymousExpiration = configService.get('anonymous.urlExpirationDays');
-
-        // If no expiration provided, use default
-        if (!finalExpirationDays || isNaN(finalExpirationDays) || finalExpirationDays <= 0) {
-          finalExpirationDays = maxAnonymousExpiration;
-        } else {
-          // Cap at maximum allowed
-          finalExpirationDays = Math.min(parseInt(finalExpirationDays), maxAnonymousExpiration);
-        }
-      }
-
-      if (finalExpirationDays && !isNaN(finalExpirationDays) && finalExpirationDays > 0) {
-        const expirationDate = new Date();
-        expirationDate.setDate(expirationDate.getDate() + parseInt(finalExpirationDays));
-        expiresAt = expirationDate.toISOString();
-      }
-
-      // Parse maxUses
-      const parsedMaxUses = maxUses && !isNaN(maxUses) && maxUses > 0
-        ? parseInt(maxUses)
-        : null;
-
-      // Hash password if provided (role permission checked above)
-      let hashedPassword = null;
-      if (password && password.trim()) {
-        hashedPassword = await bcrypt.hash(password, 10);
-      }
-
-      // Parse scheduling dates (role permission checked above)
-      // The creation form sends UTC ISO strings; edit modal may send raw datetime-local.
-      // parseScheduleDate() handles both cases.
-      const activateAt   = parseScheduleDate(activateDateTime);
-      const deactivateAt = parseScheduleDate(deactivateDateTime);
-
       // Create URL (allow anonymous creation if no user)
       const url = Url.create({
         slug,
         longUrl,
         creatorId: req.user ? req.user.id : null, // null for anonymous users
-        maxUses: parsedMaxUses,
-        expiresAt,
-        password: hashedPassword,
-        activateAt,
-        deactivateAt
+        ...settings.values
       });
 
       // Attach tags if provided and user is logged in
@@ -226,7 +171,7 @@ class UrlController {
    */
   static async updateUrl(req, res) {
     const { id } = req.params;
-    const { longUrl, customSlug, maxUses, expirationDays, tags, password, removePassword, activateDateTime, deactivateDateTime } = req.body;
+    const { longUrl, customSlug, tags } = req.body;
 
     try {
       const url = Url.findById(id);
@@ -240,13 +185,15 @@ class UrlController {
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      // Role features: only newly set values count; removals are always allowed
-      const denied = deniedPermission(req.user || null, {
-        passwordProtection: filled(password) && !(removePassword === 'true' || removePassword === true),
-        scheduling: (filled(activateDateTime) && parseScheduleDate(activateDateTime) !== url.activateAt) ||
-                    (filled(deactivateDateTime) && parseScheduleDate(deactivateDateTime) !== url.deactivateAt),
-        tags: tagsChanged('url', url.id, tags)
-      });
+      // Only the settings sent change; role features count only when newly set
+      let settings;
+      try {
+        settings = await readSettings('url', req.body, { user: req.user || null, existing: url });
+      } catch (error) {
+        if (!(error instanceof SettingsError)) throw error;
+        return res.status(400).json({ error: error.message });
+      }
+      const denied = deniedPermission(req.user || null, { ...settings.uses, tags: tagsChanged('url', url.id, tags) });
       if (denied) return denyJson(res, denied);
 
       // Handle custom slug change
@@ -267,22 +214,6 @@ class UrlController {
         finalSlug = customSlug;
       }
 
-      // Calculate new expiration date if provided
-      let expiresAt = url.expiresAt;
-      if (expirationDays !== undefined) {
-        if (expirationDays && !isNaN(expirationDays) && expirationDays > 0) {
-          const expirationDate = new Date();
-          expirationDate.setDate(expirationDate.getDate() + parseInt(expirationDays));
-          expiresAt = expirationDate.toISOString();
-        } else {
-          expiresAt = null;
-        }
-      }
-
-      const parsedMaxUses = maxUses !== undefined
-        ? (maxUses && !isNaN(maxUses) && maxUses > 0 ? parseInt(maxUses) : null)
-        : url.maxUses;
-
       // Validate new longUrl if provided
       let finalLongUrl = url.longUrl; // Keep existing by default
       if (longUrl && longUrl.trim()) {
@@ -300,41 +231,11 @@ class UrlController {
         }
       }
 
-      // Handle password changes
-      let hashedPassword = undefined; // undefined means don't update
-      if (removePassword === 'true' || removePassword === true) {
-        hashedPassword = null; // null means remove password
-      } else if (password && password.trim()) {
-        hashedPassword = await bcrypt.hash(password, 10);
-      }
-
-      // Parse scheduling dates
-      // datetime-local format: "2025-11-21T21:16" (no timezone)
-      // Append seconds and 'Z' to treat as UTC (user's input = stored time)
-      let activateAt = url.activateAt;
-      let deactivateAt = url.deactivateAt;
-      if (activateDateTime !== undefined) {
-        activateAt = parseScheduleDate(activateDateTime);
-      }
-      if (deactivateDateTime !== undefined) {
-        deactivateAt = parseScheduleDate(deactivateDateTime);
-      }
-
-      // Update the URL with new slug if changed
+      // Slug, destination and the settings that were sent
+      const changes = { slug: finalSlug, longUrl: finalLongUrl, ...settings.values };
       const db = require('../config/database');
-      const stmt = db.prepare(`
-        UPDATE urls
-        SET slug = ?, longUrl = ?, maxUses = ?, expiresAt = ?, activateAt = ?, deactivateAt = ?${hashedPassword !== undefined ? ', password = ?' : ''}
-        WHERE id = ?
-      `);
-
-      const params = [finalSlug, finalLongUrl, parsedMaxUses, expiresAt, activateAt, deactivateAt];
-      if (hashedPassword !== undefined) {
-        params.push(hashedPassword);
-      }
-      params.push(id);
-
-      stmt.run(...params);
+      db.prepare(`UPDATE urls SET ${Object.keys(changes).map(c => `${c} = ?`).join(', ')} WHERE id = ?`)
+        .run(...Object.values(changes), id);
 
       // Update tags if provided
       if (tags !== undefined && req.session.userId) {

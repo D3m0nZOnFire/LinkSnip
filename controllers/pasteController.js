@@ -1,4 +1,3 @@
-const bcrypt = require('bcrypt');
 const Paste = require('../models/Paste');
 const Tag = require('../models/Tag');
 const User = require('../models/User');
@@ -13,21 +12,11 @@ const { deletesInDays } = require('../services/retentionService');
 
 const configService = require('../services/configService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
+const { readSettings, SettingsError } = require('../services/itemSettings');
 
 // Read per request so edits to settings.json apply without a restart.
 const maxPasteBytes = () => configService.get('pastes.maxSizeKB') * 1024;
 
-/**
- * Accept a schedule datetime value from the client.
- * The creation form sends a full UTC ISO string (already converted by JS).
- * The edit modal may still send a raw datetime-local string ("YYYY-MM-DDTHH:MM")
- * — in that case append Z so it is at least stored consistently.
- */
-function parseScheduleDate(value) {
-  if (!value) return null;
-  if (value.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(value)) return value;
-  return value + ':00.000Z';
-}
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 
@@ -36,10 +25,7 @@ function parseScheduleDate(value) {
  */
 exports.create = async (req, res) => {
   try {
-    const {
-      content, title, language, customSlug, expiresAt, expirationDays,
-      maxViews, password, tags, activateDateTime, deactivateDateTime
-    } = req.body;
+    const { content, title, language, customSlug, tags } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({ success: false, error: 'Paste content is required' });
@@ -51,11 +37,16 @@ exports.create = async (req, res) => {
       });
     }
 
-    const denied = deniedPermission(req.user || null, {
-      passwordProtection: filled(password),
-      scheduling: filled(activateDateTime) || filled(deactivateDateTime),
-      tags: filled(tags)
-    });
+    // Expiry (with the anonymous cap), schedule, view limit, password
+    let settings;
+    try {
+      settings = await readSettings('paste', req.body, { user: req.user || null });
+    } catch (error) {
+      if (!(error instanceof SettingsError)) throw error;
+      return res.status(400).json({ success: false, error: error.message });
+    }
+
+    const denied = deniedPermission(req.user || null, { ...settings.uses, tags: filled(tags) });
     if (denied) return denyJson(res, denied);
 
     // Slug
@@ -73,47 +64,13 @@ exports.create = async (req, res) => {
       slug = Paste.generateUniqueSlug();
     }
 
-    // Expiration — candidate first, then enforce the anonymous cap
-    let finalExpiresAt = null;
-    if (expirationDays && !isNaN(expirationDays) && parseInt(expirationDays) > 0) {
-      const d = new Date();
-      d.setDate(d.getDate() + parseInt(expirationDays));
-      finalExpiresAt = d.toISOString();
-    } else if (expiresAt) {
-      const parsed = new Date(expiresAt);
-      if (!isNaN(parsed.getTime())) finalExpiresAt = parsed.toISOString();
-    }
-
-    if (!req.user) {
-      const cap = new Date();
-      cap.setDate(cap.getDate() + configService.get('anonymous.pasteExpirationDays'));
-      if (!finalExpiresAt || new Date(finalExpiresAt) > cap) {
-        finalExpiresAt = cap.toISOString();
-      }
-    }
-
-    // Password / scheduling — role permission checked above
-    let hashedPassword = null;
-    if (password && password.trim()) {
-      hashedPassword = await bcrypt.hash(password.trim(), 10);
-    }
-
-    const activateAt = parseScheduleDate(activateDateTime);
-    const deactivateAt = parseScheduleDate(deactivateDateTime);
-
-    const parsedMaxViews = maxViews && !isNaN(maxViews) && parseInt(maxViews) > 0 ? parseInt(maxViews) : null;
-
     const paste = Paste.create({
       userId: req.user ? req.user.id : null,
       slug,
       title: title ? String(title).trim().substring(0, 200) : null,
       content,
       language: language ? String(language).trim().substring(0, 30) : null,
-      expiresAt: finalExpiresAt,
-      activateAt,
-      deactivateAt,
-      maxViews: parsedMaxViews,
-      password: hashedPassword
+      ...settings.values
     });
 
     if (tags && req.user) {
@@ -170,40 +127,28 @@ exports.updateSettings = async (req, res) => {
   }
 
   try {
-    const {
-      title, language, content, expiresAt, activateAt, deactivateAt,
-      maxViews, password, removePassword, tags
-    } = req.body;
+    const { title, language, content, tags } = req.body;
 
-    // Role features: only newly set values count; removals are always allowed
-    const denied = deniedPermission(req.user, {
-      passwordProtection: filled(password) && !(removePassword === '1' || removePassword === true),
-      scheduling: (filled(activateAt) && parseScheduleDate(activateAt) !== paste.activateAt) ||
-                  (filled(deactivateAt) && parseScheduleDate(deactivateAt) !== paste.deactivateAt),
-      tags: tagsChanged('paste', paste.id, tags)
-    });
+    // Only the settings sent change; role features count only when newly set
+    let settings;
+    try {
+      settings = await readSettings('paste', req.body, { user: req.user, existing: paste });
+    } catch (error) {
+      if (!(error instanceof SettingsError)) throw error;
+      return res.status(400).json({ error: error.message });
+    }
+    const denied = deniedPermission(req.user, { ...settings.uses, tags: tagsChanged('paste', paste.id, tags) });
     if (denied) return denyJson(res, denied);
 
     if (content !== undefined && Buffer.byteLength(String(content), 'utf8') > maxPasteBytes()) {
       return res.status(400).json({ error: `Paste is too large (max ${configService.get('pastes.maxSizeKB')} KB)` });
     }
 
-    let newPassword = undefined;
-    if (removePassword === '1' || removePassword === true) {
-      newPassword = null;
-    } else if (password && password.trim()) {
-      newPassword = await bcrypt.hash(password.trim(), 10);
-    }
-
     const updated = Paste.update(paste.id, {
       title: title !== undefined ? (title ? String(title).trim().substring(0, 200) : null) : undefined,
       language: language !== undefined ? (language ? String(language).trim().substring(0, 30) : null) : undefined,
       content: content !== undefined ? String(content) : undefined,
-      expiresAt: expiresAt !== undefined ? (expiresAt || null) : undefined,
-      activateAt: activateAt !== undefined ? parseScheduleDate(activateAt) : undefined,
-      deactivateAt: deactivateAt !== undefined ? parseScheduleDate(deactivateAt) : undefined,
-      maxViews: maxViews !== undefined ? (maxViews ? parseInt(maxViews) : null) : undefined,
-      password: newPassword
+      ...settings.values
     });
 
     if (tags !== undefined) {
