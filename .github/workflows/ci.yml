@@ -39,7 +39,7 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Start the image and wait for /healthz
         run: |
-          docker run -d --name linksnip -e SESSION_SECRET="$(openssl rand -hex 32)" -p 127.0.0.1:8081:8081 linksnip:ci
+          docker run -d --name linksnip -e SESSION_SECRET="$(openssl rand -hex 32)" -e IP_HASH_SECRET="$(openssl rand -hex 32)" -p 127.0.0.1:8081:8081 linksnip:ci
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8081/healthz; then
               echo; echo "Healthy after ~$((i * 2))s"

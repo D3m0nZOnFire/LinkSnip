@@ -1,41 +1,8 @@
 const AnalyticsService = require('../../../services/analyticsService');
+const ipHash = require('../../../services/ipHash');
 const { createMockRequest } = require('../../setup/testHelpers');
 
 describe('AnalyticsService', () => {
-  describe('hashIp', () => {
-    it('should return SHA-256 hash of IP address', () => {
-      const hash = AnalyticsService.hashIp('192.168.1.1');
-
-      expect(hash).toBeDefined();
-      expect(hash).toHaveLength(64); // SHA-256 produces 64 hex characters
-      expect(hash).toMatch(/^[a-f0-9]+$/); // Only hex characters
-    });
-
-    it('should return consistent hash for same IP', () => {
-      const hash1 = AnalyticsService.hashIp('192.168.1.1');
-      const hash2 = AnalyticsService.hashIp('192.168.1.1');
-
-      expect(hash1).toBe(hash2);
-    });
-
-    it('should return different hashes for different IPs', () => {
-      const hash1 = AnalyticsService.hashIp('192.168.1.1');
-      const hash2 = AnalyticsService.hashIp('192.168.1.2');
-
-      expect(hash1).not.toBe(hash2);
-    });
-
-    it('should return null for null input', () => {
-      const hash = AnalyticsService.hashIp(null);
-      expect(hash).toBeNull();
-    });
-
-    it('should return null for undefined input', () => {
-      const hash = AnalyticsService.hashIp(undefined);
-      expect(hash).toBeNull();
-    });
-  });
-
   describe('getIpAddress', () => {
     it('should extract IP from x-forwarded-for header', () => {
       const req = createMockRequest({
@@ -316,8 +283,7 @@ describe('AnalyticsService', () => {
       const analytics = await AnalyticsService.captureAnalytics(req);
 
       expect(analytics).not.toHaveProperty('urlId'); // the item is given to record()
-      expect(analytics.ipHash).toBeDefined();
-      expect(analytics.ipHash).toHaveLength(64);
+      expect(analytics.ipHash).toBe(ipHash.hashIp('192.168.1.1')); // keyed with IP_HASH_SECRET
       expect(analytics.referrer).toBe('https://google.com');
       expect(analytics.browser).toBe('Chrome');
       expect(analytics.os).toBe('Windows 10');

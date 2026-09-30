@@ -3,7 +3,7 @@ const { DB_PATH, ensureDataDir } = require('./paths');
 const { configureDatabase } = require('./dbSetup');
 const {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics, migrateTags
+  migrateAnalytics, migrateTags, migrateIpHashes
 } = require('./migrations');
 
 // Initialize database (DATA_DIR must exist and be writable)
@@ -452,6 +452,12 @@ migrateAnalytics(db);
 // ============================================================================
 
 migrateTags(db);
+
+// ============================================================================
+// KEYED IP HASHES (analytics and reports; needs IP_HASH_SECRET)
+// ============================================================================
+
+migrateIpHashes(db);
 
 console.log('\n✅ Database initialized and migrations completed successfully\n');
 

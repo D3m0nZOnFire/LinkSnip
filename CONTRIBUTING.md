@@ -13,7 +13,7 @@ Requires Node.js 22.
 
 ```bash
 npm ci
-cp .env.example .env    # set SESSION_SECRET (openssl rand -hex 32)
+cp .env.example .env    # set SESSION_SECRET and IP_HASH_SECRET (openssl rand -hex 32 each)
 npm run dev             # http://localhost:8081
 npm test
 ```

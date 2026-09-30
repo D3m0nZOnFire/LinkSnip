@@ -1,10 +1,10 @@
 const db = require('../config/database');
-const crypto = require('crypto');
+const { hashIp } = require('../services/ipHash');
 const { CONTENT_TYPES, contentType } = require('../services/contentTypes');
 
 /**
  * Reports on any content type (reports table: targetType + targetId).
- * One report per reporter per item (unique index); reporter IPs are stored hashed.
+ * One report per reporter per item (unique index); reporter IPs are stored as keyed hashes (services/ipHash.js).
  */
 class Report {
   static REASONS = {
@@ -26,15 +26,11 @@ class Report {
 
   static TYPES = Object.keys(CONTENT_TYPES);
 
-  static hashIp(ip) {
-    return crypto.createHash('sha256').update(String(ip)).digest('hex');
-  }
-
   static create({ targetType, targetId, reporterIp, reason, description }) {
     const result = db.prepare(`
       INSERT INTO reports (targetType, targetId, reporterIpHash, reason, description)
       VALUES (?, ?, ?, ?, ?)
-    `).run(targetType, targetId, this.hashIp(reporterIp), reason, description || null);
+    `).run(targetType, targetId, hashIp(reporterIp), reason, description || null);
     return this.findById(result.lastInsertRowid);
   }
 
@@ -44,7 +40,7 @@ class Report {
 
   static hasReported(targetType, targetId, reporterIp) {
     return !!db.prepare('SELECT id FROM reports WHERE targetType = ? AND targetId = ? AND reporterIpHash = ?')
-      .get(targetType, targetId, this.hashIp(reporterIp));
+      .get(targetType, targetId, hashIp(reporterIp));
   }
 
   /** Pending reports on one item (what counts toward quarantine). */

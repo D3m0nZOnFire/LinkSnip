@@ -21,6 +21,7 @@ and the last good configuration stays in use.
 | Variable | Default | Description |
 |---|---|---|
 | `SESSION_SECRET` | required | Signs login sessions. Generate with `openssl rand -hex 32`. The app refuses to start without it. |
+| `IP_HASH_SECRET` | required | Key for the stored hashes of visitor IPs (analytics, reports), so a copy of the database can't be turned back into IPs. At least 32 characters, different from `SESSION_SECRET`. Generate with `openssl rand -hex 32`, and keep it: a new one restarts unique-visitor counts. |
 | `DATA_DIR` | project folder (`/data` in Docker) | Holds `database.db`, `uploads/`, `backups/`, `settings.json` and `roles.json`. |
 | `PORT` | `8081` | Port the app listens on. |
 | `NODE_ENV` | `development` (`production` in Docker) | `development` logs every SQL query. |

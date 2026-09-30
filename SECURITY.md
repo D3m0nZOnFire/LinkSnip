@@ -27,7 +27,9 @@ Out of scope:
 
 ## Hardening notes for operators
 
-- Keep `SESSION_SECRET` secret and unique per instance. LinkSnip refuses to start with the example value.
+- Keep `SESSION_SECRET` and `IP_HASH_SECRET` secret and unique per instance. LinkSnip refuses to start with the example
+  values. Visitor IPs are stored only as hashes keyed with `IP_HASH_SECRET`, which is not in the database, so a copy of
+  the database or a backup can't be matched against IP addresses. Keep the secret with your `.env`, not with the backups.
 - Put LinkSnip behind HTTPS (the bundled Caddy does this). The published port is bound to `127.0.0.1` on purpose.
 - Uploaded files are always served as downloads, with `X-Content-Type-Options: nosniff` and
   `Content-Security-Policy: sandbox`, so they can't run scripts on your domain. Any file type can still be uploaded.

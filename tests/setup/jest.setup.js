@@ -6,6 +6,8 @@ const path = require('path');
 // ConfigService never land in the project root. Set before anything requires config/paths.
 const testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'linksnip-test-'));
 process.env.DATA_DIR = testDataDir;
+// IP hashes are keyed with IP_HASH_SECRET (config/env.js requireIpHashSecret)
+process.env.IP_HASH_SECRET = 'test-ip-hash-secret-'.padEnd(64, 'x');
 
 const {
   createTestDatabase,
