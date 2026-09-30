@@ -7,7 +7,7 @@ const { fileUpload } = require('../middleware/fileUpload');
 const fs = require('fs');
 const { isAuthenticated, isAdmin } = require('../middleware/auth');
 const requirePermission = require('../middleware/requirePermission');
-const { authLimiter, uploadLimiter } = require('../middleware/rateLimiter');
+const { uploadLimiter } = require('../middleware/rateLimiter');
 const { UPLOADS_DIR } = require('../config/paths');
 const fileController = require('../controllers/fileController');
 
@@ -45,8 +45,6 @@ router.post('/api/admin/files/:id/unblock', isAuthenticated, isAdmin, fileContro
 
 // ─── Unlock file (password) ───────────────────────────────────────────────────
 
-router.get('/unlock-file/:slug', authLimiter, fileController.showUnlockFilePage);
-router.post('/unlock-file/:slug', authLimiter, fileController.unlockFile);
 
 // ─── Public file routes ───────────────────────────────────────────────────────
 

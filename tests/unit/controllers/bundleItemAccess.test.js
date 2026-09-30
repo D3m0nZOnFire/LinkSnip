@@ -56,8 +56,8 @@ describe('GET /bt/:itemId respects its bundle', () => {
   it('asks for the bundle password until the bundle is unlocked', async () => {
     const { bundle, item } = bundleWithItem({ password: 'hash' });
 
-    expect((await click(item.id)).redirect).toHaveBeenCalledWith('/unlock-bundle/bb');
-    expect((await click(item.id, { unlockedBundles: [bundle.id] })).redirect).toHaveBeenCalledWith('https://secret.example');
+    expect((await click(item.id)).redirect).toHaveBeenCalledWith('/unlock/bundle/bb');
+    expect((await click(item.id, { unlocked: { bundle: [bundle.id] } })).redirect).toHaveBeenCalledWith('https://secret.example');
   });
 
   it('shows the quarantine warning until the visitor continued on the bundle', async () => {

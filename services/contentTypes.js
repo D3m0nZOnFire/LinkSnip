@@ -14,8 +14,7 @@
  *   destination   column shown on the quarantine warning
  *   publicPrefix  public path before the slug
  *   infoPrefix    public info page before the slug, if any
- *   unlockPrefix  password page before the slug
- *   session       session keys for remembered and one-time unlocks
+ *   alwaysRemember  a password unlock lasts the session (no "remember" choice)
  */
 const CONTENT_TYPES = {
   url: {
@@ -30,8 +29,7 @@ const CONTENT_TYPES = {
     destination: 'longUrl',
     publicPrefix: '/s/',
     infoPrefix: '/info/',
-    unlockPrefix: '/unlock/',
-    session: { remembered: 'unlockedUrls', once: 'tempUnlock' }
+    alwaysRemember: false
   },
   bundle: {
     table: 'bundles',
@@ -45,8 +43,7 @@ const CONTENT_TYPES = {
     destination: 'title',
     publicPrefix: '/b/',
     infoPrefix: null,
-    unlockPrefix: '/unlock-bundle/',
-    session: { remembered: 'unlockedBundles', once: null }
+    alwaysRemember: true
   },
   paste: {
     table: 'pastes',
@@ -60,8 +57,7 @@ const CONTENT_TYPES = {
     destination: 'title',
     publicPrefix: '/p/',
     infoPrefix: '/p-info/',
-    unlockPrefix: '/unlock-paste/',
-    session: { remembered: 'unlockedPastes', once: 'tempUnlockPaste' }
+    alwaysRemember: false
   },
   file: {
     table: 'files',
@@ -75,8 +71,7 @@ const CONTENT_TYPES = {
     destination: 'originalName',
     publicPrefix: '/f/',
     infoPrefix: null,
-    unlockPrefix: '/unlock-file/',
-    session: { remembered: 'unlockedFiles', once: 'tempUnlockFile' }
+    alwaysRemember: false
   }
 };
 

@@ -101,8 +101,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - **users**: `isAdmin`, `isBanned`, `role`, `email`, `lastActive`
 - **urls**: `slug`, `longUrl`, `creatorId` (→ users, SET NULL), `clicks`, `maxUses`, `expiresAt`, `activateAt`,
   `deactivateAt` (datetime-local + `:00.000Z`, no timezone conversion), `password` (bcrypt), `isBlocked`, `isQuarantined`
-- **pastes**, **files**, **bundles** (+ `bundle_items`): same access fields as urls, `isQuarantined` included. Pastes use
-  `userId`/`views`/`maxViews`, files `userId`/`downloads`/`maxDownloads`/`size`/`sharingMode`/`allowedUsers`
+- **pastes**, **files**, **bundles** (+ `bundle_items`): same access fields as urls, `isQuarantined` included.
+  Pastes use `userId`/`views`/`maxViews`, files `userId`/`downloads`/`maxDownloads`/`size`/`sharingMode`/
+  `allowedUsers`
 - **analytics**, **bundle_analytics**, **bundle_item_analytics**, **paste_analytics**: per-visit rows (`ipHash`
   SHA-256, never raw IPs)
 - **tags** (user-scoped, lowercase) with `url_tags`, `paste_tags`, `file_tags`
@@ -119,13 +120,13 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 ### Access checks (every content type)
 - `services/contentTypes.js`: registry of the types sharing the short-link machinery (`url`, `bundle`, `paste`,
-  `file`): table, owner/used/limit columns, quarantine/restricted flags, public/info/unlock paths, session keys.
-  Shared services take a type name and look the rest up here.
+  `file`): table, owner/used/limit columns, feature switch, quarantine/restricted/alwaysRemember flags, public/info
+  paths. Shared services take a type name and look the rest up here.
 - `services/accessService.js` is the one access check. Statuses in order: `blocked` → `scheduled` → `expired` →
   `limit_reached` → `quarantined` → `login_required` / `forbidden` (restricted files) → `password_required` → `active`.
   - Public routes: `checkAccess(req, type, record)` (reads the user, session unlocks and `?confirmed=1`), then
     `sendAccessDenied(req, res, type, record, result)`: blocked/forbidden 403, scheduled 404 (`views/scheduled.ejs`),
-    expired/limit_reached 410, quarantined → `views/quarantine.ejs`, password → the type's unlock page,
+    expired/limit_reached 410, quarantined → `views/quarantine.ejs`, password → `/unlock/:type/:slug`,
     login_required → `/login?next=…`. Unlock pages call `sendIfUnavailable()` first.
   - `recordStatus(type, record)` is the record-only part (first five statuses); info pages and the bio page use it with
     `isLive(status)`. `statusSql(type)` computes the same in SQL for list filters; a test keeps the two identical.
@@ -133,8 +134,17 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
     `partials/status-badge.ejs`. Never recompute a status in a template.
   - Dates without a timezone are UTC (as SQLite reads them); SQL compares with `julianday()`.
 
+### Password unlock (every content type)
+- One page and route: `GET/POST /unlock/:type/:slug` (`controllers/unlockController.js`, `routes/unlockRoutes.js`,
+  `views/unlock.ejs`). The old `/unlock/:slug`, `/unlock-bundle|paste|file/:slug` answer 308 to the new address.
+- Session (`services/unlockService.js`): `session.unlocked[type]` (remembered IDs) and `session.unlockOnce`
+  (`{ type, id }`, used up by the next visit). "Remember" is a checkbox, except bundles (`alwaysRemember`): their
+  item links (`/bt/:itemId`) need the unlock to last.
+- A wrong password answers **401**: the limiter counts only failed attempts (10 per visitor and item, 30 per visitor,
+  15 min), separate from the login limiter. A lockout shows the unlock page (429) and logs one `UNLOCK_LOCKOUT`.
+
 ### Short links
-- `POST /create` (form), `GET /s/:slug` redirect with analytics, `/info/:slug` public preview, `/unlock/:slug`.
+- `POST /create` (form), `GET /s/:slug` redirect with analytics, `/info/:slug` public preview.
 - Admin filter (`?status=`, `@status:`): active, blocked, expired, scheduled, max-uses (= `limit_reached`),
   quarantined, plus anonymous and password-protected.
 - Anonymous links always expire within `anonymous.urlExpirationDays`; expired anonymous content is deleted nightly
@@ -147,7 +157,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   API `/api/pastes`. Model `models/Paste.js`, controller `controllers/pasteController.js`.
 - EJS-escaped plain text (`<%= %>`, never `<%-`), `language` is only a label. Line-number gutters via
   `public/js/lineNumbers.js` on textareas with `data-line-numbers`.
-- Size limit `pastes.maxSizeKB`; anonymous expiry `anonymous.pasteExpirationDays`. Unlock at `/unlock-paste/:slug`.
+- Size limit `pastes.maxSizeKB`; anonymous expiry `anonymous.pasteExpirationDays`.
 
 ### Files
 - Upload `POST /api/files/upload` (permission `uploadFiles`, `uploadLimiter`), preview `/f/:slug`, download
@@ -194,7 +204,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `createUrlLimiter` (urlsPerHour), `createPasteLimiter`, `createBundleLimiter`, `bulkImportLimiter` (importsPerHour),
   `uploadLimiter`. Keyed per user ID, or per IP for visitors. `null` skips the limiter.
 - Fixed infrastructure limiters: `redirectLimiter` (1000/15 min per IP), `authLimiter` (10/15 min, failed attempts
-  only; also used for `/setup` and paste/file unlock), `apiLimiter` (200/15 min, admins skip), `unlockLimiter` (10/15 min).
+  only; also used for `/setup`), `apiLimiter` (200/15 min, admins skip), `createUnlockLimiter()` (see Password unlock).
 
 ### Admin
 - `/admin` (links), `/admin/users` (role filter/select, **Create user** → `POST /api/admin/users`), `/admin/files`,
@@ -205,8 +215,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Audit logging (`services/auditService.js`)
 - `logAuth`, `logAdminAction`, `logAccountChange`, `logSecurity`. Add new action names to `ACTIONS`.
 - Recent ones: `CREATE_USER`, `SETUP_ADMIN`, `UPDATE_SETTINGS`, `CREATE_SHARE_LINK`, `REVOKE_SHARE_LINK`, `BLOCK_FILE`,
-  `UNBLOCK_FILE`, `QUARANTINE_URL` / `_BUNDLE` / `_PASTE` / `_FILE`, `CLEAR_QUARANTINE`, `MIGRATE_REPORTS` (old → new
-  bundle report IDs).
+  `UNBLOCK_FILE`, `QUARANTINE_URL` / `_BUNDLE` / `_PASTE` / `_FILE`, `CLEAR_QUARANTINE`, `UNLOCK_LOCKOUT`,
+  `MIGRATE_REPORTS` (old → new bundle report IDs).
 
 ### Scheduled tasks (`services/scheduledTasks.js`, node-cron)
 2:00 audit log cleanup (`retention.auditLogDays`) · 3:00 backup · 4:00 inactive content cleanup · 5:00 expired

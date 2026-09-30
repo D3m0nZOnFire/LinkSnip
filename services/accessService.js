@@ -1,4 +1,5 @@
 const { contentType } = require('./contentTypes');
+const unlocks = require('./unlockService');
 
 /**
  * One access check for every content type (links, bundles, pastes, files).
@@ -161,11 +162,9 @@ function checkAccess(req, type, record) {
     }
   }
 
-  const remembered = (session[info.session.remembered] || []).includes(record.id);
-  const once = !!info.session.once && session[info.session.once] === record.id;
-
-  const result = evaluate(type, record, { user: req.user || null, unlocked: remembered || once, quarantineAck });
-  if (result.allowed && once) delete session[info.session.once];
+  const unlocked = unlocks.isRemembered(session, type, record.id) || unlocks.isOnce(session, type, record.id);
+  const result = evaluate(type, record, { user: req.user || null, unlocked, quarantineAck });
+  if (result.allowed) unlocks.useOnce(session, type, record.id);
   return result;
 }
 
@@ -179,7 +178,7 @@ function sendAccessDenied(req, res, type, record, result) {
 
   switch (status) {
     case 'password_required':
-      return res.redirect(`${info.unlockPrefix}${record.slug}`);
+      return res.redirect(`/unlock/${type}/${record.slug}`);
     case 'login_required':
       return res.redirect(`/login?next=${encodeURIComponent(req.originalUrl || `${info.publicPrefix}${record.slug}`)}`);
     case 'quarantined':

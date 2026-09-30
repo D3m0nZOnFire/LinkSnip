@@ -153,10 +153,10 @@
       </svg>
 
       <h1>Password Required</h1>
-      <p>This short link is password-protected. Please enter the password to continue.</p>
+      <p>This <%= noun %> is password-protected. Please enter the password to continue.</p>
 
       <div class="short-url-display">
-        <%= fullShortUrl %>
+        <%= label %>
       </div>
 
       <% if (error) { %>
@@ -168,7 +168,7 @@
         </div>
       <% } %>
 
-      <form method="POST" action="/unlock/<%= slug %>">
+      <form method="POST" action="/unlock/<%= type %>/<%= slug %>">
         <div class="password-input-group">
           <input
             type="password"
@@ -188,10 +188,12 @@
           </button>
         </div>
 
+        <% if (canRemember) { %>
         <div class="remember-checkbox">
           <input type="checkbox" id="remember" name="remember" value="1">
           <label for="remember">Remember password for this session</label>
         </div>
+        <% } %>
 
         <button type="submit" class="btn btn-primary" style="width: 100%;">
           Unlock & Continue
@@ -200,7 +202,9 @@
 
       <div class="unlock-actions">
         <a href="/" class="btn btn-secondary">Go Home</a>
-        <a href="/info/<%= slug %>" class="btn btn-secondary">View Info</a>
+        <% if (locals.infoUrl) { %>
+          <a href="<%= infoUrl %>" class="btn btn-secondary">View Info</a>
+        <% } %>
       </div>
     </div>
   </div>

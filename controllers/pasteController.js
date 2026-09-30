@@ -8,7 +8,7 @@ const QRCodeService = require('../services/qrcodeService');
 const AnalyticsService = require('../services/analyticsService');
 const { logAdminAction, logAccountChange, ACTIONS } = require('../services/auditService');
 const {
-  checkAccess, sendAccessDenied, sendIfUnavailable, recordStatus, isLive, withAccessStatus, message: accessMessage
+  checkAccess, sendAccessDenied, recordStatus, isLive, withAccessStatus, message: accessMessage
 } = require('../services/accessService');
 const { deletesInDays } = require('../services/retentionService');
 
@@ -408,65 +408,6 @@ exports.raw = (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${paste.slug}.txt"`);
   }
   return res.send(paste.content);
-};
-
-// ─── Unlock ───────────────────────────────────────────────────────────────────
-
-/**
- * GET /unlock-paste/:slug
- */
-exports.showUnlockPastePage = (req, res) => {
-  const paste = Paste.findBySlug(req.params.slug);
-  if (!paste) {
-    return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
-  }
-  if (!paste.password) return res.redirect(`/p/${paste.slug}`);
-  if (sendIfUnavailable(req, res, 'paste', paste)) return;
-
-  return res.render('unlock-paste', {
-    user: req.user || null,
-    slug: paste.slug,
-    pasteTitle: paste.title || paste.slug,
-    error: null
-  });
-};
-
-/**
- * POST /unlock-paste/:slug
- */
-exports.unlockPaste = async (req, res) => {
-  const paste = Paste.findBySlug(req.params.slug);
-  if (!paste) {
-    return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
-  }
-  if (!paste.password) return res.redirect(`/p/${paste.slug}`);
-  if (sendIfUnavailable(req, res, 'paste', paste)) return;
-
-  const { password, remember } = req.body;
-
-  try {
-    const correct = await bcrypt.compare(password || '', paste.password);
-    if (!correct) {
-      return res.render('unlock-paste', {
-        user: req.user || null,
-        slug: paste.slug,
-        pasteTitle: paste.title || paste.slug,
-        error: 'Incorrect password. Please try again.'
-      });
-    }
-
-    if (remember === '1') {
-      if (!req.session.unlockedPastes) req.session.unlockedPastes = [];
-      if (!req.session.unlockedPastes.includes(paste.id)) req.session.unlockedPastes.push(paste.id);
-    } else {
-      req.session.tempUnlockPaste = paste.id;
-    }
-
-    return res.redirect(`/p/${paste.slug}`);
-  } catch (err) {
-    console.error('Paste unlock error:', err);
-    return res.status(500).render('error', { title: 'Server Error', message: 'An error occurred.', code: 500 });
-  }
 };
 
 // ─── Admin ────────────────────────────────────────────────────────────────────

@@ -213,8 +213,8 @@ describe('Auth Middleware', () => {
 
       it('keeps other session data (unlocks, quarantine acknowledgments) when logging out', async () => {
         const user = await createTestUser({ username: 'banned', isBanned: 1 });
-        const { req } = run({ userId: user.id, unlockedUrls: [3] });
-        expect(req.session.unlockedUrls).toEqual([3]);
+        const { req } = run({ userId: user.id, unlocked: { url: [3] } });
+        expect(req.session.unlocked).toEqual({ url: [3] });
       });
     });
   });

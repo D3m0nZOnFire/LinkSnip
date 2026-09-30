@@ -106,12 +106,12 @@ describe.each(Object.keys(ROUTES))('%s refuses the same way as every other type'
   });
 });
 
-describe('password redirects keep their current unlock pages', () => {
+describe('password redirects go to the shared unlock page', () => {
   it.each([
-    ['url', () => createTestUrl({ slug: 'it', password: 'hash' }), UrlController.redirect, '/unlock/it'],
-    ['bundle', () => createTestBundle({ slug: 'it', password: 'hash' }), BundleController.launchBundle, '/unlock-bundle/it'],
-    ['paste', () => createTestPaste(owner.id, { slug: 'it', password: 'hash' }), pasteController.view, '/unlock-paste/it'],
-    ['file', () => createTestFile(owner.id, { slug: 'it', password: 'hash' }), fileController.preview, '/unlock-file/it']
+    ['url', () => createTestUrl({ slug: 'it', password: 'hash' }), UrlController.redirect, '/unlock/url/it'],
+    ['bundle', () => createTestBundle({ slug: 'it', password: 'hash' }), BundleController.launchBundle, '/unlock/bundle/it'],
+    ['paste', () => createTestPaste(owner.id, { slug: 'it', password: 'hash' }), pasteController.view, '/unlock/paste/it'],
+    ['file', () => createTestFile(owner.id, { slug: 'it', password: 'hash' }), fileController.preview, '/unlock/file/it']
   ])('%s → %s', async (_type, make, handler, target) => {
     make();
     expect((await call(handler, visit('it'))).redirect).toHaveBeenCalledWith(target);
@@ -135,23 +135,23 @@ describe('restricted files', () => {
 describe('unlock pages refuse unavailable records the same way', () => {
   it('a scheduled link → 404 scheduled page', async () => {
     createTestUrl({ slug: 'it', password: 'hash', activateAt: FUTURE });
-    const res = await call(unlockController.showUnlockPage, visit('it'));
+    const res = await call(unlockController.showUnlockPage, visit('it', { params: { type: 'url', slug: 'it' } }));
     expect(res.statusCode).toBe(404);
     expect(res._view).toBe('scheduled');
   });
 
   it('a blocked link → 403', async () => {
     createTestUrl({ slug: 'it', password: 'hash', isBlocked: 1 });
-    expect((await call(unlockController.showUnlockPage, visit('it'))).statusCode).toBe(403);
+    expect((await call(unlockController.showUnlockPage, visit('it', { params: { type: 'url', slug: 'it' } }))).statusCode).toBe(403);
   });
 
   it.each([
-    ['paste', () => createTestPaste(owner.id, { slug: 'it', password: 'hash', expiresAt: PAST }), pasteController.showUnlockPastePage],
-    ['file', () => createTestFile(owner.id, { slug: 'it', password: 'hash', expiresAt: PAST }), fileController.showUnlockFilePage],
-    ['bundle', () => createTestBundle({ slug: 'it', password: 'hash', expiresAt: PAST }), BundleController.getUnlockBundlePage]
-  ])('an expired %s → 410 instead of a password prompt', async (_type, make, handler) => {
+    ['paste', () => createTestPaste(owner.id, { slug: 'it', password: 'hash', expiresAt: PAST })],
+    ['file', () => createTestFile(owner.id, { slug: 'it', password: 'hash', expiresAt: PAST })],
+    ['bundle', () => createTestBundle({ slug: 'it', password: 'hash', expiresAt: PAST })]
+  ])('an expired %s → 410 instead of a password prompt', async (type, make) => {
     make();
-    const res = await call(handler, visit('it'));
+    const res = await call(unlockController.showUnlockPage, visit('it', { params: { type, slug: 'it' } }));
     expect(res.statusCode).toBe(410);
     expect(res._view).toBe('error');
   });

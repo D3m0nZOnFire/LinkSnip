@@ -4,7 +4,7 @@ const BundleAnalytics = require('../models/BundleAnalytics');
 const AnalyticsService = require('../services/analyticsService');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
 const configService = require('../services/configService');
-const { checkAccess, sendAccessDenied, sendIfUnavailable } = require('../services/accessService');
+const { checkAccess, sendAccessDenied } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 
 const MAX_ITEMS_REGISTERED = 20;
@@ -357,61 +357,6 @@ async function launchBundle(req, res) {
 }
 
 /**
- * GET /unlock-bundle/:slug
- * Password entry page for password-protected bundles
- */
-function getUnlockBundlePage(req, res) {
-  const { slug } = req.params;
-  const bundle = Bundle.findBySlug(slug);
-
-  if (!bundle || !bundle.password) {
-    return res.redirect(`/b/${slug}`);
-  }
-  if (sendIfUnavailable(req, res, 'bundle', bundle)) return;
-
-  res.render('unlock-bundle', {
-    user: req.user || null,
-    slug,
-    bundleUrl: `${req.protocol}://${req.get('host')}/b/${slug}`,
-    error: null
-  });
-}
-
-/**
- * POST /unlock-bundle/:slug
- * Verify password for a bundle
- */
-async function postUnlockBundle(req, res) {
-  const { slug } = req.params;
-  const { password } = req.body;
-
-  const bundle = Bundle.findBySlug(slug);
-
-  if (!bundle || !bundle.password) {
-    return res.redirect(`/b/${slug}`);
-  }
-  if (sendIfUnavailable(req, res, 'bundle', bundle)) return;
-
-  const bundleUrl = `${req.protocol}://${req.get('host')}/b/${slug}`;
-
-  if (!password) {
-    return res.render('unlock-bundle', { user: req.user || null, slug, bundleUrl, error: 'Password is required' });
-  }
-
-  const match = await bcrypt.compare(password, bundle.password);
-  if (!match) {
-    return res.render('unlock-bundle', { user: req.user || null, slug, bundleUrl, error: 'Incorrect password' });
-  }
-
-  if (!req.session.unlockedBundles) req.session.unlockedBundles = [];
-  if (!req.session.unlockedBundles.includes(bundle.id)) {
-    req.session.unlockedBundles.push(bundle.id);
-  }
-
-  res.redirect(`/b/${slug}`);
-}
-
-/**
  * POST /api/bundles/bulk-delete
  * Delete multiple bundles (owner or admin per item, max 200 IDs)
  */
@@ -456,7 +401,5 @@ module.exports = {
   updateBundle,
   deleteBundle,
   bulkDeleteBundles,
-  launchBundle,
-  getUnlockBundlePage,
-  postUnlockBundle
+  launchBundle
 };

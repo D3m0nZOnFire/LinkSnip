@@ -189,7 +189,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/', authRoutes); // Auth routes have their own rate limiter applied in authRoutes.js
 app.use('/', urlRoutes); // URL routes (redirect endpoint) have their own rate limiter
-app.use('/unlock', unlockRoutes); // Password unlock routes
+app.use('/', unlockRoutes); // Password unlock for every type: /unlock/:type/:slug
 app.use('/', featureRoutes('bundles', bundleRoutes)); // Bundle routes
 app.use('/', featureRoutes('files', fileRoutes));  // File hosting routes
 app.use('/', featureRoutes('pastes', pasteRoutes)); // Pastebin routes (MUST come before bioPageRoutes/infoRoutes to avoid username catch-all conflicts)

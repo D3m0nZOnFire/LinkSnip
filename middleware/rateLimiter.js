@@ -105,25 +105,27 @@ const authLimiter = rateLimit({
   }
 });
 
-// Rate limiter for password unlock attempts (prevent brute force)
-const unlockLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 password attempts per 15 minutes per IP
-  message: {
-    error: 'Too many password attempts. Please try again in 15 minutes.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: false, // Count all attempts (including successful ones)
-  handler: (req, res) => {
-    const slug = req.params.slug || 'unknown';
-    res.status(429).render('unlock', {
-      slug,
-      fullShortUrl: `${req.protocol}://${req.get('host')}/s/${slug}`,
-      error: 'Too many password attempts. Please try again in 15 minutes.'
-    });
-  }
-});
+/**
+ * Password unlock attempts on /unlock/:type/:slug (brute-force protection), separate
+ * from the login limiter. Only failed attempts count (a wrong password answers 401):
+ * `perItem` per visitor and item, and `perVisitor` across all items. A blocked
+ * attempt gets the unlock page with an error (unlockController.lockedOut).
+ * @returns {Function[]} middleware, per-item limiter first
+ */
+function createUnlockLimiter({ perItem = 10, perVisitor = 30, windowMs = 15 * 60 * 1000 } = {}) {
+  const shared = {
+    windowMs,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    handler: (req, res) => require('../controllers/unlockController').lockedOut(req, res)
+  };
+  const visitor = (req) => `unlock_${ipKeyGenerator(req.ip)}`;
+  return [
+    rateLimit({ ...shared, limit: perItem, keyGenerator: (req) => `${visitor(req)}_${req.params.type}_${req.params.slug}` }),
+    rateLimit({ ...shared, limit: perVisitor, keyGenerator: visitor })
+  ];
+}
 
 module.exports = {
   createRoleLimiter,
@@ -132,7 +134,7 @@ module.exports = {
   apiLimiter,
   authLimiter,
   bulkImportLimiter,
-  unlockLimiter,
+  createUnlockLimiter,
   createBundleLimiter,
   createPasteLimiter,
   uploadLimiter
