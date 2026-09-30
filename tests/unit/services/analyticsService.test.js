@@ -4,73 +4,31 @@ const { createMockRequest } = require('../../setup/testHelpers');
 
 describe('AnalyticsService', () => {
   describe('getIpAddress', () => {
-    it('should extract IP from x-forwarded-for header', () => {
-      const req = createMockRequest({
-        headers: { 'x-forwarded-for': '203.0.113.1, 70.41.3.18' }
-      });
+    // The address Express resolved through TRUST_PROXY (req.ip): a header the client
+    // wrote itself must not decide the IP (it would fake countries and unique visitors).
+    const express = require('express');
+    const request = require('supertest');
+    const appWith = (trustProxy) => {
+      const app = express();
+      app.set('trust proxy', trustProxy);
+      app.get('/', (req, res) => res.send(AnalyticsService.getIpAddress(req)));
+      return app;
+    };
 
-      const ip = AnalyticsService.getIpAddress(req);
-
-      expect(ip).toBe('203.0.113.1');
+    it('ignores X-Forwarded-For and X-Real-IP from a client when no proxy is trusted', async () => {
+      const res = await request(appWith(false)).get('/')
+        .set('X-Forwarded-For', '203.0.113.7').set('X-Real-IP', '203.0.113.8');
+      expect(res.text).not.toMatch(/203\.0\.113/);
+      expect(res.text).toMatch(/127\.0\.0\.1|::1/);
     });
 
-    it('should extract IP from x-real-ip header', () => {
-      const req = createMockRequest({
-        headers: { 'x-real-ip': '203.0.113.2' }
-      });
-
-      const ip = AnalyticsService.getIpAddress(req);
-
-      expect(ip).toBe('203.0.113.2');
+    it('takes the client address the trusted proxy reports', async () => {
+      const res = await request(appWith(1)).get('/').set('X-Forwarded-For', '198.51.100.9, 203.0.113.7');
+      expect(res.text).toBe('203.0.113.7'); // the entry our one proxy added, not the one the client wrote
     });
 
-    it('should fall back to connection.remoteAddress', () => {
-      const req = createMockRequest({
-        headers: {},
-        connection: { remoteAddress: '192.168.1.100' }
-      });
-
-      const ip = AnalyticsService.getIpAddress(req);
-
-      expect(ip).toBe('192.168.1.100');
-    });
-
-    it('should fall back to socket.remoteAddress', () => {
-      const req = createMockRequest({
-        headers: {},
-        connection: {},
-        socket: { remoteAddress: '192.168.1.101' }
-      });
-
-      const ip = AnalyticsService.getIpAddress(req);
-
-      expect(ip).toBe('192.168.1.101');
-    });
-
-    it('should fall back to req.ip', () => {
-      const req = createMockRequest({
-        headers: {},
-        connection: {},
-        socket: {},
-        ip: '10.0.0.1'
-      });
-
-      const ip = AnalyticsService.getIpAddress(req);
-
-      expect(ip).toBe('10.0.0.1');
-    });
-
-    it('should return unknown when no IP available', () => {
-      const req = {
-        headers: {},
-        connection: {},
-        socket: {},
-        ip: null
-      };
-
-      const ip = AnalyticsService.getIpAddress(req);
-
-      expect(ip).toBe('unknown');
+    it('returns unknown when no IP is available', () => {
+      expect(AnalyticsService.getIpAddress(createMockRequest({ ip: undefined }))).toBe('unknown');
     });
   });
 
@@ -219,43 +177,6 @@ describe('AnalyticsService', () => {
     });
   });
 
-  describe('getCountryFromIp', () => {
-    it('should return Unknown for localhost IPv4', async () => {
-      const country = await AnalyticsService.getCountryFromIp('127.0.0.1');
-      expect(country).toBe('Unknown');
-    });
-
-    it('should return Unknown for localhost IPv6', async () => {
-      const country = await AnalyticsService.getCountryFromIp('::1');
-      expect(country).toBe('Unknown');
-    });
-
-    it('should return Unknown for private IP (192.168.x.x)', async () => {
-      const country = await AnalyticsService.getCountryFromIp('192.168.1.1');
-      expect(country).toBe('Unknown');
-    });
-
-    it('should return Unknown for private IP (10.x.x.x)', async () => {
-      const country = await AnalyticsService.getCountryFromIp('10.0.0.1');
-      expect(country).toBe('Unknown');
-    });
-
-    it('should return Unknown for private IP (172.x.x.x)', async () => {
-      const country = await AnalyticsService.getCountryFromIp('172.16.0.1');
-      expect(country).toBe('Unknown');
-    });
-
-    it('should return Unknown for null IP', async () => {
-      const country = await AnalyticsService.getCountryFromIp(null);
-      expect(country).toBe('Unknown');
-    });
-
-    it('should return Unknown for "unknown" IP', async () => {
-      const country = await AnalyticsService.getCountryFromIp('unknown');
-      expect(country).toBe('Unknown');
-    });
-  });
-
   describe('captureAnalytics', () => {
     beforeEach(() => {
       // Mock fetch globally
@@ -271,10 +192,30 @@ describe('AnalyticsService', () => {
       jest.restoreAllMocks();
     });
 
+    it('takes the country from the local database and sends the IP nowhere', async () => {
+      const fs = require('fs');
+      const paths = require('../../../config/paths');
+      const geo = require('../../../services/geoService');
+      const { buildMmdb } = require('../../setup/mmdbWriter');
+      fs.mkdirSync(paths.GEO_DIR, { recursive: true });
+      fs.writeFileSync(paths.GEO_DB_PATH, buildMmdb([
+        { network: '8.8.8.0/24', data: { country: { names: { en: 'Canada' } } } }
+      ]));
+      geo.reload();
+      try {
+        const analytics = await AnalyticsService.captureAnalytics(createMockRequest({ ip: '8.8.8.8' }));
+        expect(analytics.country).toBe('Canada');
+        expect(global.fetch).not.toHaveBeenCalled();
+      } finally {
+        fs.rmSync(paths.GEO_DIR, { recursive: true, force: true });
+        geo.reload();
+      }
+    });
+
     it('should capture all analytics data from request', async () => {
       const req = createMockRequest({
+        ip: '192.168.1.1', // private, so the country is Unknown
         headers: {
-          'x-forwarded-for': '192.168.1.1', // Private IP, so country will be Unknown
           'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0.4472.124',
           'referer': 'https://google.com'
         }

@@ -1,6 +1,6 @@
 const { hashIp } = require('./ipHash');
 const AnalyticsEvent = require('../models/AnalyticsEvent');
-const configService = require('./configService');
+const geo = require('./geoService');
 
 class AnalyticsService {
   /**
@@ -9,13 +9,8 @@ class AnalyticsService {
    * @returns {string} IP address
    */
   static getIpAddress(req) {
-    // Check for IP in various headers (behind proxy/load balancer)
-    return req.headers['x-forwarded-for']?.split(',')[0].trim() ||
-           req.headers['x-real-ip'] ||
-           req.connection?.remoteAddress ||
-           req.socket?.remoteAddress ||
-           req.ip ||
-           'unknown';
+    // req.ip is resolved through TRUST_PROXY; X-Forwarded-For as sent can be written by anyone
+    return req.ip || 'unknown';
   }
 
   /**
@@ -62,39 +57,6 @@ class AnalyticsService {
   }
 
   /**
-   * Get country from IP address using ip-api.com free service
-   * @param {string} ip
-   * @returns {Promise<string>} Country name or 'Unknown'
-   */
-  static async getCountryFromIp(ip) {
-    // geo.enabled off: never send visitor IPs to a third party
-    if (!configService.get('geo.enabled')) return 'Unknown';
-
-    // Skip localhost, private IPs, and invalid IPs
-    if (!ip || ip === 'unknown' || ip === '::1' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) {
-      return 'Unknown';
-    }
-
-    try {
-      // Use ip-api.com free service (45 requests/minute limit, no API key needed)
-      const response = await fetch(`http://ip-api.com/json/${ip}?fields=country`, {
-        timeout: 2000 // 2 second timeout to avoid slowing down redirects
-      });
-
-      if (!response.ok) {
-        return 'Unknown';
-      }
-
-      const data = await response.json();
-      return data.country || 'Unknown';
-    } catch (error) {
-      // Silently fail and return Unknown if geolocation fails
-      // Don't want to break redirects if API is down
-      return 'Unknown';
-    }
-  }
-
-  /**
    * The visit details of a request (hashed IP, referrer, user agent and what it parses to, country)
    * @param {object} req - Express request object
    * @returns {Promise<object>} Fields for AnalyticsEvent.record
@@ -105,7 +67,7 @@ class AnalyticsService {
     const referrer = req.headers.referer || req.headers.referrer || 'Direct';
     const userAgent = req.headers['user-agent'] || '';
     const { browser, os, device } = this.parseUserAgent(userAgent);
-    const country = await this.getCountryFromIp(ip);
+    const country = geo.lookupCountry(ip);
 
     return {
       ipHash,

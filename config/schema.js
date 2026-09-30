@@ -16,7 +16,7 @@ const SETTINGS = {
   },
   'geo.enabled': {
     type: 'boolean', default: true,
-    description: 'Look up visitor countries via ip-api.com (non-commercial terms; sends visitor IPs to a third party).'
+    description: 'Record visitor countries, looked up in a local DB-IP Lite database (DATA_DIR/geo, downloaded monthly from db-ip.com; visitor IPs never leave the server).'
   },
   'features.pastes': { type: 'boolean', default: true, description: 'Text pastes (/p/…).' },
   'features.bundles': { type: 'boolean', default: true, description: 'Link bundles.' },

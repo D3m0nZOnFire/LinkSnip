@@ -157,19 +157,29 @@ describe('registration.open', () => {
 });
 
 describe('geo.enabled', () => {
-  it('looks up countries by default', async () => {
-    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ country: 'Portugal' }) });
-
-    expect(await AnalyticsService.getCountryFromIp('8.8.8.8')).toBe('Portugal');
-    expect(fetchSpy).toHaveBeenCalled();
+  const geo = require('../../../services/geoService');
+  const { buildMmdb } = require('../../setup/mmdbWriter');
+  beforeEach(() => {
+    fs.mkdirSync(paths.GEO_DIR, { recursive: true });
+    fs.writeFileSync(paths.GEO_DB_PATH, buildMmdb([{ network: '8.8.8.0/24', data: { country: { names: { en: 'Portugal' } } } }]));
+    geo.reload();
+  });
+  afterEach(() => {
+    fs.rmSync(paths.GEO_DIR, { recursive: true, force: true });
+    geo.reload();
   });
 
-  it('never contacts ip-api.com when disabled', async () => {
-    setSettings({ geo: { enabled: false } });
+  it('looks up countries by default, locally', async () => {
     const fetchSpy = jest.spyOn(global, 'fetch');
 
-    expect(await AnalyticsService.getCountryFromIp('8.8.8.8')).toBe('Unknown');
+    expect((await AnalyticsService.captureAnalytics({ ip: '8.8.8.8', headers: {} })).country).toBe('Portugal');
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('records no country when disabled', async () => {
+    setSettings({ geo: { enabled: false } });
+
+    expect((await AnalyticsService.captureAnalytics({ ip: '8.8.8.8', headers: {} })).country).toBe('Unknown');
   });
 });
 

@@ -110,4 +110,8 @@ On the first start, the stored IP hashes (plain SHA-256, which anyone with the d
 with the secret. Unique-visitor counts and the one-report-per-IP check carry on unchanged. Keep the secret: with a
 different one, visits from then on no longer match earlier ones (startup logs a warning if it changes).
 
+**Country database:** visitor countries come from a local DB-IP Lite file in `data/geo/`, downloaded from db-ip.com
+on start and refreshed monthly (the container needs outbound HTTPS for that). Visitor IPs never leave the server. On a
+server without outbound access, see the country lookup note in [CONFIGURATION.md](CONFIGURATION.md).
+
 **Configuration:** see [CONFIGURATION.md](CONFIGURATION.md). Settings are also editable in Admin → Settings.

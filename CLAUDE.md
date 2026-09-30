@@ -217,7 +217,12 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `DELETE /api/share-links/:id`, public `GET /stats/:token` (read-only `analytics.ejs` with `readOnly: true`,
   `noindex`). The token is shown once; only its hash is stored. Limited by `shareLinksPerUrl` (per item).
   Admin → Analytics Shares.
-- Country lookup uses ip-api.com unless `geo.enabled` is false.
+- Countries: `services/geoService.js` `lookupCountry(ip)` reads the local DB-IP Lite file (`paths.GEO_DB_PATH`,
+  `DATA_DIR/geo`, via `mmdb-lib`; IPv4-mapped IPv6 is looked up as IPv4). No visitor IP leaves the server.
+  `update()` downloads the monthly file (at startup and daily at 5:45; only a valid country database replaces the
+  file). `geo.enabled` false: no lookups, no downloads. The analytics country table credits DB-IP (CC BY 4.0).
+  Tests build small `.mmdb` files with `tests/setup/mmdbWriter.js`.
+- The visitor IP is `req.ip` (resolved through `TRUST_PROXY`), never a raw `X-Forwarded-For` header.
 
 ### QR codes (every content type)
 - `GET /qrcode/:type/:slug` (PNG, `?format=svg`, `?theme=dark`), `/qrcode/:type/:slug/download` (attachment
@@ -264,7 +269,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 ### Scheduled tasks (`services/scheduledTasks.js`, node-cron)
 2:00 audit log cleanup (`retention.auditLogDays`) · 3:00 backup · 4:00 inactive content cleanup · 5:00 expired
-share links · 5:30 expired files.
+share links · 5:30 expired files · 5:45 country database check.
 
 ## Docker
 
