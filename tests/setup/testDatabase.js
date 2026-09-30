@@ -1,5 +1,5 @@
 const Database = require('better-sqlite3');
-const { migrateAnalyticsShareLinks, migrateQuarantine } = require('../../config/migrations');
+const { migrateAnalyticsShareLinks, migrateQuarantine, migrateReports } = require('../../config/migrations');
 
 let db = null;
 
@@ -87,24 +87,6 @@ function createTestDatabase() {
       PRIMARY KEY (urlId, tagId),
       FOREIGN KEY (urlId) REFERENCES urls(id) ON DELETE CASCADE,
       FOREIGN KEY (tagId) REFERENCES tags(id) ON DELETE CASCADE
-    )
-  `);
-
-  // Create url_reports table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS url_reports (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      urlId INTEGER NOT NULL,
-      reporterIp TEXT,
-      reporterIpHash TEXT NOT NULL,
-      reason TEXT NOT NULL,
-      description TEXT,
-      status TEXT DEFAULT 'pending',
-      reviewedBy INTEGER,
-      reviewedAt DATETIME,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (urlId) REFERENCES urls(id) ON DELETE CASCADE,
-      FOREIGN KEY (reviewedBy) REFERENCES users(id) ON DELETE SET NULL
     )
   `);
 
@@ -285,8 +267,6 @@ function createTestDatabase() {
     CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
     CREATE INDEX IF NOT EXISTS idx_url_tags_urlId ON url_tags(urlId);
     CREATE INDEX IF NOT EXISTS idx_url_tags_tagId ON url_tags(tagId);
-    CREATE INDEX IF NOT EXISTS idx_reports_urlId ON url_reports(urlId);
-    CREATE INDEX IF NOT EXISTS idx_reports_status ON url_reports(status);
     CREATE INDEX IF NOT EXISTS idx_pastes_slug ON pastes(slug);
     CREATE INDEX IF NOT EXISTS idx_pastes_userId ON pastes(userId);
     CREATE INDEX IF NOT EXISTS idx_pastes_expiresAt ON pastes(expiresAt);
@@ -296,26 +276,10 @@ function createTestDatabase() {
     CREATE INDEX IF NOT EXISTS idx_paste_analytics_timestamp ON paste_analytics(timestamp);
   `);
 
-  // bundle_reports (mirrors config/database.js)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS bundle_reports (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      bundleId INTEGER NOT NULL,
-      reporterIpHash TEXT NOT NULL,
-      reason TEXT NOT NULL,
-      description TEXT,
-      status TEXT NOT NULL DEFAULT 'pending',
-      reviewedBy INTEGER,
-      reviewedAt DATETIME,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (bundleId) REFERENCES bundles(id) ON DELETE CASCADE,
-      FOREIGN KEY (reviewedBy) REFERENCES users(id) ON DELETE SET NULL
-    )
-  `);
-
   // Tables with a testable migration are created by that migration, not mirrored by hand
   migrateAnalyticsShareLinks(db, { log: () => {} });
   migrateQuarantine(db, { log: () => {} });
+  migrateReports(db, { log: () => {} });
 
   return db;
 }
@@ -338,7 +302,7 @@ function clearTestDatabase() {
   if (!db) return;
 
   // Delete in order respecting foreign key constraints
-  db.exec('DELETE FROM bundle_reports');
+  db.exec('DELETE FROM reports');
   db.exec('DELETE FROM bundle_item_analytics');
   db.exec('DELETE FROM bundle_analytics');
   db.exec('DELETE FROM bundle_items');
@@ -350,7 +314,6 @@ function clearTestDatabase() {
   db.exec('DELETE FROM files');
   db.exec('DELETE FROM analytics_shares');
   db.exec('DELETE FROM url_tags');
-  db.exec('DELETE FROM url_reports');
   db.exec('DELETE FROM analytics');
   db.exec('DELETE FROM audit_logs');
   db.exec('DELETE FROM tags');
@@ -358,7 +321,7 @@ function clearTestDatabase() {
   db.exec('DELETE FROM users');
 
   // Reset autoincrement counters
-  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'urls', 'analytics', 'tags', 'url_reports', 'audit_logs', 'bundles', 'bundle_items', 'bundle_analytics', 'bundle_item_analytics', 'files', 'pastes', 'paste_analytics', 'analytics_shares', 'bundle_reports')");
+  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'urls', 'analytics', 'tags', 'reports', 'audit_logs', 'bundles', 'bundle_items', 'bundle_analytics', 'bundle_item_analytics', 'files', 'pastes', 'paste_analytics', 'analytics_shares')");
 }
 
 /**

@@ -121,6 +121,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Fixed for every view: the reasons in partials/report-modal
+app.locals.reportReasons = require('./models/Report').REASONS;
+
 // View engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));

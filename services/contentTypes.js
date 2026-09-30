@@ -8,6 +8,7 @@
  *   ownerColumn   users.id of the owner
  *   usedColumn    how often it was opened (clicks, views, downloads)
  *   limitColumn   the maximum for usedColumn (NULL = no limit)
+ *   feature       features.* switch the type depends on (null: always on)
  *   quarantine    whether the table has isQuarantined (reports can quarantine it)
  *   restricted    whether sharingMode = 'restricted' + allowedUsers apply
  *   destination   column shown on the quarantine warning
@@ -23,6 +24,7 @@ const CONTENT_TYPES = {
     ownerColumn: 'creatorId',
     usedColumn: 'clicks',
     limitColumn: 'maxUses',
+    feature: null,
     quarantine: true,
     restricted: false,
     destination: 'longUrl',
@@ -37,6 +39,7 @@ const CONTENT_TYPES = {
     ownerColumn: 'creatorId',
     usedColumn: 'clicks',
     limitColumn: 'maxUses',
+    feature: 'bundles',
     quarantine: true,
     restricted: false,
     destination: 'title',
@@ -51,7 +54,8 @@ const CONTENT_TYPES = {
     ownerColumn: 'userId',
     usedColumn: 'views',
     limitColumn: 'maxViews',
-    quarantine: false,
+    feature: 'pastes',
+    quarantine: true,
     restricted: false,
     destination: 'title',
     publicPrefix: '/p/',
@@ -65,7 +69,8 @@ const CONTENT_TYPES = {
     ownerColumn: 'userId',
     usedColumn: 'downloads',
     limitColumn: 'maxDownloads',
-    quarantine: false,
+    feature: 'files',
+    quarantine: true,
     restricted: true,
     destination: 'originalName',
     publicPrefix: '/f/',

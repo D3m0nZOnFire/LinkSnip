@@ -35,8 +35,8 @@
           <table>
             <thead>
               <tr>
-                <th>Link</th>
-                <th>Destination</th>
+                <th>Item</th>
+                <th>Target</th>
                 <th>Reports</th>
                 <th>Reasons</th>
                 <th style="text-align: right;">Decision</th>
@@ -82,27 +82,27 @@
       </div>
     </div>
 
-    <!-- Type Tabs -->
+    <!-- Type Tabs (switched-off features have no tab) -->
+    <%
+      const TYPE_TABS = [
+        { key: 'all', label: 'All', feature: null },
+        { key: 'url', label: 'Links', feature: null },
+        { key: 'bundle', label: 'Bundles', feature: 'bundles' },
+        { key: 'paste', label: 'Pastes', feature: 'pastes' },
+        { key: 'file', label: 'Files', feature: 'files' }
+      ].filter(t => !t.feature || features[t.feature]);
+      const TYPE_LABELS = { url: 'Link', bundle: 'Bundle', paste: 'Paste', file: 'File' };
+      const statusQuery = currentStatus === null ? '&status=all' : (currentStatus === 'pending' ? '' : `&status=${currentStatus}`);
+    %>
     <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
-      <a href="/admin/reports?type=url" class="btn <%= type === 'url' ? 'active' : '' %>" style="padding: 0.5rem 1rem; display: inline-flex; align-items: center; gap: 0.4rem;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-        </svg>
-        URL Reports
-        <% if (urlStats && urlStats.pending > 0) { %>
-          <span style="background: var(--destructive); color: #fff; border-radius: 999px; font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.45rem; line-height: 1.4;"><%= urlStats.pending %></span>
-        <% } %>
-      </a>
-      <a href="/admin/reports?type=bundle" class="btn <%= type === 'bundle' ? 'active' : '' %>" style="padding: 0.5rem 1rem; display: inline-flex; align-items: center; gap: 0.4rem;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-        </svg>
-        Bundle Reports
-        <% if (bundleStats && bundleStats.pending > 0) { %>
-          <span style="background: var(--destructive); color: #fff; border-radius: 999px; font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.45rem; line-height: 1.4;"><%= bundleStats.pending %></span>
-        <% } %>
-      </a>
+      <% TYPE_TABS.forEach(tab => { %>
+        <a href="/admin/reports?type=<%= tab.key %><%= statusQuery %>" class="btn <%= type === tab.key ? 'active' : '' %>" style="padding: 0.5rem 1rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+          <%= tab.label %>
+          <% if (typeStats[tab.key] && typeStats[tab.key].pending > 0) { %>
+            <span style="background: var(--destructive); color: #fff; border-radius: 999px; font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.45rem; line-height: 1.4;"><%= typeStats[tab.key].pending %></span>
+          <% } %>
+        </a>
+      <% }) %>
     </div>
 
     <!-- Status Filter Tabs -->
@@ -114,125 +114,19 @@
       <a href="/admin/reports?type=<%= type %>&status=all" class="btn <%= currentStatus === null ? 'active' : '' %>" style="padding: 0.5rem 1rem;">All</a>
     </div>
 
-    <!-- Reports Table -->
+    <!-- Reports Table (every type) -->
     <% if (reports.length === 0) { %>
       <div class="empty-state">
-        <p>No <%= type === 'bundle' ? 'bundle' : 'URL' %> reports found</p>
-      </div>
-    <% } else if (type === 'url') { %>
-      <div class="table-container">
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Short URL</th>
-                <th>Destination URL</th>
-                <th>Reason</th>
-                <th>Description</th>
-                <th>Status</th>
-                <th>Reported</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% reports.forEach(report => { %>
-                <tr>
-                  <td>
-                    <a href="/info/<%= report.slug %>" class="url-link">/s/<%= report.slug %></a>
-                    <br>
-                    <small style="color: var(--muted-foreground);">
-                      <%= report.clicks %> clicks
-                      <% if (report.creatorUsername) { %>
-                        • by <%= report.creatorUsername %>
-                      <% } else { %>
-                        • Anonymous
-                      <% } %>
-                    </small>
-                    <% if (report.isBlocked) { %>
-                      <br><span class="badge" style="background-color: var(--destructive);">BLOCKED</span>
-                    <% } %>
-                    <% if (report.creatorIsBanned) { %>
-                      <br><span class="badge" style="background-color: var(--status-warning-text);">USER BANNED</span>
-                    <% } %>
-                  </td>
-                  <td>
-                    <a href="<%= report.longUrl %>" target="_blank" rel="noopener noreferrer" class="long-url" title="<%= report.longUrl %>">
-                      <%= report.longUrl %>
-                    </a>
-                  </td>
-                  <td><%= reasons[report.reason] || report.reason %></td>
-                  <td><%= report.description || '-' %></td>
-                  <td>
-                    <span class="badge <%= report.status === 'pending' ? 'badge-active' : (report.status === 'blocked' ? 'badge-max' : 'badge-expired') %>">
-                      <%= report.status.toUpperCase() %>
-                    </span>
-                  </td>
-                  <td><%= new Date(report.createdAt).toLocaleString('en-GB') %></td>
-                  <td>
-                    <div class="actions">
-                      <% if (report.status === 'pending') { %>
-                        <% if (!report.isBlocked) { %>
-                          <button class="icon-btn danger" onclick="blockUrl(<%= report.id %>, '<%= report.slug %>')" title="Block URL">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <circle cx="12" cy="12" r="10"></circle>
-                              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
-                            </svg>
-                          </button>
-                        <% } else { %>
-                          <button class="icon-btn" onclick="unblockUrl(<%= report.id %>, '<%= report.slug %>')" title="Unblock URL">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <polyline points="9 11 12 14 22 4"></polyline>
-                              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                            </svg>
-                          </button>
-                        <% } %>
-                        <% if (report.creatorId && !report.creatorIsBanned && report.creatorId !== user.id) { %>
-                          <button class="icon-btn danger" onclick="banUser(<%= report.creatorId %>, '<%= report.creatorUsername %>', <%= report.id %>)" title="Ban User (<%= report.creatorUsername %>)">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                              <circle cx="8.5" cy="7" r="4"></circle>
-                              <line x1="23" y1="11" x2="17" y2="11"></line>
-                            </svg>
-                          </button>
-                        <% } else if (report.creatorId && report.creatorId === user.id) { %>
-                          <button class="icon-btn" disabled title="Cannot ban yourself" style="opacity: 0.3; cursor: not-allowed;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                              <circle cx="8.5" cy="7" r="4"></circle>
-                              <line x1="23" y1="11" x2="17" y2="11"></line>
-                            </svg>
-                          </button>
-                        <% } %>
-                        <button class="icon-btn" onclick="dismissReport(<%= report.id %>)" title="Dismiss">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                          </svg>
-                        </button>
-                      <% } %>
-                      <button class="icon-btn danger" onclick="deleteReport(<%= report.id %>)" title="Delete Report">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              <% }); %>
-            </tbody>
-          </table>
-        </div>
+        <p>No reports found</p>
       </div>
     <% } else { %>
-      <!-- Bundle Reports Table -->
       <div class="table-container">
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
-                <th>Bundle</th>
-                <th>Creator</th>
+                <th>Reported item</th>
+                <th>Owner</th>
                 <th>Reason</th>
                 <th>Description</th>
                 <th>Status</th>
@@ -242,16 +136,18 @@
             </thead>
             <tbody>
               <% reports.forEach(report => { %>
-                <tr>
+                <tr data-report-id="<%= report.id %>" data-path="<%= report.path %>">
                   <td>
-                    <a href="/b/<%= report.slug %>" target="_blank" rel="noopener noreferrer" class="url-link">/b/<%= report.slug %></a>
+                    <span class="badge" style="background: var(--secondary); color: var(--foreground);"><%= TYPE_LABELS[report.targetType] %></span>
+                    <a href="<%= report.targetType === 'url' ? '/info/' + report.slug : report.path %>" target="_blank" rel="noopener" class="url-link"><%= report.path %></a>
                     <br>
-                    <small style="color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; display: block;">
-                      <%= report.title %>
+                    <small class="long-url" style="color: var(--muted-foreground); display: block; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<%= report.target || '' %>">
+                      <%= report.target || '' %>
                     </small>
-                    <small style="color: var(--muted-foreground);"><%= report.clicks %> clicks</small>
                     <% if (report.isBlocked) { %>
-                      <br><span class="badge" style="background-color: var(--destructive);">BLOCKED</span>
+                      <span class="badge" style="background-color: var(--destructive);">BLOCKED</span>
+                    <% } else if (report.isQuarantined) { %>
+                      <span class="badge" style="background-color: var(--status-warning-text);">UNDER REVIEW</span>
                     <% } %>
                   </td>
                   <td>
@@ -276,28 +172,45 @@
                     <div class="actions">
                       <% if (report.status === 'pending') { %>
                         <% if (!report.isBlocked) { %>
-                          <button class="icon-btn danger" onclick="blockBundle(<%= report.id %>, '<%= report.slug %>')" title="Block Bundle">
+                          <button class="icon-btn danger" onclick="setBlocked(<%= report.id %>, 'block')" title="Block">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                               <circle cx="12" cy="12" r="10"></circle>
                               <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
                             </svg>
                           </button>
                         <% } else { %>
-                          <button class="icon-btn" onclick="unblockBundle(<%= report.id %>, '<%= report.slug %>')" title="Unblock Bundle">
+                          <button class="icon-btn" onclick="setBlocked(<%= report.id %>, 'unblock')" title="Unblock">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                               <polyline points="9 11 12 14 22 4"></polyline>
                               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                             </svg>
                           </button>
                         <% } %>
-                        <button class="icon-btn" onclick="dismissBundleReport(<%= report.id %>)" title="Dismiss">
+                        <% if (report.ownerId && !report.creatorIsBanned && report.ownerId !== user.id) { %>
+                          <button class="icon-btn danger" onclick="banOwner(this, <%= report.id %>, <%= report.ownerId %>)" data-username="<%= report.creatorUsername %>" title="Ban user (<%= report.creatorUsername %>)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                              <circle cx="8.5" cy="7" r="4"></circle>
+                              <line x1="23" y1="11" x2="17" y2="11"></line>
+                            </svg>
+                          </button>
+                        <% } else if (report.ownerId && report.ownerId === user.id) { %>
+                          <button class="icon-btn" disabled title="Cannot ban yourself" style="opacity: 0.3; cursor: not-allowed;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                              <circle cx="8.5" cy="7" r="4"></circle>
+                              <line x1="23" y1="11" x2="17" y2="11"></line>
+                            </svg>
+                          </button>
+                        <% } %>
+                        <button class="icon-btn" onclick="dismissReport(<%= report.id %>)" title="Dismiss">
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                           </svg>
                         </button>
                       <% } %>
-                      <button class="icon-btn danger" onclick="deleteBundleReport(<%= report.id %>)" title="Delete Report">
+                      <button class="icon-btn danger" onclick="deleteReport(<%= report.id %>)" title="Delete report">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <polyline points="3 6 5 6 21 6"></polyline>
                           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -316,169 +229,45 @@
 
   <script src="/js/main.js"></script>
   <script>
-    async function moderate(type, id, action) {
-      const question = action === 'block'
-        ? 'Block this permanently? Visitors will no longer be able to open it.'
-        : 'Clear it? Its pending reports are dismissed and the warning is lifted.';
-      if (!confirm(question)) return;
+    // One helper for every admin call on this page: confirm, send, reload or show the error
+    async function send(url, options, question) {
+      if (question && !confirm(question)) return;
       try {
-        const res = await fetch(`/api/admin/moderation/${type}/${id}/${action}`, { method: 'POST' });
+        const res = await fetch(url, options);
         const data = await res.json();
-        if (data.success) location.reload();
-        else alert(data.error || 'Action failed');
+        if (!data.success) return alert(data.error || 'Action failed');
+        if (options.method === 'POST' && data.message && url.endsWith('/ban-user')) alert(data.message);
+        location.reload();
       } catch (e) {
         alert('Request failed');
       }
     }
 
-    function blockUrl(reportId, slug) {
-      if (!confirm(`Block URL /s/${slug}?`)) return;
+    const json = (method, body) => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const pathOf = (reportId) => document.querySelector(`tr[data-report-id="${reportId}"]`).dataset.path;
 
-      fetch(`/api/admin/reports/${reportId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'block' })
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          location.reload();
-        } else {
-          alert(data.error || 'Failed to block URL');
-        }
-      })
-      .catch(() => alert('Error blocking URL'));
+    function moderate(type, id, action) {
+      send(`/api/admin/moderation/${type}/${id}/${action}`, { method: 'POST' }, action === 'block'
+        ? 'Block this permanently? Visitors will no longer be able to open it.'
+        : 'Clear it? Its pending reports are dismissed and the warning is lifted.');
     }
 
-    function unblockUrl(reportId, slug) {
-      if (!confirm(`Unblock URL /s/${slug}?`)) return;
-
-      fetch(`/api/admin/reports/${reportId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'unblock' })
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          location.reload();
-        } else {
-          alert(data.error || 'Failed to unblock URL');
-        }
-      })
-      .catch(() => alert('Error unblocking URL'));
+    function setBlocked(reportId, action) {
+      send(`/api/admin/reports/${reportId}`, json('PUT', { action }), `${action === 'block' ? 'Block' : 'Unblock'} ${pathOf(reportId)}?`);
     }
 
     function dismissReport(reportId) {
-      if (!confirm('Dismiss this report?')) return;
-
-      fetch(`/api/admin/reports/${reportId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'dismissed' })
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          location.reload();
-        } else {
-          alert(data.error || 'Failed to dismiss report');
-        }
-      })
-      .catch(() => alert('Error dismissing report'));
+      send(`/api/admin/reports/${reportId}`, json('PUT', { status: 'dismissed' }), 'Dismiss this report?');
     }
 
     function deleteReport(reportId) {
-      if (!confirm('Delete this report permanently?')) return;
-
-      fetch(`/api/admin/reports/${reportId}`, {
-        method: 'DELETE'
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          location.reload();
-        } else {
-          alert(data.error || 'Failed to delete report');
-        }
-      })
-      .catch(() => alert('Error deleting report'));
+      send(`/api/admin/reports/${reportId}`, { method: 'DELETE' }, 'Delete this report permanently?');
     }
 
-    function banUser(userId, username, reportId) {
-      if (!confirm(`Ban user "${username}"? This will:\n- Block all their URLs\n- Prevent them from creating new URLs\n- Mark the report as reviewed\n\nThis action can be reversed from the Users page.`)) return;
-
-      fetch(`/api/admin/reports/${reportId}/ban-user`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          alert(data.message);
-          location.reload();
-        } else {
-          alert(data.error || 'Failed to ban user');
-        }
-      })
-      .catch(() => alert('Error banning user'));
-    }
-
-    function blockBundle(reportId, slug) {
-      if (!confirm(`Block bundle /b/${slug}?`)) return;
-      fetch(`/api/admin/bundle-reports/${reportId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'block' })
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) { location.reload(); }
-        else { alert(data.error || 'Failed to block bundle'); }
-      })
-      .catch(() => alert('Error blocking bundle'));
-    }
-
-    function unblockBundle(reportId, slug) {
-      if (!confirm(`Unblock bundle /b/${slug}?`)) return;
-      fetch(`/api/admin/bundle-reports/${reportId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'unblock' })
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) { location.reload(); }
-        else { alert(data.error || 'Failed to unblock bundle'); }
-      })
-      .catch(() => alert('Error unblocking bundle'));
-    }
-
-    function dismissBundleReport(reportId) {
-      if (!confirm('Dismiss this report?')) return;
-      fetch(`/api/admin/bundle-reports/${reportId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'dismissed' })
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) { location.reload(); }
-        else { alert(data.error || 'Failed to dismiss report'); }
-      })
-      .catch(() => alert('Error dismissing report'));
-    }
-
-    function deleteBundleReport(reportId) {
-      if (!confirm('Delete this report permanently?')) return;
-      fetch(`/api/admin/bundle-reports/${reportId}`, { method: 'DELETE' })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) { location.reload(); }
-        else { alert(data.error || 'Failed to delete report'); }
-      })
-      .catch(() => alert('Error deleting report'));
+    function banOwner(button, reportId, userId) {
+      const username = button.dataset.username;
+      send(`/api/admin/reports/${reportId}/ban-user`, json('POST', { userId }),
+        `Ban user "${username}"? This will:\n- Block everything they own (links, bundles, pastes, files)\n- Stop them from logging in\n- Mark the report as blocked\n\nThe ban can be lifted from the Users page; their items stay blocked until unblocked.`);
     }
   </script>
   <%- include('partials/footer') %>

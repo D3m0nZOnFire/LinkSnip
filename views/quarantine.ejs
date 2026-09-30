@@ -37,7 +37,7 @@
       </p>
 
       <div class="quarantine-destination">
-        <%= kind === 'bundle' ? 'Bundle' : 'Destination' %>: <%= destination %>
+        <%= { link: 'Destination', bundle: 'Bundle', paste: 'Paste', file: 'File' }[kind] || 'Destination' %>: <%= destination || '(untitled)' %>
       </div>
 
       <div class="quarantine-actions">
@@ -45,7 +45,7 @@
         <a href="<%= continueUrl %>" class="btn" style="background: var(--secondary); color: var(--foreground);" rel="nofollow">Continue anyway</a>
       </div>
       <% if (infoUrl) { %>
-        <p style="margin-top: 1.5rem; font-size: 0.875rem;"><a href="<%= infoUrl %>">More about this link</a></p>
+        <p style="margin-top: 1.5rem; font-size: 0.875rem;"><a href="<%= infoUrl %>">More about this <%= kind %></a></p>
       <% } %>
     </div>
   </div>

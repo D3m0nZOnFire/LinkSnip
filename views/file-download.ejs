@@ -6,6 +6,7 @@
   <title><%= file.originalName %> - LinkSnip</title>
   <link rel="icon" type="image/png" href="/logo.png">
   <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/modals.css">
   <script src="/js/theme.js"></script>
   <style>
     .file-preview-container {
@@ -224,8 +225,20 @@
         </svg>
         Download File
       </a>
+
+      <% if (features.reports) { %>
+      <div style="margin-top: 1rem; text-align: center;">
+        <button type="button" data-report-button onclick="openReportModal()" style="background: none; border: none; cursor: pointer; color: var(--muted-foreground); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.75rem; border-radius: 6px;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>
+          <span data-report-label>Report this file</span>
+        </button>
+      </div>
+      <% } %>
     </div>
   </div>
+  <% if (features.reports) { %>
+    <%- include('partials/report-modal', { type: 'file', id: file.id, noun: 'file' }) %>
+  <% } %>
   <%- include('partials/footer') %>
 </body>
 </html>

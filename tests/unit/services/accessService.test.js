@@ -18,8 +18,8 @@ const FUTURE = '2026-06-16T12:00:00.000Z';
 const TYPES = {
   url:    { table: 'urls',    used: 'clicks',    limit: 'maxUses',      quarantine: true },
   bundle: { table: 'bundles', used: 'clicks',    limit: 'maxUses',      quarantine: true },
-  paste:  { table: 'pastes',  used: 'views',     limit: 'maxViews',     quarantine: false },
-  file:   { table: 'files',   used: 'downloads', limit: 'maxDownloads', quarantine: false }
+  paste:  { table: 'pastes',  used: 'views',     limit: 'maxViews',     quarantine: true },
+  file:   { table: 'files',   used: 'downloads', limit: 'maxDownloads', quarantine: true }
 };
 
 let slugCounter = 0;

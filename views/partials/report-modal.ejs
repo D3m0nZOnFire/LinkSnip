@@ -1,0 +1,126 @@
+<%#
+  Report box for any content type. Takes { type, id, noun } ('paste', 42, 'paste').
+  The page adds its own button: onclick="openReportModal()", with data-report-button on the
+  button and data-report-label on its text; both switch to "Reported" once this visitor reported.
+  Needs /css/modals.css on the page.
+%>
+<div id="reportModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3>Report this <%= noun %></h3>
+    <p style="margin: -0.75rem 0 1.25rem; font-size: 0.875rem; color: var(--muted-foreground);">Help keep the community safe by reporting inappropriate content.</p>
+
+    <div id="reportError" class="modal-warning" style="display:none;"></div>
+    <div id="reportSuccess" class="modal-info" style="display:none;"></div>
+
+    <form id="reportForm" onsubmit="submitReport(event)">
+      <div class="form-group">
+        <label for="reportReason">Reason <span style="color: var(--destructive);">*</span></label>
+        <select id="reportReason" name="reason" required>
+          <option value="">Select a reason...</option>
+          <% Object.entries(reportReasons).forEach(([value, label]) => { %>
+            <option value="<%= value %>"><%= label %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="reportDescription">Description <span style="color: var(--muted-foreground); font-weight: normal;">(optional)</span></label>
+        <textarea id="reportDescription" name="description" rows="3" maxlength="1000" placeholder="Provide additional details..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" onclick="closeReportModal()" class="btn">Cancel</button>
+        <button type="submit" id="reportSubmit" class="btn btn-danger">Submit Report</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const REPORT = { type: <%- JSON.stringify(type) %>, id: <%- JSON.stringify(id) %> };
+    const REPORTED_KEY = `reported_${REPORT.type}_${REPORT.id}`;
+    const modal = document.getElementById('reportModal');
+    const form = document.getElementById('reportForm');
+    const errorEl = document.getElementById('reportError');
+    const successEl = document.getElementById('reportSuccess');
+    const submitBtn = document.getElementById('reportSubmit');
+
+    function remembered() {
+      try { return !!localStorage.getItem(REPORTED_KEY); } catch (_) { return false; }
+    }
+    function remember() {
+      try { localStorage.setItem(REPORTED_KEY, '1'); } catch (_) { /* private mode */ }
+    }
+
+    function markAsReported() {
+      document.querySelectorAll('[data-report-button]').forEach(btn => {
+        btn.disabled = true;
+        btn.style.cursor = 'default';
+        btn.style.opacity = '0.6';
+      });
+      document.querySelectorAll('[data-report-label]').forEach(label => { label.textContent = 'Reported'; });
+    }
+
+    function resetForm() {
+      form.reset();
+      form.style.display = '';
+      errorEl.style.display = 'none';
+      successEl.style.display = 'none';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Report';
+    }
+
+    window.openReportModal = function () {
+      resetForm();
+      modal.classList.add('active');
+    };
+    window.closeReportModal = function () {
+      modal.classList.remove('active');
+    };
+    modal.addEventListener('click', e => { if (e.target === modal) window.closeReportModal(); });
+
+    window.submitReport = async function (e) {
+      e.preventDefault();
+      errorEl.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+
+      const showError = (message) => {
+        errorEl.textContent = message;
+        errorEl.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Report';
+      };
+
+      try {
+        const res = await fetch('/api/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...REPORT,
+            reason: document.getElementById('reportReason').value,
+            description: document.getElementById('reportDescription').value
+          })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          successEl.textContent = data.message || 'Report submitted. Thank you!';
+          successEl.style.display = 'block';
+          form.style.display = 'none';
+          remember();
+          setTimeout(() => { window.closeReportModal(); markAsReported(); }, 2000);
+        } else if (data.error && /already reported/i.test(data.error)) {
+          remember();
+          window.closeReportModal();
+          markAsReported();
+        } else {
+          showError(data.error || 'Failed to submit report.');
+        }
+      } catch (_) {
+        showError('Network error. Please try again.');
+      }
+    };
+
+    if (remembered()) markAsReported();
+  })();
+</script>

@@ -259,6 +259,11 @@
         <% if (validation.live) { %>
           <a href="/p/<%= paste.slug %>" class="btn btn-large">Open Paste &rarr;</a>
           <a href="/p/<%= paste.slug %>/raw" class="btn btn-large" style="background-color: var(--secondary); color: var(--foreground);">View Raw</a>
+          <% if (features.reports) { %>
+            <button class="btn btn-large btn-danger" data-report-button onclick="openReportModal()">
+              <span data-report-label>Report This Paste</span>
+            </button>
+          <% } %>
         <% } else if (validation.status === 'blocked') { %>
           <button class="btn btn-large" disabled style="background-color: var(--status-error-border); color: var(--status-error-text); cursor: not-allowed;">
             &#9940; Access Blocked by Administrator
@@ -280,6 +285,9 @@
     </div>
   </main>
 
+  <% if (validation.live && features.reports) { %>
+    <%- include('partials/report-modal', { type: 'paste', id: paste.id, noun: 'paste' }) %>
+  <% } %>
   <script src="/js/main.js"></script>
   <%- include('partials/footer') %>
 </body>

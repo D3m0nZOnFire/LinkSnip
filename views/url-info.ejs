@@ -283,9 +283,9 @@
             Maximum Uses Reached
           </button>
         <% } %>
-        <% if (!url.isBlocked && features.reports) { %>
-          <button class="btn btn-large btn-danger" onclick="openModal('reportModal')">
-            Report This URL
+        <% if (validation.live && features.reports) { %>
+          <button class="btn btn-large btn-danger" data-report-button onclick="openReportModal()">
+            <span data-report-label>Report This Link</span>
           </button>
         <% } %>
       </div>
@@ -296,98 +296,11 @@
     </div>
   </main>
 
-  <!-- Report Modal -->
-  <div id="reportModal" class="modal-overlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>Report URL</h3>
-        <button class="modal-close" onclick="closeModal('reportModal')">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <p style="color: var(--muted-foreground); margin-bottom: 1.5rem;">
-          Please select a reason for reporting this URL. Your report helps keep the community safe.
-        </p>
-
-        <form id="reportForm">
-          <input type="hidden" id="urlId" value="<%= url.id %>">
-
-          <div class="form-group" style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--foreground);">Reason *</label>
-            <select id="reportReason" required style="width: 100%; padding: 0.75rem; background-color: var(--input); color: var(--foreground); border: 1px solid var(--border); border-radius: 6px;">
-              <option value="">Select a reason...</option>
-              <option value="FRAUD">Fraud/Scam</option>
-              <option value="PHISHING">Phishing</option>
-              <option value="MALWARE">Malware</option>
-              <option value="SPAM">Spam</option>
-              <option value="ADULT">Adult Content</option>
-              <option value="COPYRIGHT">Copyright Violation</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--foreground);">Additional Details (Optional)</label>
-            <textarea id="reportDescription" rows="4" placeholder="Provide more information about why you're reporting this URL..." style="width: 100%; padding: 0.75rem; background-color: var(--input); color: var(--foreground); border: 1px solid var(--border); border-radius: 6px; resize: vertical;"></textarea>
-          </div>
-        </form>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn" style="background-color: var(--secondary); color: var(--foreground);" onclick="closeModal('reportModal')">
-          Cancel
-        </button>
-        <button class="btn" onclick="submitReport()" style="color: var(--primary-foreground);">
-          Submit Report
-        </button>
-      </div>
-    </div>
-  </div>
+  <% if (validation.live && features.reports) { %>
+    <%- include('partials/report-modal', { type: 'url', id: url.id, noun: 'link' }) %>
+  <% } %>
 
   <script src="/js/main.js"></script>
-  <script>
-    function submitReport() {
-      const urlId = document.getElementById('urlId').value;
-      const reason = document.getElementById('reportReason').value;
-      const description = document.getElementById('reportDescription').value;
-
-      if (!reason) {
-        alert('Please select a reason for reporting');
-        return;
-      }
-
-      fetch('/api/report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          urlId: parseInt(urlId),
-          reason,
-          description
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          closeModal('reportModal');
-          alert(data.message);
-          location.reload();
-        } else {
-          alert(data.error || 'Failed to submit report');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while submitting the report');
-      });
-    }
-  </script>
   <%- include('partials/footer') %>
 </body>
 </html>

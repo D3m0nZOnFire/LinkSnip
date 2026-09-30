@@ -9,7 +9,9 @@ const ReportController = require('../../../controllers/reportController');
 const AdminController = require('../../../controllers/adminController');
 const User = require('../../../models/User');
 const { getTestDatabase } = require('../../setup/testDatabase');
-const { createTestUser, createTestUrl, createMockRequest, createMockResponse } = require('../../setup/testHelpers');
+const {
+  createTestUser, createTestUrl, createTestBundle, createMockRequest, createMockResponse
+} = require('../../setup/testHelpers');
 
 function setSettings(data) {
   fs.writeFileSync(paths.SETTINGS_PATH, JSON.stringify(data));
@@ -75,7 +77,8 @@ describe('feature switches on real routes', () => {
       a.use('/', featureRoutes('reports', require('../../../routes/reportRoutes')));
     });
 
-    expect((await request(app).post('/api/bundle-report').send({})).status).toBe(404);
+    const bundle = createTestBundle({ slug: 'bb' });
+    expect((await request(app).post('/api/reports').send({ type: 'bundle', id: bundle.id, reason: 'SPAM' })).status).toBe(404);
     expect((await request(app).post('/api/admin/bundles/1/block').set('x-user', admin)).status).toBe(404);
   });
 
@@ -83,7 +86,8 @@ describe('feature switches on real routes', () => {
     setSettings({ features: { reports: false } });
     const app = appWith(a => a.use('/', featureRoutes('reports', require('../../../routes/reportRoutes'))));
 
-    expect((await request(app).post('/api/report').send({})).status).toBe(404);
+    const url = createTestUrl({ slug: 'uu' });
+    expect((await request(app).post('/api/reports').send({ type: 'url', id: url.id, reason: 'SPAM' })).status).toBe(404);
   });
 });
 
@@ -169,7 +173,7 @@ describe('moderation.reportThreshold', () => {
     let res;
     for (let i = 1; i <= n; i++) {
       res = createMockResponse();
-      ReportController.submitReport(createMockRequest({ body: { urlId, reason: 'SPAM' }, ip: `203.0.113.${i}`, get: () => undefined }), res);
+      ReportController.submit(createMockRequest({ body: { type: 'url', id: urlId, reason: 'SPAM' }, ip: `203.0.113.${i}`, get: () => undefined }), res);
     }
     return res;
   }
@@ -206,6 +210,6 @@ describe('moderation.reportThreshold', () => {
 
     expect(res._jsonData.quarantined).toBe(false);
     expect(isQuarantined(url.id)).toBe(0);
-    expect(getTestDatabase().prepare('SELECT COUNT(*) AS n FROM url_reports').get().n).toBe(6);
+    expect(getTestDatabase().prepare('SELECT COUNT(*) AS n FROM reports').get().n).toBe(6);
   });
 });

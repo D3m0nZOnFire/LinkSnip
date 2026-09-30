@@ -1,7 +1,9 @@
 const Database = require('better-sqlite3');
 const { DB_PATH, ensureDataDir } = require('./paths');
 const { configureDatabase } = require('./dbSetup');
-const { migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications } = require('./migrations');
+const {
+  migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports
+} = require('./migrations');
 
 // Initialize database (DATA_DIR must exist and be writable)
 try {
@@ -168,27 +170,8 @@ if (!urlTagsExists) {
 // REPORTING SYSTEM
 // ============================================================================
 
-const reportsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='url_reports'").get();
-
-if (!reportsExists) {
-  console.log('  🚨 Creating url_reports table...');
-  db.exec(`
-    CREATE TABLE url_reports (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      urlId INTEGER NOT NULL,
-      reporterIp TEXT,
-      reporterIpHash TEXT NOT NULL,
-      reason TEXT NOT NULL,
-      description TEXT,
-      status TEXT DEFAULT 'pending',
-      reviewedBy INTEGER,
-      reviewedAt DATETIME,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (urlId) REFERENCES urls(id) ON DELETE CASCADE,
-      FOREIGN KEY (reviewedBy) REFERENCES users(id) ON DELETE SET NULL
-    )
-  `);
-}
+// One reports table for every content type: created (and the old url_reports /
+// bundle_reports moved into it) by migrateReports, after all content tables exist.
 
 // ============================================================================
 // AUDIT LOGS SYSTEM
@@ -502,16 +485,6 @@ if (tagsTableExists && urlTagsTableExists) {
   `);
 }
 
-// Reports indexes (if table exists)
-const reportsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='url_reports'").get();
-if (reportsTableExists) {
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_reports_urlId ON url_reports(urlId);
-    CREATE INDEX IF NOT EXISTS idx_reports_status ON url_reports(status);
-    CREATE INDEX IF NOT EXISTS idx_reports_createdAt ON url_reports(createdAt);
-  `);
-}
-
 // Audit logs indexes (if table exists)
 const auditLogsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='audit_logs'").get();
 if (auditLogsTableExists) {
@@ -560,43 +533,12 @@ if (bundleItemsTableExists) {
   `);
 }
 
-// Bundle reports table
-const bundleReportsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='bundle_reports'").get();
-
-if (!bundleReportsExists) {
-  console.log('  🚨 Creating bundle_reports table...');
-  db.exec(`
-    CREATE TABLE bundle_reports (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      bundleId INTEGER NOT NULL,
-      reporterIpHash TEXT NOT NULL,
-      reason TEXT NOT NULL,
-      description TEXT,
-      status TEXT NOT NULL DEFAULT 'pending',
-      reviewedBy INTEGER,
-      reviewedAt DATETIME,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (bundleId) REFERENCES bundles(id) ON DELETE CASCADE,
-      FOREIGN KEY (reviewedBy) REFERENCES users(id) ON DELETE SET NULL
-    )
-  `);
-}
-
-// Bundle reports indexes (if table exists)
-const bundleReportsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='bundle_reports'").get();
-if (bundleReportsTableExists) {
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_bundle_reports_bundleId ON bundle_reports(bundleId);
-    CREATE INDEX IF NOT EXISTS idx_bundle_reports_status ON bundle_reports(status);
-    CREATE INDEX IF NOT EXISTS idx_bundle_reports_createdAt ON bundle_reports(createdAt);
-  `);
-}
-
 // ============================================================================
-// QUARANTINE (reports quarantine links and bundles instead of blocking them)
+// REPORTS AND QUARANTINE (reports quarantine an item instead of blocking it)
 // ============================================================================
 
 migrateQuarantine(db);
+migrateReports(db);
 
 // ============================================================================
 // BUNDLE ANALYTICS SYSTEM

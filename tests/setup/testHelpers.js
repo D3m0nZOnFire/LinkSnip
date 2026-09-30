@@ -215,41 +215,41 @@ function linkTagToUrl(urlId, tagId) {
   stmt.run(urlId, tagId);
 }
 
+let reportCounter = 0;
+
 /**
- * Create a test report for a URL
+ * Create a test report (reports table). `urlId` is a shortcut for targetType 'url'.
+ * Each report gets its own reporter hash unless one is given (one report per reporter per item).
  * @param {object} overrides - Override default report values
  * @returns {object} Created report object
  */
 function createTestReport(overrides = {}) {
   const db = getTestDatabase();
+  const { urlId, ...rest } = overrides;
 
-  const defaults = {
-    urlId: null,
-    reporterIpHash: 'testhash123',
+  const reportData = {
+    targetType: 'url',
+    targetId: urlId !== undefined ? urlId : null,
+    reporterIpHash: `testhash${++reportCounter}`,
     reason: 'SPAM',
     description: 'Test report description',
-    status: 'pending'
+    status: 'pending',
+    ...rest
   };
 
-  const reportData = { ...defaults, ...overrides };
-
-  const stmt = db.prepare(`
-    INSERT INTO url_reports (urlId, reporterIpHash, reason, description, status)
-    VALUES (?, ?, ?, ?, ?)
-  `);
-
-  const result = stmt.run(
-    reportData.urlId,
+  const result = db.prepare(`
+    INSERT INTO reports (targetType, targetId, reporterIpHash, reason, description, status)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    reportData.targetType,
+    reportData.targetId,
     reportData.reporterIpHash,
     reportData.reason,
     reportData.description,
     reportData.status
   );
 
-  return {
-    id: result.lastInsertRowid,
-    ...reportData
-  };
+  return { id: result.lastInsertRowid, ...reportData };
 }
 
 /**
@@ -333,7 +333,8 @@ function createTestFile(userId, overrides = {}) {
     password: null,
     sharingMode: 'public',
     allowedUsers: '[]',
-    isBlocked: 0
+    isBlocked: 0,
+    isQuarantined: 0
   };
 
   const data = { ...defaults, ...overrides };
@@ -341,12 +342,12 @@ function createTestFile(userId, overrides = {}) {
   const result = db.prepare(`
     INSERT INTO files
       (userId, slug, originalName, storedName, mimeType, size, expiresAt, activateAt, deactivateAt,
-       maxDownloads, downloads, password, sharingMode, allowedUsers, isBlocked)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       maxDownloads, downloads, password, sharingMode, allowedUsers, isBlocked, isQuarantined)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     userId, data.slug, data.originalName, data.storedName, data.mimeType, data.size,
     data.expiresAt, data.activateAt, data.deactivateAt, data.maxDownloads, data.downloads,
-    data.password, data.sharingMode, data.allowedUsers, data.isBlocked
+    data.password, data.sharingMode, data.allowedUsers, data.isBlocked, data.isQuarantined
   );
 
   return { id: result.lastInsertRowid, userId, ...data };
@@ -366,18 +367,19 @@ function createTestPaste(userId = null, overrides = {}) {
     maxViews: null,
     views: 0,
     password: null,
-    isBlocked: 0
+    isBlocked: 0,
+    isQuarantined: 0
   };
 
   const data = { ...defaults, ...overrides };
 
   const result = db.prepare(`
     INSERT INTO pastes
-      (userId, slug, title, content, language, expiresAt, activateAt, deactivateAt, maxViews, views, password, isBlocked)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (userId, slug, title, content, language, expiresAt, activateAt, deactivateAt, maxViews, views, password, isBlocked, isQuarantined)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     userId, data.slug, data.title, data.content, data.language, data.expiresAt,
-    data.activateAt, data.deactivateAt, data.maxViews, data.views, data.password, data.isBlocked
+    data.activateAt, data.deactivateAt, data.maxViews, data.views, data.password, data.isBlocked, data.isQuarantined
   );
 
   return { id: result.lastInsertRowid, userId, ...data };
