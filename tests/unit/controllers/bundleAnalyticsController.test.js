@@ -20,6 +20,7 @@ function makeReq(overrides = {}) {
   return {
     params: {},
     query: {},
+    session: {},
     protocol: 'https',
     get: jest.fn(() => 'example.com'),
     user: { id: 1, isAdmin: false },
@@ -180,6 +181,11 @@ describe('getBundleAnalyticsData', () => {
 // ─── trackBundleItemClick ─────────────────────────────────────────────────────
 
 describe('trackBundleItemClick', () => {
+  // /bt checks the item's bundle (bundleItemAccess.test.js covers the refusals); here it is live
+  beforeEach(() => {
+    Bundle.findById.mockReturnValue({ id: 10, slug: 'b', isBlocked: 0, isQuarantined: 0, clicks: 0, maxUses: null, password: null });
+  });
+
   it('should return 404 when item not found', async () => {
     db.prepare.mockReturnValue({ get: jest.fn().mockReturnValue(null) });
     const req = makeReq({ params: { itemId: '999' } });
