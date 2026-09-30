@@ -89,7 +89,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - `config/database.js` opens `DB_PATH`, applies `config/dbSetup.js` (WAL, `busy_timeout = 5000`, foreign keys), and
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
   `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
-  `migrateAnalytics`); they're idempotent
+  `migrateAnalytics`, `migrateTags`); they're idempotent
   and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
 - Migration pattern: `CREATE TABLE IF NOT EXISTS`, check `PRAGMA table_info` before `ALTER TABLE`,
@@ -109,7 +109,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   NULL for everything else), `timestamp`, `ipHash` (SHA-256, never raw IPs), `referrer`, `userAgent`, `browser`, `os`,
   `device`, `country`. Delete triggers remove an item's events (and a bundle item's clicks). (Replaced `analytics`,
   `bundle_analytics`, `bundle_item_analytics`, `paste_analytics` in `migrateAnalytics`.)
-- **tags** (user-scoped, lowercase) with `url_tags`, `paste_tags`, `file_tags`
+- **tags** (lowercase, `UNIQUE(userId, name)`) and **taggables** (every type): `tagId` + `targetType` + `targetId`.
+  Deleting a tag removes it everywhere (foreign key); `trg_taggables_delete_*` triggers remove an item's tags. (Replaced
+  `url_tags`, `paste_tags`, `file_tags` in `migrateTags`, which also dropped the old table-wide `UNIQUE(name)`.)
 - **reports** (every type): `targetType` + `targetId`, `reporterIpHash`, `reason`, `description`, `status` (`pending` /
   `reviewed` / `blocked` / `dismissed`), `reviewedBy`. A unique index allows one report per IP per item; triggers
   delete an item's reports when the item is deleted (no foreign key can point at four tables). Only **pending**
@@ -191,6 +193,17 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `Bundle.replaceItems` updates items in place: an item whose URL stays keeps its ID and click history.
 - Bio pages: `/bio/:username` public, `/bio/settings`. Hidden (404) when the owner's role lacks `bioPage`.
 
+### Tags (every content type)
+- `models/Tag.js`: `forItem(type, id)` and `setForItem(type, id, names)` (replaces; an empty list removes all). Tags
+  always belong to the item's **owner** (looked up through the registry), also when an admin edits it; an item
+  without an owner gets none. Models attach `tags` to every row they return (`Bundle` included).
+- Handlers: create sets tags when sent; update changes them when `tags` is sent (`''` removes them all). Gated by the
+  `tags` permission through `permissionGate.tagsChanged`.
+- `/tags` and `/tags/:id/analytics` count every type whose feature is on (`enabledTypes()` in `contentTypes.js`):
+  `Tag.getAllWithStats`, `Tag.itemsFor`, `Tag.dailyVisits`. Visits are analytics events (bundle item clicks left out).
+- Dashboard: every row has `data-tags` and `partials/tag-chips.ejs`; the tag filter and the type pills both apply
+  (`applyRowFilters()`). Import/export stays link-only.
+
 ### Analytics and share links
 - One page for every type: `/analytics/:type/:id` (owner/admin, permission `analytics`, the type's feature on), JSON
   at `/api/analytics/:type/:id`. `views/analytics.ejs` draws `partials/analytics-summary.ejs`; `pageData()` in
@@ -198,7 +211,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Recording: `AnalyticsService.record(req, type, id, subId)` on link redirects, bundle launches, bundle item clicks
   (`subId` = the item), paste views and file downloads. `models/AnalyticsEvent.js` reads: `getSummary(type, id)`
   (same fields for every type: `total`, `uniqueVisitors`, `byDate`, breakdowns), `getItemClicks(bundleId)`,
-  `getTopUrls`, `getDailyCounts` (tags). Summaries count only events without `subTargetId`.
+  `getTopUrls`. Summaries count only events without `subTargetId`.
 - Share links (`controllers/analyticsShareController.js`): `POST/GET /api/share-links/:type/:id`,
   `DELETE /api/share-links/:id`, public `GET /stats/:token` (read-only `analytics.ejs` with `readOnly: true`,
   `noindex`). The token is shown once; only its hash is stored. Limited by `shareLinksPerUrl` (per item).

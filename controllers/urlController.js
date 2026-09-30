@@ -100,11 +100,7 @@ class UrlController {
         ...settings.values
       });
 
-      // Attach tags if provided and user is logged in
-      if (tags && req.user) {
-        const tagArray = Tag.parseTagString(tags);
-        Tag.attachToUrl(url.id, tagArray, req.user.id);
-      }
+      if (tags) Tag.setForItem('url', url.id, Tag.parseTagString(tags));
 
       const shortUrl = `${req.protocol}://${req.get('host')}/s/${slug}`;
 
@@ -237,15 +233,11 @@ class UrlController {
       db.prepare(`UPDATE urls SET ${Object.keys(changes).map(c => `${c} = ?`).join(', ')} WHERE id = ?`)
         .run(...Object.values(changes), id);
 
-      // Update tags if provided
-      if (tags !== undefined && req.session.userId) {
-        const tagArray = Tag.parseTagString(tags);
-        Tag.attachToUrl(id, tagArray, req.session.userId);
-      }
+      if (tags !== undefined) Tag.setForItem('url', id, Tag.parseTagString(tags));
 
       const updatedUrl = Url.findById(id);
       // Attach tags to response
-      updatedUrl.tags = Tag.findByUrlId(id);
+      updatedUrl.tags = Tag.forItem('url', id);
       res.json(updatedUrl);
     } catch (error) {
       res.status(500).json({ error: error.message });

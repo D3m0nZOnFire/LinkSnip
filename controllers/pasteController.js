@@ -72,10 +72,7 @@ exports.create = async (req, res) => {
       ...settings.values
     });
 
-    if (tags && req.user) {
-      const tagArray = Tag.parseTagString(tags);
-      Tag.attachToPaste(paste.id, tagArray, req.user.id);
-    }
+    if (tags) Tag.setForItem('paste', paste.id, Tag.parseTagString(tags));
 
     logAccountChange(ACTIONS.CREATE_PASTE, req, { pasteId: paste.id, slug, title: paste.title });
 
@@ -150,10 +147,7 @@ exports.updateSettings = async (req, res) => {
       ...settings.values
     });
 
-    if (tags !== undefined) {
-      const tagArray = Tag.parseTagString(tags);
-      Tag.attachToPaste(paste.id, tagArray, paste.userId || req.user.id);
-    }
+    if (tags !== undefined) Tag.setForItem('paste', paste.id, Tag.parseTagString(tags));
 
     logAccountChange(ACTIONS.UPDATE_PASTE, req, { pasteId: paste.id, slug: paste.slug });
 

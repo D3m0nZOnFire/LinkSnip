@@ -882,6 +882,11 @@
         <span class="bundle-links-label">Links</span>
         <div id="bundleUrlList"></div>
         <button type="button" class="bundle-add-btn" id="bundleAddBtn" onclick="bundleAddRow()">+ Add Link</button>
+        <% if (can.tags) { %>
+        <span class="bundle-links-label" style="margin-top: 1rem;">Tags</span>
+        <div id="bundleTagSelectorMount"></div>
+        <input type="hidden" id="bundleTags" value="">
+        <% } %>
       </div>
       <% } %>
 
@@ -1946,6 +1951,8 @@
       }
 
       if (items.length < 2) { showCreatorError('At least 2 links are required.'); return; }
+      const bundleTags = document.getElementById('bundleTags');
+      const tags = bundleTags ? bundleTags.value : '';
 
       const btn = document.getElementById('creatorSubmitBtn');
       btn.disabled = true;
@@ -1955,7 +1962,7 @@
         const res = await fetch('/api/bundles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, items })
+          body: JSON.stringify(tags ? { title, items, tags } : { title, items })
         });
         const data = await res.json();
 
@@ -1967,6 +1974,7 @@
           document.getElementById('bundleUrlList').innerHTML = '';
           document.getElementById('bundleAddBtn').disabled = false;
           bundleAddRow(); bundleAddRow();
+          if (window.bundleTagSelector) window.bundleTagSelector.setValue('');
         } else {
           showCreatorError(data.error || 'Failed to create bundle.');
         }
@@ -2408,6 +2416,21 @@
         });
       }
       <% } %>
+
+      // TagSelector for bundle section
+      const bundleTagMount = document.getElementById('bundleTagSelectorMount');
+      if (bundleTagMount) {
+        const bundleTsContainer = document.createElement('div');
+        bundleTsContainer.id = 'bundleTagSelectorCreate';
+        bundleTagMount.appendChild(bundleTsContainer);
+
+        window.bundleTagSelector = new TagSelector('bundleTagSelectorCreate', {
+          placeholder: 'Add tags…',
+          onChange: function (selectedTags) {
+            document.getElementById('bundleTags').value = selectedTags.join(',');
+          }
+        });
+      }
 
       // TagSelector for paste section
       const pasteTagMount = document.getElementById('pasteTagSelectorMount');

@@ -1,6 +1,5 @@
 const Paste = require('../../../models/Paste');
-const { createTestUser, createTestTag, createTestPaste } = require('../../setup/testHelpers');
-const { getTestDatabase } = require('../../setup/testDatabase');
+const { createTestUser, createTestPaste } = require('../../setup/testHelpers');
 
 // Helpers
 const future = (ms = 86400000) => new Date(Date.now() + ms).toISOString();
@@ -174,18 +173,6 @@ describe('Paste Model', () => {
       expect(Paste.findById(p.id).password).toBeNull();
     });
 
-    it('replaces tags when tagIds is provided', async () => {
-      const user = await createTestUser();
-      const t1 = createTestTag({ name: 'one', userId: user.id });
-      const t2 = createTestTag({ name: 'two', userId: user.id });
-      const p = createTestPaste(user.id, { slug: 'up3' });
-
-      Paste.update(p.id, { tagIds: [t1.id, t2.id] });
-      expect(Paste.findById(p.id).tags.map(t => t.name).sort()).toEqual(['one', 'two']);
-
-      Paste.update(p.id, { tagIds: [t1.id] });
-      expect(Paste.findById(p.id).tags.map(t => t.name)).toEqual(['one']);
-    });
   });
 
   // ─── slugExists / generateUniqueSlug ───────────────────────

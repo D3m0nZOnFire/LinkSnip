@@ -122,17 +122,6 @@ class AnalyticsEvent {
     `).all(...(days ? [days] : []), limit);
   }
 
-  /** Events per day summed over several items of one type, the last `days` days (days without events left out). */
-  static getDailyCounts(type, ids, days = 30) {
-    if (!ids.length) return [];
-    return db.prepare(`
-      SELECT DATE(timestamp) AS date, COUNT(*) AS count FROM analytics_events
-      WHERE targetType = ? AND subTargetId IS NULL AND targetId IN (${ids.map(() => '?').join(',')})
-        AND timestamp >= datetime('now', '-' || ? || ' days')
-      GROUP BY DATE(timestamp) ORDER BY date ASC
-    `).all(type, ...ids, days);
-  }
-
   static countAll(type) {
     return db.prepare('SELECT COUNT(*) AS n FROM analytics_events WHERE targetType = ? AND subTargetId IS NULL').get(type).n;
   }

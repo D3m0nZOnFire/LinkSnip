@@ -187,7 +187,7 @@ class BioPage {
     // Attach tags to each URL (following existing pattern)
     return urls.map(url => ({
       ...url,
-      tags: Tag.findByUrlId(url.id)
+      tags: Tag.forItem('url', url.id)
     }));
   }
 

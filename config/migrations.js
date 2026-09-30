@@ -289,7 +289,115 @@ function migrateAnalytics(db, logger = console) {
   })();
 }
 
+/**
+ * One taggables table (tagId + targetType + targetId) for every content type,
+ * replacing url_tags, paste_tags and file_tags; and tag names become unique per
+ * user (they were unique across all users, so a second user's "work" failed).
+ * Rows are copied, then the old tables dropped, in one transaction. Tags keep
+ * their IDs. Deleting a tag removes it from every item (foreign key); triggers
+ * remove an item's tags when the item is deleted.
+ */
+const OLD_TAG_TABLES = [
+  // [table, targetType, target column]
+  ['url_tags', 'url', 'urlId'],
+  ['paste_tags', 'paste', 'pasteId'],
+  ['file_tags', 'file', 'fileId']
+];
+
+function migrateTags(db, logger = console) {
+  const tableExists = (name) =>
+    !!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?").get(name);
+  const columns = (table) => db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+  const namesUniqueAcrossUsers = () => db.prepare('PRAGMA index_list(tags)').all()
+    .filter(index => index.unique)
+    .some(index => {
+      const cols = db.prepare(`PRAGMA index_info(${JSON.stringify(index.name)})`).all().map(c => c.name);
+      return cols.length === 1 && cols[0] === 'name';
+    });
+
+  db.transaction(() => {
+    // Read the tag assignments out first: dropping the old tags table would cascade into them
+    const assignments = [];
+    for (const [table, type, fk] of OLD_TAG_TABLES) {
+      if (!tableExists(table)) continue;
+      const createdAt = columns(table).includes('createdAt') ? 'createdAt' : 'NULL';
+      const rows = db.prepare(`SELECT tagId, ${fk} AS targetId, ${createdAt} AS createdAt FROM ${table}`).all();
+      logger.log(`  🏷️  Moving ${rows.length} ${table} row(s) into taggables...`);
+      assignments.push(...rows.map(row => ({ ...row, targetType: type })));
+      db.exec(`DROP TABLE ${table}`);
+    }
+
+    if (tableExists('tags') && namesUniqueAcrossUsers()) {
+      logger.log('  🏷️  Making tag names unique per user...');
+      if (tableExists('taggables')) {
+        assignments.push(...db.prepare('SELECT tagId, targetType, targetId, createdAt FROM taggables').all());
+        db.exec('DROP TABLE taggables');
+      }
+      const sequence = db.prepare("SELECT seq FROM sqlite_sequence WHERE name = 'tags'").get();
+      db.exec(`
+        ALTER TABLE tags RENAME TO tags_old;
+        CREATE TABLE tags (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          color TEXT DEFAULT '#34d399',
+          userId INTEGER,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (userId, name),
+          FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+        );
+        INSERT INTO tags (id, name, color, userId, createdAt)
+        SELECT id, name, color, userId, createdAt FROM tags_old ORDER BY id;
+        DROP TABLE tags_old;
+      `);
+      // Deleted tag IDs stay unused, as AUTOINCREMENT promises
+      if (sequence) {
+        db.exec("DELETE FROM sqlite_sequence WHERE name = 'tags'");
+        db.prepare("INSERT INTO sqlite_sequence (name, seq) VALUES ('tags', ?)").run(sequence.seq);
+      }
+    }
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        color TEXT DEFAULT '#34d399',
+        userId INTEGER,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (userId, name),
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+      );
+      DROP INDEX IF EXISTS idx_tags_name;
+      CREATE INDEX IF NOT EXISTS idx_tags_userId ON tags(userId);
+      CREATE TABLE IF NOT EXISTS taggables (
+        tagId INTEGER NOT NULL,
+        targetType TEXT NOT NULL,
+        targetId INTEGER NOT NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (tagId, targetType, targetId),
+        FOREIGN KEY (tagId) REFERENCES tags(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_taggables_target ON taggables(targetType, targetId);
+    `);
+
+    const insert = db.prepare(`
+      INSERT OR IGNORE INTO taggables (tagId, targetType, targetId, createdAt)
+      VALUES (@tagId, @targetType, @targetId, COALESCE(@createdAt, CURRENT_TIMESTAMP))
+    `);
+    for (const row of assignments) insert.run(row);
+
+    for (const [type, table] of Object.entries(REPORT_TARGETS)) {
+      if (!tableExists(table)) continue;
+      db.exec(`
+        CREATE TRIGGER IF NOT EXISTS trg_taggables_delete_${table} AFTER DELETE ON ${table}
+        BEGIN
+          DELETE FROM taggables WHERE targetType = '${type}' AND targetId = OLD.id;
+        END;
+      `);
+    }
+  })();
+}
+
 module.exports = {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics
+  migrateAnalytics, migrateTags
 };

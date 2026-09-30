@@ -1,5 +1,5 @@
 const Url = require('../../../models/Url');
-const { createTestUrl, createTestUser, createTestTag, linkTagToUrl, createTestReport } = require('../../setup/testHelpers');
+const { createTestUrl, createTestUser, createTestTag, tagItem, createTestReport } = require('../../setup/testHelpers');
 const { getTestDatabase } = require('../../setup/testDatabase');
 
 describe('Url Model', () => {
@@ -92,7 +92,7 @@ describe('Url Model', () => {
       const user = await createTestUser();
       const url = createTestUrl({ slug: 'tagged', creatorId: user.id });
       const tag = createTestTag({ name: 'mytag', userId: user.id });
-      linkTagToUrl(url.id, tag.id);
+      tagItem('url', url.id, tag.id);
 
       const urls = Url.findByCreatorId(user.id);
 

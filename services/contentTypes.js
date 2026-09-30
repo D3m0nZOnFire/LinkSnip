@@ -18,6 +18,8 @@
  *   infoPrefix    public info page before the slug, if any
  *   alwaysRemember  a password unlock lasts the session (no "remember" choice)
  */
+const configService = require('./configService');
+
 const CONTENT_TYPES = {
   url: {
     table: 'urls',
@@ -91,4 +93,12 @@ function contentType(type) {
   return info;
 }
 
-module.exports = { CONTENT_TYPES, contentType };
+/** The types whose feature switch is on (read live), in registry order. */
+function enabledTypes() {
+  return Object.keys(CONTENT_TYPES).filter(type => {
+    const { feature } = CONTENT_TYPES[type];
+    return !feature || configService.get(`features.${feature}`);
+  });
+}
+
+module.exports = { CONTENT_TYPES, contentType, enabledTypes };

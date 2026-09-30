@@ -5,7 +5,6 @@ const paths = require('../../../config/paths');
 const configService = require('../../../services/configService');
 const { featureRoutes } = require('../../../middleware/requireFeature');
 const AnalyticsEvent = require('../../../models/AnalyticsEvent');
-const { getTestDatabase } = require('../../setup/testDatabase');
 const {
   createTestUser, createTestUrl, createTestBundle, createTestBundleItem, createTestPaste, createTestFile
 } = require('../../setup/testHelpers');
@@ -33,7 +32,6 @@ function makeApp() {
   });
   app.use('/', require('../../../routes/analyticsRoutes'));
   app.use('/', featureRoutes('analyticsShareLinks', require('../../../routes/analyticsShareRoutes')));
-  app.use('/', require('../../../routes/tagRoutes'));
   app.use((req, res) => res.status(404).json({ notFound: true }));
   return app;
 }
@@ -136,15 +134,6 @@ describe('analytics pages', () => {
     expect(res.body.topUrls[0]).toEqual(expect.objectContaining({ urlId: url.id, clicks: 2 }));
   });
 
-  it('tag analytics count clicks per day from the events', async () => {
-    const url = MAKE.url();
-    const tag = getTestDatabase().prepare("INSERT INTO tags (name, color, userId) VALUES ('work', '#fff', ?)").run(owner.id).lastInsertRowid;
-    getTestDatabase().prepare('INSERT INTO url_tags (urlId, tagId) VALUES (?, ?)').run(url.id, tag);
-    record('url', url.id); record('url', url.id);
-
-    const res = await request(app).get(`/api/tags/${tag}/analytics`).set('x-user', as(owner));
-    expect(res.body.clicksByDate).toEqual([{ date: new Date().toISOString().split('T')[0], count: 2 }]);
-  });
 });
 
 describe('share links for every type', () => {

@@ -1,7 +1,14 @@
 const Tag = require('../models/Tag');
-const AnalyticsEvent = require('../models/AnalyticsEvent');
-const Url = require('../models/Url');
-const db = require('../config/database');
+const { CONTENT_TYPES, contentType, enabledTypes } = require('../services/contentTypes');
+
+const TYPE_NOUNS = Object.fromEntries(Object.entries(CONTENT_TYPES).map(([type, info]) => [type, info.noun]));
+
+// A tagged item with the addresses the tag analytics page links to
+const withPaths = (item) => ({
+  ...item,
+  publicPath: `${contentType(item.type).publicPrefix}${item.slug}`,
+  analyticsPath: `/analytics/${item.type}/${item.id}`
+});
 
 class TagController {
   /**
@@ -10,11 +17,12 @@ class TagController {
    */
   static getTagManagementPage(req, res) {
     try {
-      const tags = Tag.getAllWithStats(req.session.userId);
+      const tags = Tag.getAllWithStats(req.session.userId, enabledTypes());
 
       res.render('tags', {
         user: req.user,
-        tags
+        tags,
+        typeNouns: TYPE_NOUNS
       });
     } catch (error) {
       res.status(500).render('error', {
@@ -31,7 +39,7 @@ class TagController {
    */
   static getAllTags(req, res) {
     try {
-      const tags = Tag.getAllWithStats(req.session.userId);
+      const tags = Tag.getAllWithStats(req.session.userId, enabledTypes());
       res.json(tags);
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -133,19 +141,11 @@ class TagController {
         return res.redirect('/tags');
       }
 
-      // Get URLs with this tag
-      const stmt = db.prepare(`
-        SELECT u.* FROM urls u
-        INNER JOIN url_tags ut ON u.id = ut.urlId
-        WHERE ut.tagId = ? AND u.creatorId = ?
-        ORDER BY u.createdAt DESC
-      `);
-      const urls = stmt.all(id, req.session.userId);
-
       res.render('tag-analytics', {
         user: req.user,
         tag,
-        urls,
+        items: Tag.itemsFor(tag.id, enabledTypes()).map(withPaths),
+        typeNouns: TYPE_NOUNS,
         baseUrl: `${req.protocol}://${req.get('host')}`
       });
     } catch (error) {
@@ -176,47 +176,16 @@ class TagController {
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      // Get URLs with this tag
-      const urlStmt = db.prepare(`
-        SELECT u.* FROM urls u
-        INNER JOIN url_tags ut ON u.id = ut.urlId
-        WHERE ut.tagId = ? AND u.creatorId = ?
-      `);
-      const urls = urlStmt.all(id, req.session.userId);
-
-      if (urls.length === 0) {
-        return res.json({
-          totalClicks: 0,
-          totalUrls: 0,
-          clicksByDate: [],
-          topUrls: []
-        });
-      }
-
-      const urlIds = urls.map(u => u.id);
-
-      // Total clicks
-      const totalClicks = urls.reduce((sum, url) => sum + url.clicks, 0);
-
-      // Clicks by date (last 30 days)
-      const clicksByDate = AnalyticsEvent.getDailyCounts('url', urlIds, 30);
-
-      // Top URLs by clicks
-      const topUrls = urls
-        .sort((a, b) => b.clicks - a.clicks)
-        .slice(0, 10)
-        .map(url => ({
-          id: url.id,
-          slug: url.slug,
-          longUrl: url.longUrl,
-          clicks: url.clicks
-        }));
+      const types = enabledTypes();
+      const items = Tag.itemsFor(tag.id, types);
+      const counts = Object.fromEntries(types.map(type => [type, items.filter(i => i.type === type).length]));
 
       res.json({
-        totalClicks,
-        totalUrls: urls.length,
-        clicksByDate,
-        topUrls
+        totalItems: items.length,
+        totalVisits: items.reduce((sum, item) => sum + item.visits, 0),
+        counts,
+        visitsByDate: Tag.dailyVisits(tag.id, types, 30),
+        topItems: [...items].sort((a, b) => b.visits - a.visits).slice(0, 10).map(withPaths)
       });
     } catch (error) {
       res.status(500).json({ error: error.message });

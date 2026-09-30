@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const Tag = require('../models/Tag');
 const RoleService = require('./roleService');
 
 /**
@@ -39,23 +39,15 @@ function denyJson(res, permission) {
   return res.status(403).json({ error: 'permission_denied', permission, message: deniedMessage(permission) });
 }
 
-const TAG_TABLES = {
-  url: ['url_tags', 'urlId'],
-  paste: ['paste_tags', 'pasteId'],
-  file: ['file_tags', 'fileId']
-};
-
 const normalizeTags = (names) => [...new Set(names.map(n => n.trim().toLowerCase()).filter(Boolean))].sort();
 
 /**
  * Whether a submitted tag string differs from the tags already on the item.
- * @param {'url'|'paste'|'file'} type
+ * @param {'url'|'bundle'|'paste'|'file'} type
  */
 function tagsChanged(type, id, tagString) {
   if (!filled(tagString)) return false;
-  const [table, column] = TAG_TABLES[type];
-  const current = db.prepare(`SELECT t.name FROM tags t JOIN ${table} j ON j.tagId = t.id WHERE j.${column} = ?`)
-    .all(id).map(r => r.name);
+  const current = Tag.forItem(type, id).map(t => t.name);
   return JSON.stringify(normalizeTags(String(tagString).split(','))) !== JSON.stringify(normalizeTags(current));
 }
 

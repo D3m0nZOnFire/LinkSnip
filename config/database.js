@@ -3,7 +3,7 @@ const { DB_PATH, ensureDataDir } = require('./paths');
 const { configureDatabase } = require('./dbSetup');
 const {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics
+  migrateAnalytics, migrateTags
 } = require('./migrations');
 
 // Initialize database (DATA_DIR must exist and be writable)
@@ -117,37 +117,8 @@ if (!urlColumnNames.includes('deactivateAt')) {
 // TAGS SYSTEM
 // ============================================================================
 
-const tagsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tags'").get();
-
-if (!tagsExists) {
-  console.log('  🏷️  Creating tags table...');
-  db.exec(`
-    CREATE TABLE tags (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT UNIQUE NOT NULL,
-      color TEXT DEFAULT '#34d399',
-      userId INTEGER,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-    )
-  `);
-}
-
-const urlTagsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='url_tags'").get();
-
-if (!urlTagsExists) {
-  console.log('  🔗 Creating url_tags junction table...');
-  db.exec(`
-    CREATE TABLE url_tags (
-      urlId INTEGER NOT NULL,
-      tagId INTEGER NOT NULL,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (urlId, tagId),
-      FOREIGN KEY (urlId) REFERENCES urls(id) ON DELETE CASCADE,
-      FOREIGN KEY (tagId) REFERENCES tags(id) ON DELETE CASCADE
-    )
-  `);
-}
+// One taggables table for every content type (and tags, unique per user): created (and the
+// old url_tags / paste_tags / file_tags moved into it) by migrateTags, after all content tables exist.
 
 // ============================================================================
 // REPORTING SYSTEM
@@ -352,21 +323,6 @@ if (!fileColumnNames.includes('isBlocked')) {
   db.exec('ALTER TABLE files ADD COLUMN isBlocked INTEGER DEFAULT 0');
 }
 
-const fileTagsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='file_tags'").get();
-
-if (!fileTagsExists) {
-  console.log('  🔗 Creating file_tags junction table...');
-  db.exec(`
-    CREATE TABLE file_tags (
-      fileId INTEGER NOT NULL,
-      tagId  INTEGER NOT NULL,
-      PRIMARY KEY (fileId, tagId),
-      FOREIGN KEY (fileId) REFERENCES files(id) ON DELETE CASCADE,
-      FOREIGN KEY (tagId)  REFERENCES tags(id)  ON DELETE CASCADE
-    )
-  `);
-}
-
 // ============================================================================
 // PASTES SYSTEM
 // ============================================================================
@@ -396,21 +352,6 @@ if (!pastesExists) {
   `);
 }
 
-const pasteTagsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='paste_tags'").get();
-
-if (!pasteTagsExists) {
-  console.log('  🔗 Creating paste_tags junction table...');
-  db.exec(`
-    CREATE TABLE paste_tags (
-      pasteId INTEGER NOT NULL,
-      tagId   INTEGER NOT NULL,
-      PRIMARY KEY (pasteId, tagId),
-      FOREIGN KEY (pasteId) REFERENCES pastes(id) ON DELETE CASCADE,
-      FOREIGN KEY (tagId)   REFERENCES tags(id)   ON DELETE CASCADE
-    )
-  `);
-}
-
 // ============================================================================
 // INDEXES - Create all performance indexes
 // ============================================================================
@@ -424,18 +365,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_username ON users(username);
   CREATE INDEX IF NOT EXISTS idx_email ON users(email);
 `);
-
-// Tags indexes (if tables exist)
-const tagsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tags'").get();
-const urlTagsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='url_tags'").get();
-if (tagsTableExists && urlTagsTableExists) {
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_tags_userId ON tags(userId);
-    CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
-    CREATE INDEX IF NOT EXISTS idx_url_tags_urlId ON url_tags(urlId);
-    CREATE INDEX IF NOT EXISTS idx_url_tags_tagId ON url_tags(tagId);
-  `);
-}
 
 // Audit logs indexes (if table exists)
 const auditLogsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='audit_logs'").get();
@@ -494,7 +423,6 @@ migrateReports(db);
 
 // Files indexes (if tables exist)
 const filesTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='files'").get();
-const fileTagsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='file_tags'").get();
 if (filesTableExists) {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_files_slug ON files(slug);
@@ -502,27 +430,14 @@ if (filesTableExists) {
     CREATE INDEX IF NOT EXISTS idx_files_expiresAt ON files(expiresAt);
   `);
 }
-if (fileTagsTableExists) {
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_file_tags_fileId ON file_tags(fileId);
-    CREATE INDEX IF NOT EXISTS idx_file_tags_tagId ON file_tags(tagId);
-  `);
-}
 
 // Pastes indexes (if tables exist)
 const pastesTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='pastes'").get();
-const pasteTagsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='paste_tags'").get();
 if (pastesTableExists) {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_pastes_slug ON pastes(slug);
     CREATE INDEX IF NOT EXISTS idx_pastes_userId ON pastes(userId);
     CREATE INDEX IF NOT EXISTS idx_pastes_expiresAt ON pastes(expiresAt);
-  `);
-}
-if (pasteTagsTableExists) {
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_paste_tags_pasteId ON paste_tags(pasteId);
-    CREATE INDEX IF NOT EXISTS idx_paste_tags_tagId ON paste_tags(tagId);
   `);
 }
 
@@ -531,6 +446,12 @@ if (pasteTagsTableExists) {
 // ============================================================================
 
 migrateAnalytics(db);
+
+// ============================================================================
+// TAGS (one taggables table for every type; names unique per user)
+// ============================================================================
+
+migrateTags(db);
 
 console.log('\n✅ Database initialized and migrations completed successfully\n');
 

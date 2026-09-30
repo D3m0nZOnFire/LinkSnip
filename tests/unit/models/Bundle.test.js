@@ -1,6 +1,6 @@
 const Bundle = require('../../../models/Bundle');
 const AnalyticsEvent = require('../../../models/AnalyticsEvent');
-const { createTestBundle } = require('../../setup/testHelpers');
+const { createTestBundle, createTestUser, createTestTag, tagItem } = require('../../setup/testHelpers');
 
 // Editing a bundle calls replaceItems with the new list (URL + label, in order).
 // Items that stay keep their ID, so their click history survives the edit.
@@ -65,5 +65,27 @@ describe('Bundle.replaceItems', () => {
     Bundle.replaceItems(bundle.id, [{ url: 'https://a.example' }]);
     Bundle.replaceItems(bundle.id, []);
     expect(Bundle.getItems(other.id)).toHaveLength(1);
+  });
+});
+
+describe('bundle tags', () => {
+  it('every way of reading a bundle includes its tags', async () => {
+    const user = await createTestUser();
+    const bundle = createTestBundle({ slug: 'tagged', creatorId: user.id });
+    tagItem('bundle', bundle.id, createTestTag({ name: 'work', userId: user.id }).id);
+
+    const reads = [
+      Bundle.findById(bundle.id),
+      Bundle.findBySlug('tagged'),
+      Bundle.findByIdWithItems(bundle.id),
+      Bundle.findByCreatorId(user.id)[0],
+      Bundle.findAll()[0]
+    ];
+    for (const read of reads) expect(read.tags.map(t => t.name)).toEqual(['work']);
+  });
+
+  it('an untagged bundle has an empty list', () => {
+    const bundle = createTestBundle({ slug: 'plain' });
+    expect(Bundle.findById(bundle.id).tags).toEqual([]);
   });
 });

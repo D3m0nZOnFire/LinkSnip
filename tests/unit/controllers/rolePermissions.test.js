@@ -8,6 +8,7 @@ const PasteController = require('../../../controllers/pasteController');
 const BundleController = require('../../../controllers/bundleController');
 const FileController = require('../../../controllers/fileController');
 const BioPageController = require('../../../controllers/bioPageController');
+const Tag = require('../../../models/Tag');
 const { getTestDatabase } = require('../../setup/testDatabase');
 const {
   createTestUser, createTestUrl, createTestPaste, createTestBundle, createTestFile,
@@ -171,6 +172,34 @@ describe('role permissions in content handlers', () => {
 
       expect(res.statusCode).toBe(403);
       expect(res._jsonData).toEqual(expect.objectContaining({ permission: 'passwordProtection' }));
+    });
+
+    it('rejects tags on create for a role without them, creating nothing', async () => {
+      revokeFromUser('tags');
+      const user = await createTestUser({ username: 'u' });
+      const res = createMockResponse();
+
+      await BundleController.createBundle(makeReq(user, { title: 'B', items, tags: 'work' }), res);
+
+      expect(res.statusCode).toBe(403);
+      expect(res._jsonData).toEqual(expect.objectContaining({ error: 'permission_denied', permission: 'tags' }));
+      expect(count('bundles')).toBe(0);
+    });
+
+    it('rejects new tags on update for a role without them, but accepts the stored ones sent back', async () => {
+      revokeFromUser('tags');
+      const user = await createTestUser({ username: 'u' });
+      const bundle = createTestBundle({ creatorId: user.id });
+      Tag.setForItem('bundle', bundle.id, ['work']);
+
+      const changed = createMockResponse();
+      await BundleController.updateBundle(makeReq(user, { title: 'B', items, tags: 'work,new' }, { id: bundle.id }), changed);
+      expect(changed.statusCode).toBe(403);
+      expect(changed._jsonData).toEqual(expect.objectContaining({ permission: 'tags' }));
+
+      const same = createMockResponse();
+      await BundleController.updateBundle(makeReq(user, { title: 'B', items, tags: 'Work' }, { id: bundle.id }), same);
+      expect(same.statusCode).toBe(200);
     });
 
     it('rejects scheduling on update for a role without it', async () => {

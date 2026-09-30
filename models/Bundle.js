@@ -1,4 +1,7 @@
 const db = require('../config/database');
+const Tag = require('./Tag');
+
+const withTags = (bundle) => bundle && { ...bundle, tags: Tag.forItem('bundle', bundle.id) };
 
 class Bundle {
   /**
@@ -55,14 +58,14 @@ class Bundle {
    * Find bundle by slug
    */
   static findBySlug(slug) {
-    return db.prepare('SELECT * FROM bundles WHERE slug = ?').get(slug);
+    return withTags(db.prepare('SELECT * FROM bundles WHERE slug = ?').get(slug));
   }
 
   /**
    * Find bundle by ID
    */
   static findById(id) {
-    return db.prepare('SELECT * FROM bundles WHERE id = ?').get(id);
+    return withTags(db.prepare('SELECT * FROM bundles WHERE id = ?').get(id));
   }
 
   /**
@@ -101,7 +104,7 @@ class Bundle {
       params.push(limit, offset);
     }
 
-    return db.prepare(query).all(...params);
+    return db.prepare(query).all(...params).map(withTags);
   }
 
   /**
@@ -213,7 +216,7 @@ class Bundle {
       query += ' LIMIT ? OFFSET ?';
       params.push(limit, offset);
     }
-    return db.prepare(query).all(...params);
+    return db.prepare(query).all(...params).map(withTags);
   }
 
   /**

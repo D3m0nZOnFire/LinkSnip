@@ -180,16 +180,6 @@ describe('across items', () => {
     expect(AnalyticsEvent.getTopUrls(1)).toHaveLength(1);
   });
 
-  it('getDailyCounts sums several items of a type per day over recent days', () => {
-    const a = MAKE.url();
-    const b = MAKE.url();
-    event('url', a.id); event('url', b.id); event('url', b.id);
-    at(event('url', a.id).id, '2000-01-01 00:00:00');
-
-    expect(AnalyticsEvent.getDailyCounts('url', [a.id, b.id], 30)).toEqual([{ date: today(), count: 3 }]);
-    expect(AnalyticsEvent.getDailyCounts('url', [], 30)).toEqual([]);
-  });
-
   it('countAll counts every event of a type', () => {
     const url = MAKE.url();
     event('url', url.id); event('url', url.id); event('paste', url.id);

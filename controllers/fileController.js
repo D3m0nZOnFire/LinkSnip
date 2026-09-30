@@ -70,10 +70,7 @@ exports.upload = async (req, res) => {
       allowedUsers: parsedAllowedUsers
     });
 
-    if (tags) {
-      const tagArray = Tag.parseTagString(tags);
-      Tag.attachToFile(file.id, tagArray, req.user.id);
-    }
+    if (tags) Tag.setForItem('file', file.id, Tag.parseTagString(tags));
 
     const fileUrl = `${req.protocol}://${req.get('host')}/f/${slug}`;
 
@@ -172,10 +169,7 @@ exports.updateSettings = async (req, res) => {
       allowedUsers: parsedAllowedUsers
     });
 
-    if (tags !== undefined) {
-      const tagArray = Tag.parseTagString(tags);
-      Tag.attachToFile(file.id, tagArray, req.user.id);
-    }
+    if (tags !== undefined) Tag.setForItem('file', file.id, Tag.parseTagString(tags));
 
     logAccountChange(ACTIONS.UPDATE_FILE, req, { fileId: file.id, slug: file.slug });
 

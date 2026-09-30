@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const Tag = require('./Tag');
 
 class Paste {
   static create({ userId, slug, title, content, language, expiresAt, activateAt, deactivateAt, maxViews, password }) {
@@ -24,13 +25,13 @@ class Paste {
 
   static findById(id) {
     const paste = db.prepare('SELECT * FROM pastes WHERE id = ?').get(id);
-    if (paste) paste.tags = this.getTags(paste.id);
+    if (paste) paste.tags = Tag.forItem('paste', paste.id);
     return paste;
   }
 
   static findBySlug(slug) {
     const paste = db.prepare('SELECT * FROM pastes WHERE slug = ?').get(slug);
-    if (paste) paste.tags = this.getTags(paste.id);
+    if (paste) paste.tags = Tag.forItem('paste', paste.id);
     return paste;
   }
 
@@ -48,7 +49,7 @@ class Paste {
       params.push(limit, offset);
     }
     const rows = db.prepare(query).all(...params);
-    return rows.map(p => ({ ...p, tags: this.getTags(p.id) }));
+    return rows.map(p => ({ ...p, tags: Tag.forItem('paste', p.id) }));
   }
 
   static countByUserId(userId) {
@@ -73,7 +74,7 @@ class Paste {
       params.push(limit, offset);
     }
     const rows = db.prepare(query).all(...params);
-    return rows.map(p => ({ ...p, tags: this.getTags(p.id) }));
+    return rows.map(p => ({ ...p, tags: Tag.forItem('paste', p.id) }));
   }
 
   static countAll(search = '') {
@@ -103,7 +104,7 @@ class Paste {
     return db.prepare('UPDATE pastes SET views = views + 1 WHERE id = ?').run(id);
   }
 
-  static update(id, { title, language, content, expiresAt, activateAt, deactivateAt, maxViews, password, tagIds }) {
+  static update(id, { title, language, content, expiresAt, activateAt, deactivateAt, maxViews, password }) {
     const current = this.findById(id);
     if (!current) return null;
 
@@ -124,33 +125,7 @@ class Paste {
       id
     );
 
-    if (tagIds !== undefined) {
-      this.replaceTags(id, tagIds);
-    }
-
     return this.findById(id);
-  }
-
-  static getTags(pasteId) {
-    return db.prepare(`
-      SELECT tags.* FROM tags
-      INNER JOIN paste_tags ON tags.id = paste_tags.tagId
-      WHERE paste_tags.pasteId = ?
-      ORDER BY tags.name ASC
-    `).all(pasteId);
-  }
-
-  static replaceTags(pasteId, tagIds) {
-    const replaceTx = db.transaction((pid, ids) => {
-      db.prepare('DELETE FROM paste_tags WHERE pasteId = ?').run(pid);
-      if (ids && ids.length > 0) {
-        const insert = db.prepare('INSERT OR IGNORE INTO paste_tags (pasteId, tagId) VALUES (?, ?)');
-        for (const tagId of ids) {
-          insert.run(pid, tagId);
-        }
-      }
-    });
-    replaceTx(pasteId, tagIds);
   }
 
   static slugExists(slug) {
