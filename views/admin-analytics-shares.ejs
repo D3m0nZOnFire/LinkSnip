@@ -45,7 +45,7 @@
         <tbody>
           <% links.forEach(link => { %>
             <tr data-link-id="<%= link.id %>">
-              <td><a href="/analytics/<%= link.urlId %>">/s/<%= link.slug %></a></td>
+              <td><a href="/analytics/<%= link.targetType %>/<%= link.targetId %>"><%= link.path %></a></td>
               <td><%= link.label || '—' %></td>
               <td><%= link.createdByUsername || '(deleted user)' %></td>
               <td><%= fmt(link.createdAt) %></td>

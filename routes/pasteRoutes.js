@@ -6,7 +6,6 @@ const requirePermission = require('../middleware/requirePermission');
 const { requireFeature } = require('../middleware/requireFeature');
 const PasteController = require('../controllers/pasteController');
 
-const canViewAnalytics = requirePermission('analytics');
 const qrCodes = requireFeature('qrCodes');
 
 // ── API — create is anonymous-allowed (limiter only, no auth), like /api/bundles
@@ -20,8 +19,6 @@ router.delete('/api/pastes/:id', apiLimiter, isAuthenticated, PasteController.de
 // ── Full-page editor (owner/admin)
 router.get('/pastes/:id/edit', isAuthenticated, PasteController.showEditPage);
 
-// ── Full-page analytics (owner/admin)
-router.get('/pastes/:id/analytics', isAuthenticated, canViewAnalytics, PasteController.showAnalyticsPage);
 
 // ── Admin
 router.get('/admin/pastes', isAuthenticated, isAdmin, PasteController.adminList);

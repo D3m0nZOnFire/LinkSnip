@@ -313,9 +313,9 @@ describe('AnalyticsService', () => {
         }
       });
 
-      const analytics = await AnalyticsService.captureAnalytics(req, 123);
+      const analytics = await AnalyticsService.captureAnalytics(req);
 
-      expect(analytics.urlId).toBe(123);
+      expect(analytics).not.toHaveProperty('urlId'); // the item is given to record()
       expect(analytics.ipHash).toBeDefined();
       expect(analytics.ipHash).toHaveLength(64);
       expect(analytics.referrer).toBe('https://google.com');
@@ -332,7 +332,7 @@ describe('AnalyticsService', () => {
         }
       });
 
-      const analytics = await AnalyticsService.captureAnalytics(req, 456);
+      const analytics = await AnalyticsService.captureAnalytics(req);
 
       expect(analytics.referrer).toBe('Direct');
     });
@@ -345,7 +345,7 @@ describe('AnalyticsService', () => {
         }
       });
 
-      const analytics = await AnalyticsService.captureAnalytics(req, 789);
+      const analytics = await AnalyticsService.captureAnalytics(req);
 
       expect(analytics.userAgent).toHaveLength(255);
     });

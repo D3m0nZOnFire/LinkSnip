@@ -88,7 +88,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 - `config/database.js` opens `DB_PATH`, applies `config/dbSetup.js` (WAL, `busy_timeout = 5000`, foreign keys), and
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
-  `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`); they're idempotent
+  `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
+  `migrateAnalytics`); they're idempotent
   and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
 - Migration pattern: `CREATE TABLE IF NOT EXISTS`, check `PRAGMA table_info` before `ALTER TABLE`,
@@ -104,15 +105,17 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - **pastes**, **files**, **bundles** (+ `bundle_items`): same access fields as urls, `isQuarantined` included.
   Pastes use `userId`/`views`/`maxViews`, files `userId`/`downloads`/`maxDownloads`/`size`/`sharingMode`/
   `allowedUsers`
-- **analytics**, **bundle_analytics**, **bundle_item_analytics**, **paste_analytics**: per-visit rows (`ipHash`
-  SHA-256, never raw IPs)
+- **analytics_events** (every type): one row per visit, `targetType` + `targetId`, `subTargetId` (a bundle item click;
+  NULL for everything else), `timestamp`, `ipHash` (SHA-256, never raw IPs), `referrer`, `userAgent`, `browser`, `os`,
+  `device`, `country`. Delete triggers remove an item's events (and a bundle item's clicks). (Replaced `analytics`,
+  `bundle_analytics`, `bundle_item_analytics`, `paste_analytics` in `migrateAnalytics`.)
 - **tags** (user-scoped, lowercase) with `url_tags`, `paste_tags`, `file_tags`
 - **reports** (every type): `targetType` + `targetId`, `reporterIpHash`, `reason`, `description`, `status` (`pending` /
   `reviewed` / `blocked` / `dismissed`), `reviewedBy`. A unique index allows one report per IP per item; triggers
   delete an item's reports when the item is deleted (no foreign key can point at four tables). Only **pending**
   reports are counted. (Replaced `url_reports` / `bundle_reports` in `migrateReports`.)
-- **analytics_shares**: share links: `urlId`, `createdBy`, `tokenHash` (SHA-256, unique), `label`, `expiresAt`,
-  `viewCount`, `lastViewedAt`
+- **analytics_shares**: share links for any type: `targetType` + `targetId`, `createdBy`, `tokenHash` (SHA-256,
+  unique), `label`, `expiresAt`, `viewCount`, `lastViewedAt`
 - **audit_logs**: append-only; `action`, `category` (`AUTH`, `ADMIN_ACTION`, `ACCOUNT_CHANGE`, `SECURITY`), target,
   IP, user agent, JSON `details`
 
@@ -153,8 +156,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - URL prefill: `/https://example.com` prefills the creation form.
 
 ### Pastes
-- `/p/:slug`, `/p/:slug/raw`, `/p-info/:slug`, editor `/pastes/:id/edit`, analytics `/pastes/:id/analytics`,
-  API `/api/pastes`. Model `models/Paste.js`, controller `controllers/pasteController.js`.
+- `/p/:slug`, `/p/:slug/raw`, `/p-info/:slug`, editor `/pastes/:id/edit`, API `/api/pastes`. Model `models/Paste.js`,
+  controller `controllers/pasteController.js`.
 - EJS-escaped plain text (`<%= %>`, never `<%-`), `language` is only a label. Line-number gutters via
   `public/js/lineNumbers.js` on textareas with `data-line-numbers`.
 - Size limit `pastes.maxSizeKB`; anonymous expiry `anonymous.pasteExpirationDays`.
@@ -172,15 +175,22 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `forbidden` access statuses).
 
 ### Bundles and bio pages
-- Bundles: `/b/:slug` launcher, `/bt/:itemId` per-item tracking redirect, `/bundle-analytics/:id`.
+- Bundles: `/b/:slug` launcher, `/bt/:itemId` per-item tracking redirect (checks the bundle's access).
+  `Bundle.replaceItems` updates items in place: an item whose URL stays keeps its ID and click history.
 - Bio pages: `/bio/:username` public, `/bio/settings`. Hidden (404) when the owner's role lacks `bioPage`.
 
 ### Analytics and share links
-- `/analytics/:id` is owner/admin only (permission `analytics`). `AnalyticsController.buildSummary(url)` is shared
-  with the public view.
-- Share links (`controllers/analyticsShareController.js`): `POST/GET /api/urls/:id/share-links`,
+- One page for every type: `/analytics/:type/:id` (owner/admin, permission `analytics`, the type's feature on), JSON
+  at `/api/analytics/:type/:id`. `views/analytics.ejs` draws `partials/analytics-summary.ejs`; `pageData()` in
+  `controllers/analyticsController.js` is shared with `/stats/:token`. Old per-type addresses redirect.
+- Recording: `AnalyticsService.record(req, type, id, subId)` on link redirects, bundle launches, bundle item clicks
+  (`subId` = the item), paste views and file downloads. `models/AnalyticsEvent.js` reads: `getSummary(type, id)`
+  (same fields for every type: `total`, `uniqueVisitors`, `byDate`, breakdowns), `getItemClicks(bundleId)`,
+  `getTopUrls`, `getDailyCounts` (tags). Summaries count only events without `subTargetId`.
+- Share links (`controllers/analyticsShareController.js`): `POST/GET /api/share-links/:type/:id`,
   `DELETE /api/share-links/:id`, public `GET /stats/:token` (read-only `analytics.ejs` with `readOnly: true`,
-  `noindex`). The token is shown once; only its hash is stored. Limited by `shareLinksPerUrl`. Admin → Analytics Shares.
+  `noindex`). The token is shown once; only its hash is stored. Limited by `shareLinksPerUrl` (per item).
+  Admin → Analytics Shares.
 - Country lookup uses ip-api.com unless `geo.enabled` is false.
 
 ### Reports and quarantine

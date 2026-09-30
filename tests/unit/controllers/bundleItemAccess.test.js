@@ -8,7 +8,7 @@ const {
 const PAST = '2000-01-01T00:00:00.000Z';
 const FUTURE = '2999-01-01T00:00:00.000Z';
 
-const itemClicks = () => getTestDatabase().prepare('SELECT COUNT(*) AS n FROM bundle_item_analytics').get().n;
+const itemClicks = () => getTestDatabase().prepare('SELECT COUNT(*) AS n FROM analytics_events WHERE subTargetId IS NOT NULL').get().n;
 
 async function click(itemId, session = {}, query = {}) {
   const res = createMockResponse();

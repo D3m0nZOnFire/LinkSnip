@@ -17,7 +17,7 @@ beforeEach(async () => {
 describe('AnalyticsShare (share links)', () => {
   describe('create', () => {
     it('returns a long random token once', () => {
-      const { token, link } = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+      const { token, link } = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
 
       expect(token).toMatch(/^[A-Za-z0-9_-]{43,}$/); // 32+ random bytes, base64url
       expect(link.id).toEqual(expect.any(Number));
@@ -26,7 +26,7 @@ describe('AnalyticsShare (share links)', () => {
     });
 
     it('stores only the SHA-256 hash of the token', () => {
-      const { token } = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+      const { token } = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
       const row = getTestDatabase().prepare('SELECT * FROM analytics_shares').get();
 
       expect(row.tokenHash).toBe(sha256(token));
@@ -34,25 +34,25 @@ describe('AnalyticsShare (share links)', () => {
     });
 
     it('gives every link a different token', () => {
-      const a = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id }).token;
-      const b = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id }).token;
+      const a = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id }).token;
+      const b = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id }).token;
       expect(a).not.toBe(b);
     });
 
     it('keeps an optional label and expiry', () => {
-      const { link } = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id, label: 'Client', expiresAt: FUTURE });
+      const { link } = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id, label: 'Client', expiresAt: FUTURE });
       expect(link).toEqual(expect.objectContaining({ label: 'Client', expiresAt: FUTURE, viewCount: 0 }));
     });
   });
 
   describe('findByToken', () => {
     it('finds an active link by its token', () => {
-      const { token, link } = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+      const { token, link } = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
       expect(AnalyticsShare.findByToken(token).id).toBe(link.id);
     });
 
     it('returns null for an unknown, empty or revoked token', () => {
-      const { token, link } = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+      const { token, link } = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
 
       expect(AnalyticsShare.findByToken('nope')).toBeNull();
       expect(AnalyticsShare.findByToken('')).toBeNull();
@@ -63,24 +63,24 @@ describe('AnalyticsShare (share links)', () => {
     });
 
     it('returns null once the link has expired', () => {
-      const { token } = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id, expiresAt: PAST });
+      const { token } = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id, expiresAt: PAST });
       expect(AnalyticsShare.findByToken(token)).toBeNull();
     });
   });
 
   describe('listing and counting', () => {
-    it('lists and counts only active links for a URL', () => {
-      AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
-      AnalyticsShare.create({ urlId: url.id, createdBy: owner.id, expiresAt: FUTURE });
-      AnalyticsShare.create({ urlId: url.id, createdBy: owner.id, expiresAt: PAST });
+    it('lists and counts only active links for an item', () => {
+      AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
+      AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id, expiresAt: FUTURE });
+      AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id, expiresAt: PAST });
 
-      expect(AnalyticsShare.countActiveByUrlId(url.id)).toBe(2);
-      expect(AnalyticsShare.findActiveByUrlId(url.id)).toHaveLength(2);
-      expect(AnalyticsShare.findActiveByUrlId(url.id)[0]).not.toHaveProperty('tokenHash');
+      expect(AnalyticsShare.countActive('url', url.id)).toBe(2);
+      expect(AnalyticsShare.findActive('url', url.id)).toHaveLength(2);
+      expect(AnalyticsShare.findActive('url', url.id)[0]).not.toHaveProperty('tokenHash');
     });
 
-    it('lists every active link for admins, with the URL slug and creator', () => {
-      AnalyticsShare.create({ urlId: url.id, createdBy: owner.id, label: 'A' });
+    it('lists every active link for admins, with its item slug and creator', () => {
+      AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id, label: 'A' });
 
       const [row] = AnalyticsShare.findAll({ limit: 10, offset: 0 });
 
@@ -92,7 +92,7 @@ describe('AnalyticsShare (share links)', () => {
 
   describe('views and cleanup', () => {
     it('counts views', () => {
-      const { link } = AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+      const { link } = AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
 
       AnalyticsShare.recordView(link.id);
       AnalyticsShare.recordView(link.id);
@@ -103,15 +103,15 @@ describe('AnalyticsShare (share links)', () => {
     });
 
     it('deleteExpired removes only expired links', () => {
-      AnalyticsShare.create({ urlId: url.id, createdBy: owner.id, expiresAt: PAST });
-      AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+      AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id, expiresAt: PAST });
+      AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
 
       expect(AnalyticsShare.deleteExpired()).toBe(1);
       expect(AnalyticsShare.countAll()).toBe(1);
     });
 
     it('is deleted with its URL', () => {
-      AnalyticsShare.create({ urlId: url.id, createdBy: owner.id });
+      AnalyticsShare.create({ targetType: 'url', targetId: url.id, createdBy: owner.id });
       getTestDatabase().prepare('DELETE FROM urls WHERE id = ?').run(url.id);
       expect(AnalyticsShare.countAll()).toBe(0);
     });

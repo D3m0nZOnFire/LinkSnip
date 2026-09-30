@@ -1,26 +1,28 @@
 const AnalyticsShare = require('../models/AnalyticsShare');
-const Url = require('../models/Url');
 const RoleService = require('../services/roleService');
 const { logAccountChange, logAdminAction, ACTIONS } = require('../services/auditService');
-const { buildSummary } = require('./analyticsController');
+const { findItem, pageData } = require('./analyticsController');
 
 /**
- * Analytics share links: the owner (or an admin) creates a read-only, revocable
- * /stats/<token> link, optionally expiring. Anyone with the link sees the stats.
+ * Analytics share links for any content type: the owner (or an admin) creates a
+ * read-only, revocable /stats/<token> link, optionally expiring. Anyone with the link
+ * sees the stats.
  */
 
 const MAX_LABEL = 100;
 const MAX_DAYS = 3650;
 
-const canManage = (user, url) => user && (user.isAdmin || url.creatorId === user.id);
+const canManage = (user, found) => !!user && (user.isAdmin || found.item[found.info.ownerColumn] === user.id);
+const pathOf = (found) => `${found.info.publicPrefix}${found.item.slug}`;
 
 /**
- * POST /api/urls/:id/share-links  { label?, expiresInDays? }
+ * POST /api/share-links/:type/:id  { label?, expiresInDays? }
  */
 exports.createLink = (req, res) => {
-  const url = Url.findById(parseInt(req.params.id));
-  if (!url) return res.status(404).json({ success: false, error: 'URL not found' });
-  if (!canManage(req.user, url)) return res.status(403).json({ success: false, error: 'Access denied' });
+  const { type } = req.params;
+  const found = findItem(type, req.params.id);
+  if (!found) return res.status(404).json({ success: false, error: 'Not found' });
+  if (!canManage(req.user, found)) return res.status(403).json({ success: false, error: 'Access denied' });
 
   const label = req.body.label ? String(req.body.label).trim() : null;
   if (label && label.length > MAX_LABEL) {
@@ -38,15 +40,17 @@ exports.createLink = (req, res) => {
   }
 
   const limit = RoleService.limit(req.user, 'shareLinksPerUrl');
-  if (limit !== null && AnalyticsShare.countActiveByUrlId(url.id) >= limit) {
+  if (limit !== null && AnalyticsShare.countActive(type, found.item.id) >= limit) {
     return res.status(403).json({
       success: false,
-      error: `This link already has the maximum of ${limit} share links. Revoke one to create another.`
+      error: `This ${found.info.noun} already has the maximum of ${limit} share links. Revoke one to create another.`
     });
   }
 
-  const { token, link } = AnalyticsShare.create({ urlId: url.id, createdBy: req.user.id, label, expiresAt });
-  logAccountChange(ACTIONS.CREATE_SHARE_LINK, req, { urlId: url.id, slug: url.slug, shareLinkId: link.id, label, expiresAt });
+  const { token, link } = AnalyticsShare.create({ targetType: type, targetId: found.item.id, createdBy: req.user.id, label, expiresAt });
+  logAccountChange(ACTIONS.CREATE_SHARE_LINK, req, {
+    targetType: type, targetId: found.item.id, path: pathOf(found), shareLinkId: link.id, label, expiresAt
+  });
 
   res.status(201).json({
     success: true,
@@ -57,31 +61,31 @@ exports.createLink = (req, res) => {
 };
 
 /**
- * GET /api/urls/:id/share-links
+ * GET /api/share-links/:type/:id
  */
 exports.listLinks = (req, res) => {
-  const url = Url.findById(parseInt(req.params.id));
-  if (!url) return res.status(404).json({ success: false, error: 'URL not found' });
-  if (!canManage(req.user, url)) return res.status(403).json({ success: false, error: 'Access denied' });
+  const found = findItem(req.params.type, req.params.id);
+  if (!found) return res.status(404).json({ success: false, error: 'Not found' });
+  if (!canManage(req.user, found)) return res.status(403).json({ success: false, error: 'Access denied' });
 
   const limit = RoleService.limit(req.user, 'shareLinksPerUrl');
-  res.json({ success: true, links: AnalyticsShare.findActiveByUrlId(url.id), limit });
+  res.json({ success: true, links: AnalyticsShare.findActive(req.params.type, found.item.id), limit });
 };
 
 /**
- * DELETE /api/share-links/:id  (owner of the URL, or admin)
+ * DELETE /api/share-links/:id  (owner of the item, or admin)
  */
 exports.revokeLink = (req, res) => {
   const link = AnalyticsShare.findById(parseInt(req.params.id));
   if (!link) return res.status(404).json({ success: false, error: 'Share link not found' });
 
-  const url = Url.findById(link.urlId);
-  if (!canManage(req.user, url)) return res.status(403).json({ success: false, error: 'Access denied' });
+  const found = findItem(link.targetType, link.targetId);
+  if (!found || !canManage(req.user, found)) return res.status(403).json({ success: false, error: 'Access denied' });
 
   AnalyticsShare.revoke(link.id);
-  const details = { urlId: url.id, slug: url.slug, shareLinkId: link.id, label: link.label };
-  if (req.user.isAdmin && url.creatorId !== req.user.id) {
-    logAdminAction(ACTIONS.REVOKE_SHARE_LINK, req, 'share_link', link.id, `/stats link for /s/${url.slug}`, details);
+  const details = { targetType: link.targetType, targetId: link.targetId, path: pathOf(found), shareLinkId: link.id, label: link.label };
+  if (req.user.isAdmin && found.item[found.info.ownerColumn] !== req.user.id) {
+    logAdminAction(ACTIONS.REVOKE_SHARE_LINK, req, 'share_link', link.id, `/stats link for ${pathOf(found)}`, details);
   } else {
     logAccountChange(ACTIONS.REVOKE_SHARE_LINK, req, details);
   }
@@ -93,8 +97,8 @@ exports.revokeLink = (req, res) => {
  */
 exports.viewStats = (req, res) => {
   const link = AnalyticsShare.findByToken(req.params.token);
-  const url = link && Url.findById(link.urlId);
-  if (!url) {
+  const found = link && findItem(link.targetType, link.targetId);
+  if (!found) {
     return res.status(404).render('error', {
       title: 'Link Not Found',
       message: 'This analytics link does not exist, has expired or was revoked.',
@@ -104,13 +108,7 @@ exports.viewStats = (req, res) => {
 
   AnalyticsShare.recordView(link.id);
   res.set('X-Robots-Tag', 'noindex, nofollow');
-  res.render('analytics', {
-    user: req.user || null,
-    url,
-    summary: buildSummary(url),
-    baseUrl: `${req.protocol}://${req.get('host')}`,
-    readOnly: true
-  });
+  res.render('analytics', pageData(req, link.targetType, found, true));
 };
 
 /**
@@ -129,3 +127,6 @@ exports.getAdminPage = (req, res) => {
     total
   });
 };
+
+/** Old link-only address /api/urls/:id/share-links (POST and GET): permanent, method-keeping redirect. */
+exports.redirectOld = (req, res) => res.redirect(308, `/api/share-links/url/${encodeURIComponent(req.params.id)}`);

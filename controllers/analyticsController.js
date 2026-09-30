@@ -1,156 +1,109 @@
-const Analytics = require('../models/Analytics');
-const Url = require('../models/Url');
+const db = require('../config/database');
+const AnalyticsEvent = require('../models/AnalyticsEvent');
+const configService = require('../services/configService');
+const { CONTENT_TYPES } = require('../services/contentTypes');
 
 /**
- * Everything the analytics page shows for one URL. Used by the owner's page
- * and by public share links (/stats/:token).
+ * Analytics pages for every content type: /analytics/:type/:id (owner or admin) and
+ * the read-only /stats/:token share view use the same view data.
  */
-function buildSummary(url) {
-  const summary = Analytics.getSummary(url.id);
+
+/** The item behind :type/:id, or null (unknown type, feature off, no such item). */
+function findItem(type, id) {
+  const info = CONTENT_TYPES[type];
+  if (!info) return null;
+  if (info.feature && !configService.get(`features.${info.feature}`)) return null;
+  const item = db.prepare(`SELECT * FROM ${info.table} WHERE id = ?`).get(parseInt(id));
+  return item ? { info, item } : null;
+}
+
+// Analytics are private to the item's owner and admins; others use share links.
+const canView = (user, info, item) => !!user && (user.isAdmin || item[info.ownerColumn] === user.id);
+
+/** What the analytics page shows for one item (also used by /stats/:token). */
+function pageData(req, type, found, readOnly) {
+  const { info, item } = found;
   return {
-    url,
-    totalClicks: summary.totalClicks,
-    clicksByDate: summary.clicksByDate,
-    clicksByDatePeriod: summary.clicksByDatePeriod,
-    referrers: summary.referrers,
-    browsers: summary.browsers,
-    os: summary.os,
-    devices: summary.devices,
-    countries: summary.countries,
-    referrersCount: summary.referrers.length,
-    devicesCount: summary.devices.length,
-    countriesCount: summary.countries.length
+    user: req.user || null,
+    type,
+    item,
+    noun: info.noun,
+    eventLabel: info.eventLabel,
+    path: `${info.publicPrefix}${item.slug}`,
+    infoUrl: info.infoPrefix ? `${info.infoPrefix}${item.slug}` : null,
+    target: item[info.destination],
+    summary: AnalyticsEvent.getSummary(type, item.id),
+    itemClicks: type === 'bundle' ? AnalyticsEvent.getItemClicks(item.id) : null,
+    baseUrl: `${req.protocol}://${req.get('host')}`,
+    readOnly
   };
 }
 
-// Analytics are private to the URL's owner and admins; others use share links.
-const canView = (user, url) => user && (user.isAdmin || url.creatorId === user.id);
+const notFound = (res) => res.status(404).render('error', { title: 'Not Found', message: 'This item does not exist.', code: 404 });
 
 class AnalyticsController {
   /**
-   * Render analytics page for a specific URL
-   * GET /analytics/:id
+   * GET /analytics/:type/:id
    */
   static getAnalyticsPage(req, res) {
-    const urlId = parseInt(req.params.id);
+    const { type, id } = req.params;
+    const found = findItem(type, id);
+    if (!found) return notFound(res);
+    if (!canView(req.user, found.info, found.item)) return res.redirect('/dashboard');
 
-    try {
-      const url = Url.findById(urlId);
-
-      if (!url) {
-        return res.status(404).render('error', {
-          title: 'Not Found',
-          message: 'This URL does not exist.',
-          code: 404
-        });
-      }
-
-      if (!canView(req.user, url)) {
-        return res.redirect('/dashboard');
-      }
-
-      res.render('analytics', {
-        user: req.user,
-        url,
-        summary: buildSummary(url),
-        baseUrl: `${req.protocol}://${req.get('host')}`,
-        readOnly: false
-      });
-    } catch (error) {
-      console.error('Analytics page error:', error);
-      res.status(500).render('error', {
-        title: 'Server Error',
-        message: 'Failed to load analytics data.',
-        code: 500
-      });
-    }
+    res.render('analytics', pageData(req, type, found, false));
   }
 
   /**
-   * Get analytics data as JSON
-   * GET /api/analytics/:id
+   * GET /api/analytics/:type/:id[?days=N]
    */
   static getAnalyticsData(req, res) {
-    const { id } = req.params;
-    const { days = 30 } = req.query;
+    const { type, id } = req.params;
+    const found = findItem(type, id);
+    if (!found) return res.status(404).json({ error: 'Not found' });
+    if (!canView(req.user, found.info, found.item)) return res.status(403).json({ error: 'Access denied' });
 
-    try {
-      const url = Url.findById(id);
-
-      if (!url) {
-        return res.status(404).json({ error: 'URL not found' });
-      }
-
-      if (!canView(req.user, url)) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
-
-      const summary = Analytics.getSummary(id);
-      res.json({
-        url,
-        totalClicks: summary.totalClicks,
-        clicksByDate: Analytics.getClicksByDate(id, parseInt(days)),
-        referrers: summary.referrers,
-        browsers: summary.browsers,
-        os: summary.os,
-        devices: summary.devices,
-        countries: summary.countries
-      });
-    } catch (error) {
-      console.error('Analytics data error:', error);
-      res.status(500).json({ error: error.message });
+    const summary = AnalyticsEvent.getSummary(type, found.item.id);
+    const days = parseInt(req.query.days);
+    if (days > 0) {
+      const byDate = AnalyticsEvent.getByDate(type, found.item.id, days);
+      Object.assign(summary, { byDate: byDate.data, byDatePeriod: byDate.period });
     }
+    res.json({
+      type,
+      item: { id: found.item.id, slug: found.item.slug },
+      summary,
+      itemClicks: type === 'bundle' ? AnalyticsEvent.getItemClicks(found.item.id) : null
+    });
   }
 
   /**
-   * Get top URLs (admin only)
-   * GET /api/analytics/top
+   * GET /api/analytics/top (admin)
    */
   static getTopUrls(req, res) {
     const { limit = 10, days = null } = req.query;
-
-    try {
-      const topUrls = Analytics.getTopUrls(parseInt(limit), days ? parseInt(days) : null);
-      res.json(topUrls);
-    } catch (error) {
-      console.error('Top URLs error:', error);
-      res.status(500).json({ error: error.message });
-    }
+    res.json(AnalyticsEvent.getTopUrls(parseInt(limit), days ? parseInt(days) : null));
   }
 
   /**
-   * Render admin analytics overview page
    * GET /admin/analytics
    */
   static getAdminAnalyticsPage(req, res) {
-    try {
-      const topUrls = Analytics.getTopUrls(20, 30);
+    res.render('admin-analytics', {
+      user: req.user,
+      topUrls: AnalyticsEvent.getTopUrls(20, 30),
+      totalClicks: AnalyticsEvent.countAll('url'),
+      totalUrls: db.prepare('SELECT COUNT(*) AS n FROM urls').get().n,
+      baseUrl: `${req.protocol}://${req.get('host')}`
+    });
+  }
 
-      // Get total analytics count
-      const db = require('../config/database');
-      const totalClicksStmt = db.prepare('SELECT COUNT(*) as count FROM analytics');
-      const totalClicks = totalClicksStmt.get().count;
-
-      const totalUrlsStmt = db.prepare('SELECT COUNT(*) as count FROM urls');
-      const totalUrls = totalUrlsStmt.get().count;
-
-      res.render('admin-analytics', {
-        user: req.user,
-        topUrls,
-        totalClicks,
-        totalUrls,
-        baseUrl: `${req.protocol}://${req.get('host')}`
-      });
-    } catch (error) {
-      console.error('Admin analytics page error:', error);
-      res.status(500).render('error', {
-        title: 'Server Error',
-        message: 'Failed to load analytics data.',
-        code: 500
-      });
-    }
+  /** Old per-type addresses: /analytics/:id, /bundle-analytics/:id, /pastes/:id/analytics, … */
+  static redirectOld(type, { api = false } = {}) {
+    return (req, res) => res.redirect(api ? 308 : 301, `${api ? '/api' : ''}/analytics/${type}/${encodeURIComponent(req.params.id)}`);
   }
 }
 
 module.exports = AnalyticsController;
-module.exports.buildSummary = buildSummary;
+module.exports.findItem = findItem;
+module.exports.pageData = pageData;

@@ -1,0 +1,186 @@
+<%#
+  Charts and tables of one item's analytics, the same for every type.
+  Takes { summary, eventLabel, itemClicks }: summary from AnalyticsEvent.getSummary,
+  eventLabel ('Clicks', 'Opens', 'Views', 'Downloads'), itemClicks for bundles (else null).
+  The page loads Chart.js.
+%>
+<%
+  // JSON for a <script> block: "<" escaped so no value can close the tag
+  const json = (value) => JSON.stringify(value).replace(/</g, '\\u003c');
+%>
+<style>
+  .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+  .stat-card { background: var(--chart-background); border: 1px solid var(--chart-border); border-radius: 8px; padding: 1.5rem; }
+  .stat-card h3 { margin: 0 0 0.5rem 0; font-size: 0.875rem; color: var(--chart-muted-text); text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-card .stat-value { font-size: 2rem; font-weight: bold; color: var(--status-active-text); margin: 0; }
+  .chart-container { background: var(--chart-background); border: 1px solid var(--chart-border); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+  .chart-container h3 { margin: 0 0 1.5rem 0; font-size: 1.125rem; color: var(--chart-text); }
+  .chart-wrapper { position: relative; height: 300px; }
+  .data-table { background: var(--chart-background); border: 1px solid var(--chart-border); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+  .data-table h3 { margin: 0 0 1rem 0; font-size: 1.125rem; color: var(--chart-text); }
+  .data-table table { width: 100%; border-collapse: collapse; }
+  .data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--status-active-bg); }
+  .data-table th { color: var(--chart-muted-text); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .data-table td { color: var(--chart-data-text); word-break: break-word; }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+</style>
+
+<!-- Stats Overview -->
+<div class="analytics-grid">
+  <div class="stat-card">
+    <h3>Total <%= eventLabel %></h3>
+    <p class="stat-value"><%= summary.total %></p>
+  </div>
+  <div class="stat-card">
+    <h3>Unique Visitors</h3>
+    <p class="stat-value"><%= summary.uniqueVisitors %></p>
+  </div>
+  <div class="stat-card">
+    <h3>Referrers</h3>
+    <p class="stat-value"><%= summary.referrers.length %></p>
+  </div>
+  <div class="stat-card">
+    <h3>Countries</h3>
+    <p class="stat-value"><%= summary.countries.length %></p>
+  </div>
+</div>
+
+<!-- Over Time -->
+<div class="chart-container">
+  <h3><%= eventLabel %> Over Time <span style="font-size: 0.875rem; color: var(--chart-muted-text); font-weight: normal;">(<%= summary.byDatePeriod %>)</span></h3>
+  <div class="chart-wrapper">
+    <canvas id="eventsChart"></canvas>
+  </div>
+</div>
+
+<% if (itemClicks) { %>
+<!-- Bundle items -->
+<div class="data-table">
+  <h3>Clicks per Link</h3>
+  <% if (itemClicks.length === 0) { %>
+    <p style="color: var(--chart-muted-text);">This bundle has no links.</p>
+  <% } else { %>
+    <table>
+      <thead><tr><th>Link</th><th style="text-align: right;">Clicks</th></tr></thead>
+      <tbody>
+        <% itemClicks.forEach(item => { %>
+          <tr>
+            <td>
+              <% if (item.label) { %><strong><%= item.label %></strong><br><% } %>
+              <span style="color: var(--chart-muted-text); font-size: 0.875rem;"><%= item.url %></span>
+            </td>
+            <td style="text-align: right;"><%= item.clickCount %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+<% } %>
+
+<!-- Devices + Browsers -->
+<div class="grid-2">
+  <div class="chart-container" style="margin-bottom: 0;">
+    <h3>Devices</h3>
+    <% if (summary.devices.length > 0) { %>
+    <div class="chart-wrapper" style="height: 250px;"><canvas id="devicesChart"></canvas></div>
+    <% } else { %>
+    <p style="color: var(--chart-muted-text); text-align: center; padding: 2rem 0;">No data yet</p>
+    <% } %>
+  </div>
+  <div class="chart-container" style="margin-bottom: 0;">
+    <h3>Browsers</h3>
+    <% if (summary.browsers.length > 0) { %>
+    <div class="chart-wrapper" style="height: 250px;"><canvas id="browsersChart"></canvas></div>
+    <% } else { %>
+    <p style="color: var(--chart-muted-text); text-align: center; padding: 2rem 0;">No data yet</p>
+    <% } %>
+  </div>
+</div>
+
+<!-- Referrers + Countries -->
+<div class="grid-2">
+  <% [['Top Referrers', 'Referrer', summary.referrers, 'referrer'], ['Top Countries', 'Country', summary.countries, 'country']].forEach(([title, column, rows, key]) => { %>
+  <div class="data-table" style="margin-bottom: 0;">
+    <h3><%= title %></h3>
+    <% if (rows.length === 0) { %>
+      <p style="color: var(--chart-muted-text);">No data yet</p>
+    <% } else { %>
+      <table>
+        <thead><tr><th><%= column %></th><th style="text-align: right;"><%= eventLabel %></th></tr></thead>
+        <tbody>
+          <% rows.forEach(row => { %>
+            <tr><td><%= row[key] || 'Unknown' %></td><td style="text-align: right;"><%= row.count %></td></tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+  <% }); %>
+</div>
+
+<% if (summary.os.length > 0) { %>
+<!-- Operating Systems -->
+<div class="data-table">
+  <h3>Operating Systems</h3>
+  <table>
+    <thead><tr><th>OS</th><th style="text-align: right;"><%= eventLabel %></th></tr></thead>
+    <tbody>
+      <% summary.os.forEach(row => { %>
+        <tr><td><%= row.os || 'Unknown' %></td><td style="text-align: right;"><%= row.count %></td></tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>
+<% } %>
+
+<script>
+  (function () {
+    const colors = ['#34d399', '#60a5fa', '#f472b6', '#fbbf24', '#a78bfa', '#fb923c', '#34d3c5', '#e879f9'];
+    const byDate = <%- json(summary.byDate) %>;
+
+    new Chart(document.getElementById('eventsChart'), {
+      type: 'line',
+      data: {
+        labels: byDate.map(d => d.date),
+        datasets: [{
+          label: <%- json(eventLabel) %>,
+          data: byDate.map(d => d.count),
+          borderColor: '#34d399',
+          backgroundColor: 'rgba(52, 211, 153, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: byDate.length > 60 ? 0 : 3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#9ca3af', maxTicksLimit: 10 }, grid: { color: 'rgba(156,163,175,0.1)' } },
+          y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(156,163,175,0.1)' }, beginAtZero: true }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    function doughnut(id, rows, key) {
+      const canvas = document.getElementById(id);
+      if (!canvas) return;
+      new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+          labels: rows.map(r => r[key] || 'Unknown'),
+          datasets: [{ data: rows.map(r => r.count), backgroundColor: colors.slice(0, rows.length), borderWidth: 0 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af', padding: 16 } } }
+        }
+      });
+    }
+    doughnut('devicesChart', <%- json(summary.devices) %>, 'device');
+    doughnut('browsersChart', <%- json(summary.browsers) %>, 'browser');
+  })();
+</script>
