@@ -10,10 +10,13 @@ const canShare = requirePermission('analyticsShareLinks');
 // Public, read-only analytics for anyone holding the link
 router.get('/stats/:token', apiLimiter, analyticsShareController.viewStats);
 
-// Owner (or admin) manages the links of one URL
-router.post('/api/urls/:id/share-links', canShare, isAuthenticated, analyticsShareController.createLink);
-router.get('/api/urls/:id/share-links', isAuthenticated, analyticsShareController.listLinks);
+// Owner (or admin) manages the links of one item of any type
+router.post('/api/share-links/:type/:id', canShare, isAuthenticated, analyticsShareController.createLink);
+router.get('/api/share-links/:type/:id', isAuthenticated, analyticsShareController.listLinks);
 router.delete('/api/share-links/:id', isAuthenticated, analyticsShareController.revokeLink);
+
+// Old link-only address
+router.all('/api/urls/:id/share-links', analyticsShareController.redirectOld);
 
 // Admin → Analytics Shares
 router.get('/admin/analytics-shares', isAuthenticated, isAdmin, analyticsShareController.getAdminPage);

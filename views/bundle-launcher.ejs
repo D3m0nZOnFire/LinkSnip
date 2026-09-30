@@ -181,7 +181,7 @@
       <hr class="links-divider">
       <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
         <% if (user && bundle.creatorId === user.id || user && user.isAdmin) { %>
-        <a href="/bundle-analytics/<%= bundle.id %>" style="background: none; border: none; cursor: pointer; color: var(--muted-foreground); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.75rem; border-radius: 6px; transition: color 0.15s, background 0.15s; text-decoration: none;" onmouseover="this.style.color='var(--primary)';this.style.background='var(--status-active-bg)'" onmouseout="this.style.color='var(--muted-foreground)';this.style.background='none'">
+        <a href="/analytics/bundle/<%= bundle.id %>" style="background: none; border: none; cursor: pointer; color: var(--muted-foreground); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.75rem; border-radius: 6px; transition: color 0.15s, background 0.15s; text-decoration: none;" onmouseover="this.style.color='var(--primary)';this.style.background='var(--status-active-bg)'" onmouseout="this.style.color='var(--muted-foreground)';this.style.background='none'">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 3v18h18"></path>
             <path d="M18 17V9"></path>

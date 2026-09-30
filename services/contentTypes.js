@@ -5,6 +5,7 @@
  *
  *   table         database table
  *   noun          what visitors see it called ("This paste has expired.")
+ *   eventLabel    what one visit is called on its analytics page
  *   ownerColumn   users.id of the owner
  *   usedColumn    how often it was opened (clicks, views, downloads)
  *   limitColumn   the maximum for usedColumn (NULL = no limit)
@@ -20,6 +21,7 @@ const CONTENT_TYPES = {
   url: {
     table: 'urls',
     noun: 'link',
+    eventLabel: 'Clicks',
     ownerColumn: 'creatorId',
     usedColumn: 'clicks',
     limitColumn: 'maxUses',
@@ -34,6 +36,7 @@ const CONTENT_TYPES = {
   bundle: {
     table: 'bundles',
     noun: 'bundle',
+    eventLabel: 'Opens',
     ownerColumn: 'creatorId',
     usedColumn: 'clicks',
     limitColumn: 'maxUses',
@@ -48,6 +51,7 @@ const CONTENT_TYPES = {
   paste: {
     table: 'pastes',
     noun: 'paste',
+    eventLabel: 'Views',
     ownerColumn: 'userId',
     usedColumn: 'views',
     limitColumn: 'maxViews',
@@ -62,6 +66,7 @@ const CONTENT_TYPES = {
   file: {
     table: 'files',
     noun: 'file',
+    eventLabel: 'Downloads',
     ownerColumn: 'userId',
     usedColumn: 'downloads',
     limitColumn: 'maxDownloads',

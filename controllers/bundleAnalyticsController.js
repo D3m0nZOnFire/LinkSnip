@@ -1,59 +1,7 @@
 const Bundle = require('../models/Bundle');
-const BundleAnalytics = require('../models/BundleAnalytics');
-const BundleItemAnalytics = require('../models/BundleItemAnalytics');
 const AnalyticsService = require('../services/analyticsService');
 const QRCodeService = require('../services/qrcodeService');
 const { checkAccess, sendAccessDenied } = require('../services/accessService');
-
-/**
- * GET /bundle-analytics/:id
- * Bundle analytics dashboard (authenticated, owner or admin)
- */
-async function getBundleAnalyticsPage(req, res) {
-  const id = parseInt(req.params.id);
-  const bundle = Bundle.findByIdWithItems(id);
-
-  if (!bundle) {
-    return res.redirect('/bundles');
-  }
-  if (bundle.creatorId !== req.user.id && !req.user.isAdmin) {
-    return res.redirect('/bundles');
-  }
-
-  const analytics = BundleAnalytics.getSummary(id);
-  const itemStats = BundleItemAnalytics.getClicksPerItem(id);
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-  res.render('bundle-analytics', {
-    user: req.user,
-    bundle,
-    analytics,
-    itemStats,
-    baseUrl,
-    currentPage: 'bundles'
-  });
-}
-
-/**
- * GET /api/bundle-analytics/:id
- * Bundle analytics data as JSON (authenticated, owner or admin)
- */
-function getBundleAnalyticsData(req, res) {
-  const id = parseInt(req.params.id);
-  const bundle = Bundle.findById(id);
-
-  if (!bundle) {
-    return res.status(404).json({ error: 'Bundle not found' });
-  }
-  if (bundle.creatorId !== req.user.id && !req.user.isAdmin) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-
-  const analytics = BundleAnalytics.getSummary(id);
-  const itemStats = BundleItemAnalytics.getClicksPerItem(id);
-
-  return res.json({ analytics, itemStats });
-}
 
 /**
  * GET /bt/:itemId
@@ -81,14 +29,8 @@ async function trackBundleItemClick(req, res) {
     return sendAccessDenied(req, res, 'bundle', bundle, access);
   }
 
-  // Record per-item click (fire-and-forget, non-blocking)
-  try {
-    const ip = AnalyticsService.getIpAddress(req);
-    const ipHash = AnalyticsService.hashIp(ip);
-    BundleItemAnalytics.record(item.id, item.bundleId, ipHash);
-  } catch (e) {
-    // Non-critical, don't block the redirect
-  }
+  // Record the item click as a sub-item event of its bundle (non-blocking)
+  AnalyticsService.record(req, 'bundle', bundle.id, item.id).catch(() => { /* non-critical */ });
 
   return res.redirect(item.url);
 }
@@ -140,8 +82,6 @@ async function downloadBundleQRCode(req, res) {
 }
 
 module.exports = {
-  getBundleAnalyticsPage,
-  getBundleAnalyticsData,
   trackBundleItemClick,
   getBundleQRCode,
   downloadBundleQRCode

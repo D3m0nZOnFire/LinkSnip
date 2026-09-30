@@ -7,7 +7,6 @@ const { createBundleLimiter, apiLimiter } = require('../middleware/rateLimiter')
 const requirePermission = require('../middleware/requirePermission');
 const { requireFeature } = require('../middleware/requireFeature');
 
-const canViewAnalytics = requirePermission('analytics');
 const qrCodes = requireFeature('qrCodes');
 
 // Per-item tracking redirect (public, no auth)
@@ -17,9 +16,6 @@ router.get('/bt/:itemId', BundleAnalyticsController.trackBundleItemClick);
 router.get('/qrcode/bundle/:id/download', qrCodes, BundleAnalyticsController.downloadBundleQRCode);
 router.get('/qrcode/bundle/:id', qrCodes, BundleAnalyticsController.getBundleQRCode);
 
-// Bundle analytics dashboard
-router.get('/bundle-analytics/:id', isAuthenticated, canViewAnalytics, BundleAnalyticsController.getBundleAnalyticsPage);
-router.get('/api/bundle-analytics/:id', isAuthenticated, canViewAnalytics, apiLimiter, BundleAnalyticsController.getBundleAnalyticsData);
 
 // Public bundle launcher
 router.get('/b/:slug', BundleController.launchBundle);

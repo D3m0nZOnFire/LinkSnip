@@ -1,6 +1,6 @@
 const Tag = require('../models/Tag');
+const AnalyticsEvent = require('../models/AnalyticsEvent');
 const Url = require('../models/Url');
-const Analytics = require('../models/Analytics');
 const db = require('../config/database');
 
 class TagController {
@@ -199,15 +199,7 @@ class TagController {
       const totalClicks = urls.reduce((sum, url) => sum + url.clicks, 0);
 
       // Clicks by date (last 30 days)
-      const clicksByDateStmt = db.prepare(`
-        SELECT DATE(timestamp) as date, COUNT(*) as count
-        FROM analytics
-        WHERE urlId IN (${urlIds.map(() => '?').join(',')})
-        AND timestamp >= datetime('now', '-30 days')
-        GROUP BY DATE(timestamp)
-        ORDER BY date ASC
-      `);
-      const clicksByDate = clicksByDateStmt.all(...urlIds);
+      const clicksByDate = AnalyticsEvent.getDailyCounts('url', urlIds, 30);
 
       // Top URLs by clicks
       const topUrls = urls
