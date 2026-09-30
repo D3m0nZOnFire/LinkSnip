@@ -7,6 +7,7 @@ const moderation = require('../../../services/moderationService');
 const ReportController = require('../../../controllers/reportController');
 const InfoController = require('../../../controllers/infoController');
 const Report = require('../../../models/Report');
+const ipHash = require('../../../services/ipHash');
 const Url = require('../../../models/Url');
 const { getTestDatabase } = require('../../setup/testDatabase');
 const {
@@ -68,7 +69,7 @@ describe('POST /api/reports (ReportController.submit)', () => {
       expect(row).toEqual(expect.objectContaining({
         targetType: type, targetId: item.id, reason: 'PHISHING', description: 'looks fake', status: 'pending'
       }));
-      expect(row.reporterIpHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(row.reporterIpHash).toBe(ipHash.hashIp('203.0.113.1')); // keyed with IP_HASH_SECRET
       expect(JSON.stringify(row)).not.toContain('203.0.113.1');
     });
 

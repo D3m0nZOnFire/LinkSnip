@@ -13,6 +13,14 @@
 require('dotenv').config({ quiet: true });
 const readline = require('readline');
 
+// Opening the database keys old IP hashes, which needs IP_HASH_SECRET: say so plainly
+try {
+  require('../config/env').requireIpHashSecret();
+} catch (error) {
+  console.error(`\n❌ ${error.message}\n`);
+  process.exit(1);
+}
+
 // Keep migration and SQL logging out of the prompts.
 const log = console.log;
 console.log = () => {};

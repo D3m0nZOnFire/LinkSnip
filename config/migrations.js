@@ -397,7 +397,54 @@ function migrateTags(db, logger = console) {
   })();
 }
 
+/**
+ * Keyed IP hashes (services/ipHash.js). Old databases store plain SHA-256 hashes,
+ * which can be reversed by trying every IPv4 address; this rewraps each one, once,
+ * into HMAC(IP_HASH_SECRET, oldHash), exactly what a new visit from that IP is
+ * stored as, so unique visitors and the one-report-per-IP check carry on.
+ * app_meta records the scheme (so it runs once) and a fingerprint of the secret: if
+ * the secret changes later, stored hashes no longer match new ones, and startup says so.
+ */
+function migrateIpHashes(db, logger = console) {
+  const ipHash = require('../services/ipHash');
+  const tableExists = (name) =>
+    !!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?").get(name);
+  const fingerprint = ipHash.fingerprint(); // throws before anything changes when the secret is missing
+
+  db.exec('CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+  const getMeta = (key) => (db.prepare('SELECT value FROM app_meta WHERE key = ?').get(key) || {}).value;
+  const setMeta = db.prepare(`
+    INSERT INTO app_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value
+  `);
+
+  if (getMeta('ipHashScheme') === ipHash.SCHEME) {
+    if (getMeta('ipHashKeyFingerprint') !== fingerprint) {
+      logger.warn([
+        '  ⚠️  IP_HASH_SECRET changed since the last start. Visits and reports from now on get',
+        '     different IP hashes: unique-visitor counts and the one-report-per-IP check start over.',
+        '     To undo, set the previous IP_HASH_SECRET again.'
+      ].join('\n'));
+      setMeta.run('ipHashKeyFingerprint', fingerprint);
+    }
+    return;
+  }
+
+  db.transaction(() => {
+    db.function('linksnip_rewrap_ip_hash', { deterministic: true }, (hash) => ipHash.rewrapLegacy(hash));
+    const targets = [['analytics_events', 'ipHash'], ['reports', 'reporterIpHash']];
+    for (const [table, column] of targets) {
+      if (!tableExists(table)) continue;
+      const { changes } = db.prepare(`
+        UPDATE ${table} SET ${column} = linksnip_rewrap_ip_hash(${column}) WHERE ${column} IS NOT NULL
+      `).run();
+      if (changes) logger.log(`  🔑 Keyed ${changes} IP hash(es) in ${table}...`);
+    }
+    setMeta.run('ipHashScheme', ipHash.SCHEME);
+    setMeta.run('ipHashKeyFingerprint', fingerprint);
+  })();
+}
+
 module.exports = {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics, migrateTags
+  migrateAnalytics, migrateTags, migrateIpHashes
 };

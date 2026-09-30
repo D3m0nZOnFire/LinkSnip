@@ -1,18 +1,8 @@
-const crypto = require('crypto');
+const { hashIp } = require('./ipHash');
 const AnalyticsEvent = require('../models/AnalyticsEvent');
 const configService = require('./configService');
 
 class AnalyticsService {
-  /**
-   * Hash IP address for privacy
-   * @param {string} ip
-   * @returns {string} Hashed IP
-   */
-  static hashIp(ip) {
-    if (!ip) return null;
-    return crypto.createHash('sha256').update(ip).digest('hex');
-  }
-
   /**
    * Extract IP address from request
    * @param {object} req - Express request object
@@ -111,7 +101,7 @@ class AnalyticsService {
    */
   static async captureAnalytics(req) {
     const ip = this.getIpAddress(req);
-    const ipHash = this.hashIp(ip);
+    const ipHash = hashIp(ip);
     const referrer = req.headers.referer || req.headers.referrer || 'Direct';
     const userAgent = req.headers['user-agent'] || '';
     const { browser, os, device } = this.parseUserAgent(userAgent);

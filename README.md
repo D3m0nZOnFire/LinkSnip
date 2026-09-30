@@ -16,7 +16,7 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 - **Files**: share uploads at `/f/…`, with per-role size limits and storage quotas
 - **Bundles**: one link that opens several links at once
 - **Bio pages**: a public page listing a user's chosen links
-- **Analytics**: clicks over time, referrers, countries, devices, browsers and operating systems. Visitor IPs are only stored hashed.
+- **Analytics**: clicks over time, referrers, countries, devices, browsers and operating systems. Visitor IPs are only stored as keyed hashes.
 - **Analytics share links**: read-only, revocable `/stats/…` links for people without an account
 - **QR codes**, **tags**, and **bulk import/export** (CSV, JSON, plain text)
 - **Roles**: you decide what each kind of account, and visitors without one, may do and how much
@@ -43,6 +43,7 @@ cd LinkSnip
 
 cp .env.example .env
 sed -i "s/^SESSION_SECRET=.*/SESSION_SECRET=$(openssl rand -hex 32)/" .env
+sed -i "s/^IP_HASH_SECRET=.*/IP_HASH_SECRET=$(openssl rand -hex 32)/" .env
 mkdir -p data          # must be writable by uid 1000; see "Troubleshooting"
 
 docker compose up -d
@@ -83,7 +84,7 @@ You can also put `DOMAIN=links.example.com` in `.env`. To use a reverse proxy yo
 
 | Where | What |
 |---|---|
-| `.env` | Infrastructure only: `SESSION_SECRET`, `DATA_DIR`, `PORT`, `NODE_ENV`, `TRUST_PROXY` |
+| `.env` | Infrastructure only: `SESSION_SECRET`, `IP_HASH_SECRET`, `DATA_DIR`, `PORT`, `NODE_ENV`, `TRUST_PROXY` |
 | `data/settings.json` | Registration, feature switches, moderation, anonymous limits, retention, … Also editable in **Admin → Settings** |
 | `data/roles.json` | Roles: what each kind of account (and anonymous visitors) may do, and their limits |
 
@@ -127,7 +128,7 @@ docker compose up -d --build
 
 ## Troubleshooting
 
-- **"SESSION_SECRET is not set"**: create `.env` as shown in the quick start.
+- **"SESSION_SECRET is not set"** or **"IP_HASH_SECRET is not set"**: create `.env` as shown in the quick start.
 - **"The data directory /data is not writable"**: the container runs as uid 1000. Fix it with `sudo chown -R 1000:1000 ./data`.
 - **Lost the setup code**: restart the container (`docker compose restart linksnip`) to print a new one, or use
   `docker compose exec linksnip npm run admin`.
@@ -139,7 +140,7 @@ Requires Node.js 22.
 
 ```bash
 npm ci
-cp .env.example .env    # then set SESSION_SECRET
+cp .env.example .env    # then set SESSION_SECRET and IP_HASH_SECRET
 npm run dev             # http://localhost:8081, reloads on changes
 npm test
 ```

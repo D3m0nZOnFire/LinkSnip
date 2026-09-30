@@ -1,5 +1,5 @@
 # LinkSnip: docker compose up -d
-# Needs a .env file with SESSION_SECRET (see .env.example).
+# Needs a .env file with SESSION_SECRET and IP_HASH_SECRET (see .env.example).
 # All data (database, uploads, backups, settings.json, roles.json) lives in ./data.
 #
 # With automatic HTTPS from the bundled Caddy:

@@ -1,10 +1,11 @@
 require('dotenv').config({ quiet: true });
 
-// Refuse to start without a session secret or a writable DATA_DIR (before writing anything)
-const { requireSessionSecret, parseTrustProxy } = require('./config/env');
+// Refuse to start without the secrets or a writable DATA_DIR (before writing anything)
+const { requireSessionSecret, requireIpHashSecret, parseTrustProxy } = require('./config/env');
 let SESSION_SECRET;
 try {
   SESSION_SECRET = requireSessionSecret();
+  requireIpHashSecret();
   require('./config/paths').ensureDataDir(); // settings.json is seeded before the database opens
 } catch (error) {
   console.error(`\n❌ ${error.message}\n`);

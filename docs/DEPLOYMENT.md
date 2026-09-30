@@ -16,6 +16,7 @@ git clone https://github.com/D3m0nZOnFire/LinkSnip.git
 cd LinkSnip
 cp .env.example .env
 sed -i "s/^SESSION_SECRET=.*/SESSION_SECRET=$(openssl rand -hex 32)/" .env
+sed -i "s/^IP_HASH_SECRET=.*/IP_HASH_SECRET=$(openssl rand -hex 32)/" .env
 mkdir -p data
 ```
 
@@ -87,7 +88,7 @@ The app listens on `http://localhost:8081`. Without `DATA_DIR` in `.env`, data i
 | Logs | `docker compose logs -f linksnip` |
 | Health | `curl http://127.0.0.1:8081/healthz` (also used by the container's health check) |
 | Admin accounts (create, promote, reset password) | `docker compose exec linksnip npm run admin` |
-| Update | `git pull && docker compose up -d --build` |
+| Update | `git pull && docker compose up -d --build` (check `.env.example` for new required variables first) |
 | Stop | `docker compose down` (data in `data/` is kept) |
 
 **Backups:** the database is backed up online every night at 3:00 to `data/backups/`, keeping 30 days. Uploaded files
@@ -97,5 +98,16 @@ are in `data/uploads/` and are not part of that backup, so copy `data/` elsewher
 `data/database.db`, and start it again. Check a backup first with
 `sqlite3 <backup> "PRAGMA integrity_check"`, which should print `ok`. Migrations bring an older backup up to date on
 start. A restored database already has an admin, so the setup page won't appear.
+
+**Upgrading to keyed IP hashes:** LinkSnip now needs `IP_HASH_SECRET` in `.env` and refuses to start without it.
+Add it before updating:
+
+```bash
+echo "IP_HASH_SECRET=$(openssl rand -hex 32)" >> .env
+```
+
+On the first start, the stored IP hashes (plain SHA-256, which anyone with the database could reverse) are rewrapped
+with the secret. Unique-visitor counts and the one-report-per-IP check carry on unchanged. Keep the secret: with a
+different one, visits from then on no longer match earlier ones (startup logs a warning if it changes).
 
 **Configuration:** see [CONFIGURATION.md](CONFIGURATION.md). Settings are also editable in Admin → Settings.

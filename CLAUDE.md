@@ -28,7 +28,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 | Layer | Where | Holds |
 |---|---|---|
-| Environment | `.env` / container env | Infrastructure only: `SESSION_SECRET` (required), `DATA_DIR`, `PORT` (8081), `NODE_ENV`, `TRUST_PROXY` (1) |
+| Environment | `.env` / container env | Infrastructure only: `SESSION_SECRET`, `IP_HASH_SECRET` (both required), `DATA_DIR`, `PORT` (8081), `NODE_ENV`, `TRUST_PROXY` (1) |
 | Settings | `DATA_DIR/settings.json` | Instance behavior: `registration.open`, `geo.enabled`, `features.*`, `moderation.reportThreshold`, `anonymous.*ExpirationDays`, `pastes.maxSizeKB`, `files.globalMaxFileSizeMB`, `retention.*` |
 | Roles | `DATA_DIR/roles.json` | Permissions and limits per role |
 
@@ -42,8 +42,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   Read settings live: `configService.get('pastes.maxSizeKB')`, never cache at module load.
 - **`config/paths.js`**: every data path (`DB_PATH`, `UPLOADS_DIR`, `BACKUPS_DIR`, `SETTINGS_PATH`, `ROLES_PATH`)
   derives from `DATA_DIR` (default: project root). `ensureDataDir()` fails with a `chown` hint if it's not writable.
-- **`config/env.js`**: `requireSessionSecret()` (the app refuses to start without it or with a public placeholder) and
-  `parseTrustProxy()`.
+- **`config/env.js`**: `requireSessionSecret()` (the app refuses to start without it or with a public placeholder),
+  `requireIpHashSecret()` (also at least 32 characters and different from `SESSION_SECRET`; the admin CLI checks it too)
+  and `parseTrustProxy()`.
 
 ## Roles and permissions
 
@@ -89,7 +90,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - `config/database.js` opens `DB_PATH`, applies `config/dbSetup.js` (WAL, `busy_timeout = 5000`, foreign keys), and
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
   `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
-  `migrateAnalytics`, `migrateTags`); they're idempotent
+  `migrateAnalytics`, `migrateTags`, `migrateIpHashes`); they're idempotent
   and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
 - Migration pattern: `CREATE TABLE IF NOT EXISTS`, check `PRAGMA table_info` before `ALTER TABLE`,
@@ -106,7 +107,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   Pastes use `userId`/`views`/`maxViews`, files `userId`/`downloads`/`maxDownloads`/`size`/`sharingMode`/
   `allowedUsers`
 - **analytics_events** (every type): one row per visit, `targetType` + `targetId`, `subTargetId` (a bundle item click;
-  NULL for everything else), `timestamp`, `ipHash` (SHA-256, never raw IPs), `referrer`, `userAgent`, `browser`, `os`,
+  NULL for everything else), `timestamp`, `ipHash` (keyed hash, never raw IPs), `referrer`, `userAgent`, `browser`, `os`,
   `device`, `country`. Delete triggers remove an item's events (and a bundle item's clicks). (Replaced `analytics`,
   `bundle_analytics`, `bundle_item_analytics`, `paste_analytics` in `migrateAnalytics`.)
 - **tags** (lowercase, `UNIQUE(userId, name)`) and **taggables** (every type): `tagId` + `targetType` + `targetId`.
@@ -300,7 +301,10 @@ share links · 5:30 expired files.
 5. `req.user` can be null (anonymous). Pass `req.user || null` to `RoleService`.
 6. Only pending reports count toward quarantine and the report badges. Reports have no foreign key to their item;
    the `trg_reports_delete_*` triggers clean them up. A new reportable table needs its own trigger.
-7. Analytics privacy: only `ipHash`, never raw IPs (audit logs are the exception, for security auditing).
+7. Analytics privacy: only IP hashes, never raw IPs (audit logs are the exception, for security auditing). Hash with
+   `services/ipHash.js` `hashIp()`: HMAC(`IP_HASH_SECRET`, SHA-256(ip)), so the database alone can't be reversed.
+   `migrateIpHashes` rewrapped the old plain SHA-256 hashes into the same values once (`app_meta.ipHashScheme`), and
+   warns at startup when the secret's fingerprint (`app_meta.ipHashKeyFingerprint`) changed.
 8. CSV import uses `;` between tags, since `,` separates columns.
 9. Tests stub `res.render`, so a template that crashes at render time only shows up in a real run. Smoke-test pages
    you change.
