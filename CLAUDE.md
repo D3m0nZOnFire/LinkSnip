@@ -285,6 +285,9 @@ share links · 5:30 expired files · 5:45 country database check.
   `DATA_DIR=/data`, `HEALTHCHECK` on `/healthz`. Code is root-owned; only `/data` is writable.
 - `docker-compose.yml`: `./data:/data`, `127.0.0.1:8081`, `restart: unless-stopped`; optional `caddy` profile with
   `docker/Caddyfile` and `DOMAIN`.
+- Deploys (maintainer): a `vX.Y.Z` tag → `docker-publish.yml` → `deploy.yml` → forced-command SSH key →
+  `docker/deploy/linksnip-deploy` on the server (installed by hand in `/usr/local/bin`): snapshot of DB + settings,
+  build, 60 s health wait, and on failure the snapshot and the previous code are restored.
 - CI (`.github/workflows/ci.yml`): tests + image smoke test. `pr-status.yml` + `.github/scripts/prStatus.js` label PRs
   (`work-in-progress` / `ready-to-test` / `needs-fixes`). `docker-publish.yml` pushes to GHCR on `vX.Y.Z` tags.
 

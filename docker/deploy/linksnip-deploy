@@ -1,0 +1,140 @@
+#!/bin/bash
+# Deploy a LinkSnip release tag to a Docker Compose checkout, with a database safety net.
+#
+#   linksnip-deploy vX.Y.Z              deploy that tag
+#   linksnip-deploy restore <snapshot>  put a snapshot's database and settings back (root only)
+#
+# Install as root: install -m 755 docker/deploy/linksnip-deploy /usr/local/bin/
+# The maintainer's GitHub Actions call it through a forced-command SSH key for the deployer
+# user: sudo -n /usr/local/bin/linksnip-deploy vX.Y.Z (see .github/workflows/deploy.yml).
+#
+# Every deploy first snapshots the database (a consistent online copy), settings.json and
+# roles.json into $SNAPSHOTS/<time>-<tag>/. If the new version isn't healthy within
+# $HEALTH_TIMEOUT seconds, it is stopped, its database is moved into that snapshot folder
+# (failed-state/, nothing is deleted), the snapshot is restored, and the previous code starts
+# again. Migrations are one-way, so rolling back the code alone would leave the old version on
+# a database it may not understand. Changes made between the snapshot and the rollback are
+# only in failed-state/. A manual restore keeps the files it replaces in replaced-<time>/.
+#
+# For a test copy, root can point it elsewhere (sudo resets the environment, so the SSH key can't):
+# LINKSNIP_DIR, LINKSNIP_SNAPSHOTS, LINKSNIP_DEPLOY_LOG, LINKSNIP_HEALTH_TIMEOUT, LINKSNIP_KEEP_SNAPSHOTS.
+set -euo pipefail
+
+DIR="${LINKSNIP_DIR:-/srv/linksnip}"
+SNAPSHOTS="${LINKSNIP_SNAPSHOTS:-/srv/linksnip-snapshots}"
+LOG="${LINKSNIP_DEPLOY_LOG:-/var/log/linksnip-deploy.log}"
+HEALTH_TIMEOUT="${LINKSNIP_HEALTH_TIMEOUT:-60}"
+KEEP_SNAPSHOTS="${LINKSNIP_KEEP_SNAPSHOTS:-10}"
+DATA="$DIR/data"
+STATE_FILES=(settings.json roles.json)
+
+exec >> "$LOG" 2> >(tee -a "$LOG" >&2)
+log() { echo "$(date -u +%FT%TZ) $*"; }
+fail() { log "FAILED: $*"; echo "deploy failed: $*" >&2; exit 1; }
+say() { log "$*"; echo "$*" >&2; } # to the log and to the caller (the Actions job output)
+
+cd "$DIR"
+container() { docker compose ps -q linksnip 2>/dev/null; }
+running() { [ -n "$(container)" ] && [ "$(docker inspect -f '{{.State.Running}}' "$(container)")" = true ]; }
+healthy() { [ -n "$(container)" ] && [ "$(docker inspect -f '{{.State.Health.Status}}' "$(container)" 2>/dev/null)" = healthy ]; }
+wait_healthy() {
+  for _ in $(seq 1 "$HEALTH_TIMEOUT"); do healthy && return 0; sleep 1; done
+  return 1
+}
+data_owner() { stat -c '%u:%g' "$DATA"; }
+
+# Consistent copy of the live database into $1/database.db, plus settings.json and roles.json
+snapshot() {
+  local dest="$1" tmp=".pre-deploy-$$.sqlite"
+  install -d -m 700 "$dest"
+  if running; then
+    # Through the app's own connection (SQLite online backup), while it keeps serving
+    docker compose exec -T linksnip node -e \
+      'require("./config/database").backup(process.argv[1]).then(() => process.exit(0), e => { console.error(e.message); process.exit(1); })' \
+      "/data/backups/$tmp" >/dev/null || return 1
+    mv "$DATA/backups/$tmp" "$dest/database.db"
+  else
+    # Nothing is running (e.g. after an earlier failure): copy the files directly
+    sqlite3 "$DATA/database.db" ".backup '$dest/database.db'" || return 1
+  fi
+  [ "$(sqlite3 "$dest/database.db" 'PRAGMA quick_check')" = ok ] || return 1
+  for f in "${STATE_FILES[@]}"; do [ -f "$DATA/$f" ] && cp -p "$DATA/$f" "$dest/"; done
+  return 0
+}
+
+# Put a snapshot's database and settings back, moving the current files into $2 (a new
+# folder: nothing already kept is overwritten). The app must be stopped.
+restore_files() {
+  local snap="$1" keep="$2" owner
+  owner="$(data_owner)"
+  [ ! -e "$keep" ] || return 1
+  install -d -m 700 "$keep"
+  for f in database.db database.db-wal database.db-shm "${STATE_FILES[@]}"; do
+    [ -f "$DATA/$f" ] && mv "$DATA/$f" "$keep/"
+  done
+  install -m 644 -o "${owner%:*}" -g "${owner#*:}" "$snap/database.db" "$DATA/database.db"
+  for f in "${STATE_FILES[@]}"; do
+    [ -f "$snap/$f" ] && install -m 644 -o "${owner%:*}" -g "${owner#*:}" "$snap/$f" "$DATA/$f"
+  done
+  return 0
+}
+
+prune_snapshots() {
+  local old
+  old=$(find "$SNAPSHOTS" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -r | tail -n +"$((KEEP_SNAPSHOTS + 1))")
+  for d in $old; do rm -rf "${SNAPSHOTS:?}/$d"; done
+}
+
+# ── restore <snapshot>: manual, root only (the deployer's SSH key never gets here) ──
+if [ "${1:-}" = restore ]; then
+  [ "${SUDO_USER:-}" != deployer ] || fail "restore is for root only"
+  SNAP="${2:-}"
+  [[ "$SNAP" = /* ]] || SNAP="$SNAPSHOTS/$SNAP"
+  [ -f "$SNAP/database.db" ] || fail "no database.db in snapshot $SNAP (list: ls $SNAPSHOTS)"
+  log "restore requested: $SNAP"
+  install -d -m 700 "$SNAPSHOTS"
+  snapshot "$SNAPSHOTS/$(date -u +%Y%m%dT%H%M%SZ)-before-restore" || fail "could not snapshot the current database first"
+  KEEP="$SNAP/replaced-$(date -u +%Y%m%dT%H%M%SZ)"
+  docker compose stop linksnip
+  restore_files "$SNAP" "$KEEP" || fail "could not restore $SNAP"
+  docker compose up -d linksnip
+  wait_healthy || fail "restored $SNAP but the app is not healthy; the replaced files are in $KEEP/"
+  say "restored $SNAP, healthy (the replaced files are in $KEEP/)"
+  exit 0
+fi
+
+# ── deploy vX.Y.Z ──
+TAG="${1:-}"
+[[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "refusing tag \"$TAG\" (expected vX.Y.Z)"
+log "deploy $TAG requested"
+
+git fetch -q --tags --force origin
+git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || fail "tag $TAG not found in origin"
+PREVIOUS=$(git rev-parse HEAD)
+PREVIOUS_NAME=$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)
+
+install -d -m 700 "$SNAPSHOTS"
+SNAP="$SNAPSHOTS/$(date -u +%Y%m%dT%H%M%SZ)-$TAG"
+snapshot "$SNAP" || fail "pre-deploy snapshot failed; nothing was changed"
+log "snapshot of $PREVIOUS_NAME: $SNAP"
+prune_snapshots
+
+git -c advice.detachedHead=false checkout -q "$TAG"
+docker compose up -d --build --quiet-pull 2>&1 | tail -2
+if wait_healthy; then
+  say "deployed $TAG ($(git rev-parse --short HEAD)), healthy; snapshot of $PREVIOUS_NAME: $SNAP"
+  exit 0
+fi
+
+# ── Unhealthy: database and settings back to the snapshot, then the previous code ──
+say "$TAG not healthy after ${HEALTH_TIMEOUT}s: restoring the snapshot and $PREVIOUS_NAME"
+docker compose logs --no-color --tail 80 linksnip > "$SNAP/failed-$TAG.log" 2>&1 || true
+tail -40 "$SNAP/failed-$TAG.log" >&2 || true
+docker compose stop linksnip
+restore_files "$SNAP" "$SNAP/failed-state" || fail "could not restore $SNAP; $TAG is stopped, restore by hand: $0 restore $SNAP"
+git -c advice.detachedHead=false checkout -q "$PREVIOUS"
+docker compose up -d --build 2>&1 | tail -2
+if wait_healthy; then
+  fail "$TAG was unhealthy; rolled back to $PREVIOUS_NAME with the database from before the deploy. $TAG's database and log: $SNAP/"
+fi
+fail "$TAG was unhealthy and $PREVIOUS_NAME is unhealthy too after restoring $SNAP; check: cd $DIR && docker compose logs linksnip"
