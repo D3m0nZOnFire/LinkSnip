@@ -241,10 +241,12 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   (checks the palette exists and has the right mode; logs `UPDATE_SETTINGS`), logo and favicon via
   `POST|DELETE /api/admin/branding/:asset` (`UPDATE_BRANDING`).
 - `services/paletteService.js`: palettes in Omarchy's `colors.toml` format (`mode`, `accent`, `background`,
-  `foreground`, `red`, `yellow`, optional `name`), built in from `config/palettes/*.toml` (LinkSnip Dark/Light) and
-  `config/palettes/omarchy/` (copied unchanged, commit in `SOURCE.md`, MIT). `tokens(palette)` maps one to the theme
+  `foreground`, `red`, `yellow`, optional `name`). Built in: `config/palettes.js` (LinkSnip Dark/Light and palettes
+  inspired by Omarchy's themes; credited in the README). A test requires every built-in palette to need no
+  adjusting. `tokens(palette)` maps one to the theme
   colors: surfaces are mixed from background and foreground, text colors are nudged (same hue) to 4.5:1 (7:1 for
-  foreground), a red/yellow that isn't red/warm falls back to LinkSnip's. `themeCss()` serves both as `/theme.css`
+  foreground), a red/yellow that isn't red/warm is taken from the palette's other Omarchy colors (`extras`: orange,
+  bright_red, …) or else LinkSnip's; `report()` explains each change in the editor. `themeCss()` serves both as `/theme.css`
   (`:root` = dark, `html[data-theme="light"]`), linked as `/theme.css?v=<hash>` (cached for good). An unknown or
   wrong-mode palette id in settings.json falls back to the default with a warning; `services/color.js` does the math.
 - `services/brandingService.js`: logo/favicon in `DATA_DIR/branding/` (`paths.BRANDING_DIR`; PNG/JPG/WebP/SVG, ICO
@@ -252,6 +254,13 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `res.locals.branding` `{ name, tagline, logoUrl, faviconUrl, themeUrl }` from `brandingLocals`
   (`middleware/viewLocals.js`, mounted with `routes/brandingRoutes.js` right after `express.static`, so setup and error
   pages have it). Show the name with `partials/brand.ejs`; "Powered by LinkSnip" in the footer stays.
+- Custom palettes: `DATA_DIR/palettes/<id>.toml` (`paths.PALETTES_DIR`, same format; file name = id, can't reuse a
+  built-in id). Re-read at most every 2 s (`reload()` right after a write); a broken file is skipped, warned once and
+  listed by `problems()` on the Appearance page. `createPalette` (id from the name: `company-blue`, `-2`, …),
+  `updatePalette`, `deletePalette` (built-in 403, unknown 404, in use as dark/light palette 409 for delete or a mode
+  switch), `report()` (what `tokens()` adjusted, for the editor). API: `POST /api/admin/palettes`,
+  `PUT|DELETE /api/admin/palettes/:id`, `POST /api/admin/palettes/preview` (tokens + adjustments, saves nothing);
+  audit `CREATE_PALETTE`, `UPDATE_PALETTE`, `DELETE_PALETTE`. Editor: `public/js/paletteEditor.js`.
 - The off-site backup copies `data/branding/` and `data/palettes/` too.
 
 ### Teams

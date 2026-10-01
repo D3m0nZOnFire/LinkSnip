@@ -102,9 +102,83 @@
 }
 
 .palette-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+  min-height: 1.5rem;
   font-size: var(--text-sm);
   font-weight: 500;
   padding: 0 var(--spacing-xs);
+}
+
+.palette-name > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Custom palettes: a pencil next to the name */
+.palette-edit {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.palette-edit:hover,
+.palette-edit:focus-visible {
+  color: var(--foreground);
+  background: var(--secondary);
+  outline: none;
+}
+
+/* The "New palette" tile */
+.palette-new {
+  align-items: stretch;
+  font: inherit;
+  color: var(--muted-foreground);
+  background: transparent;
+  border-style: dashed;
+  text-align: left;
+}
+
+.palette-new:hover,
+.palette-new:focus-visible {
+  color: var(--foreground);
+  outline: none;
+}
+
+.palette-new:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.palette-new-icon {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  min-height: 4.6rem;
+  border-radius: var(--radius-md);
+  background: var(--secondary);
+  font-size: var(--text-2xl);
+  font-weight: 300;
+}
+
+.palette-credit code,
+.palette-problems code,
+.palette-problems li {
+  overflow-wrap: anywhere;
+}
+
+.palette-problems ul {
+  margin: var(--spacing-sm) 0 0 1.25rem;
 }
 
 /* A tiny page in the palette's own colors */
@@ -194,7 +268,289 @@
   color: var(--destructive);
 }
 
+/* ─── Palette editor (modal) ───────────────────────────────────────────── */
+.modal.palette-editor {
+  display: flex;
+  flex-direction: column;
+  width: min(56rem, calc(100% - 2rem));
+  max-width: none;
+  padding: 0;
+  overflow: hidden; /* the fields scroll; title and buttons stay */
+}
+
+.palette-editor .modal-header,
+.palette-editor .modal-footer,
+.palette-errors {
+  flex-shrink: 0;
+}
+
+.palette-editor-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.palette-editor .modal-header,
+.palette-editor .modal-footer {
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.palette-delete {
+  margin-right: auto;
+  color: var(--destructive);
+}
+
+.palette-delete:hover {
+  color: var(--destructive);
+  background: var(--status-error-bg);
+}
+
+.palette-editor-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-xl);
+  padding: var(--spacing-lg);
+}
+
+.palette-errors {
+  padding: 0 var(--spacing-lg) 0 calc(var(--spacing-lg) + 1.25rem);
+}
+
+.palette-errors:empty {
+  display: none;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--secondary);
+}
+
+.segmented label {
+  position: relative;
+  cursor: pointer;
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+
+.segmented span {
+  display: block;
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+}
+
+.segmented input:checked + span {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
+}
+
+.segmented input:focus-visible + span {
+  box-shadow: var(--focus-ring);
+}
+
+.color-field {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+}
+
+.color-field input[type="color"] {
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-top: 1.6rem;
+  padding: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--input);
+  cursor: pointer;
+}
+
+.color-field > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.color-field .field-help {
+  font-size: var(--text-xs);
+}
+
+.color-hex {
+  font-family: var(--font-mono);
+  text-transform: lowercase;
+}
+
+.color-hex.invalid {
+  border-color: var(--destructive);
+}
+
+/* The preview: a small page in the palette's colors (variables set by paletteEditor.js) */
+.palette-preview-pane {
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+.palette-live {
+  /* Tints follow this element's --primary/--warning, not the page's */
+  --status-active-bg: color-mix(in srgb, var(--primary) 10%, transparent);
+  --status-active-border: color-mix(in srgb, var(--primary) 30%, transparent);
+  --status-warning-bg: color-mix(in srgb, var(--warning) 10%, transparent);
+  --status-warning-border: color-mix(in srgb, var(--warning) 30%, transparent);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.pl-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.pl-logo {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.3rem;
+  background: var(--primary);
+}
+
+.pl-card {
+  margin: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.pl-heading {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.pl-text {
+  font-size: var(--text-sm);
+}
+
+.pl-link {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pl-muted {
+  margin-top: 0.2rem;
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+.pl-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.pl-button {
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.pl-badge,
+.pl-warning {
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  border: 1px solid;
+}
+
+.pl-badge {
+  color: var(--primary);
+  border-color: var(--status-active-border);
+  background: var(--status-active-bg);
+}
+
+.pl-warning {
+  color: var(--warning);
+  border-color: var(--status-warning-border);
+  background: var(--status-warning-bg);
+}
+
+.pl-danger {
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.palette-adjustments {
+  list-style: none;
+  margin: var(--spacing-md) 0 0;
+  padding: 0;
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+}
+
+.palette-adjustments li {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: flex-start;
+  margin-bottom: var(--spacing-sm);
+}
+
+.adjust-use {
+  display: flex;
+  margin-top: var(--spacing-xs);
+  padding: 0.2rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.adjust-swatch {
+  flex-shrink: 0;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-top: 0.2rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--border);
+}
+
 @media (max-width: 768px) {
+  .palette-editor-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .palette-preview-pane {
+    position: static;
+    order: -1;
+  }
+
   .identity-grid,
   .asset-grid {
     grid-template-columns: minmax(0, 1fr);

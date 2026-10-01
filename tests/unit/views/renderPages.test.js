@@ -24,7 +24,9 @@ const VIEWS = path.join(__dirname, '../../../views');
 
 afterEach(() => {
   fs.rmSync(paths.SETTINGS_PATH, { force: true });
+  fs.rmSync(paths.PALETTES_DIR, { recursive: true, force: true });
   configService.reload();
+  require('../../../services/paletteService').reload();
 });
 
 let s; // seeded records
@@ -112,7 +114,11 @@ const PAGES = {
   'admin-audit-logs': () => rendered(c('auditLogController').getAuditLogsPage, request(s.admin)),
   'admin-teams': () => rendered(c('teamController').adminPage, request(s.admin)),
   'admin-settings': () => rendered(c('adminSettingsController').getSettingsPage, request(s.admin)),
-  'admin-appearance': () => rendered(c('brandingController').appearancePage, request(s.admin))
+  'admin-appearance': () => {
+    require('../../../services/paletteService').createPalette({ name: 'Company', mode: 'dark',
+      colors: { accent: '#3b82f6', background: '#0b1220', foreground: '#e6edf3', red: '#ef4444', yellow: '#f59e0b' } });
+    return rendered(c('brandingController').appearancePage, request(s.admin));
+  }
 };
 
 // The bio page tables aren't part of the test database; same shape as BioPage.findByUsername
@@ -174,5 +180,16 @@ describe('every page renders', () => {
       if (i === pageAt || i === footerAt) return;
       expect({ el, before: i < pageAt }).toEqual({ el: expect.objectContaining({ name: 'header' }), before: true });
     });
+  });
+});
+
+describe('admin-appearance', () => {
+  it('shows custom palettes with an edit button and a New tile per mode', async () => {
+    const html = await renderPage('admin-appearance');
+    expect(html).toMatch(/<button type="button" class="palette-edit" data-edit="company"/);
+    expect(html).toContain('data-new="dark"');
+    expect(html).toContain('data-new="light"');
+    const data = JSON.parse(html.match(/<script type="application\/json" id="paletteData">([\s\S]*?)<\/script>/)[1]);
+    expect(data.find(p => p.id === 'company')).toMatchObject({ builtIn: false, mode: 'dark' });
   });
 });

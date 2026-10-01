@@ -37,5 +37,6 @@ module.exports = {
   GEO_DIR: path.join(DATA_DIR, 'geo'),
   GEO_DB_PATH: path.join(DATA_DIR, 'geo', 'dbip-country-lite.mmdb'),
   BRANDING_DIR: path.join(DATA_DIR, 'branding'),
+  PALETTES_DIR: path.join(DATA_DIR, 'palettes'),
   ensureDataDir
 };

@@ -17,6 +17,11 @@ router.get('/admin/appearance', isAuthenticated, isAdmin, BrandingController.app
 router.put('/api/admin/appearance', isAuthenticated, isAdmin, BrandingController.updateAppearance);
 router.post('/api/admin/branding/:asset', isAuthenticated, isAdmin, BrandingController.uploadAsset);
 router.delete('/api/admin/branding/:asset', isAuthenticated, isAdmin, BrandingController.deleteAsset);
+// Custom palettes (DATA_DIR/palettes); preview before :id
+router.post('/api/admin/palettes/preview', isAuthenticated, isAdmin, BrandingController.previewPalette);
+router.post('/api/admin/palettes', isAuthenticated, isAdmin, BrandingController.createPalette);
+router.put('/api/admin/palettes/:id', isAuthenticated, isAdmin, BrandingController.updatePalette);
+router.delete('/api/admin/palettes/:id', isAuthenticated, isAdmin, BrandingController.deletePalette);
 router.delete('/api/admin/roles/:name', isAuthenticated, isAdmin, AdminSettingsController.deleteRole);
 
 // Admin users page

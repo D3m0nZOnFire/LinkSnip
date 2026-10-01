@@ -1,9 +1,0 @@
-# LinkSnip's own palettes, in the same format as Omarchy's colors.toml
-name = "LinkSnip Dark"
-mode = "dark"
-
-accent = "#34d399"
-background = "#09090b"
-foreground = "#fafafa"
-red = "#f87171"
-yellow = "#fbbf24"

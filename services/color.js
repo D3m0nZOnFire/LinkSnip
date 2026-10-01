@@ -79,9 +79,23 @@ function ensureContrast(hex, background, ratio) {
   return lighten ? '#ffffff' : '#000000';
 }
 
+/** A plain name for the color's hue, for messages ("#3355ff is a blue") */
+function hueName(hex) {
+  const { h, s } = hsl(hex);
+  if (s < 0.15) return 'grey';
+  if (h < 15 || h >= 345) return 'red';
+  if (h < 40) return 'orange';
+  if (h < 70) return 'yellow';
+  if (h < 160) return 'green';
+  if (h < 195) return 'teal';
+  if (h < 255) return 'blue';
+  if (h < 290) return 'purple';
+  return 'pink';
+}
+
 /** The candidate with the most contrast on `background` */
 function readableOn(background, candidates) {
   return candidates.reduce((best, c) => (contrast(c, background) > contrast(best, background) ? c : best));
 }
 
-module.exports = { parse, toHex, normalize, mix, luminance, contrast, hsl, fromHsl, ensureContrast, readableOn };
+module.exports = { parse, toHex, normalize, mix, luminance, contrast, hsl, fromHsl, ensureContrast, readableOn, hueName };

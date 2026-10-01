@@ -40,6 +40,7 @@ describe('config/paths', () => {
     expect(paths.SETTINGS_PATH).toBe('/data/settings.json');
     expect(paths.ROLES_PATH).toBe('/data/roles.json');
     expect(paths.BRANDING_DIR).toBe('/data/branding');
+    expect(paths.PALETTES_DIR).toBe('/data/palettes');
   });
 });
 
