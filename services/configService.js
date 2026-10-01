@@ -1,4 +1,5 @@
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const EventEmitter = require('events');
 const paths = require('../config/paths');
@@ -9,7 +10,8 @@ const DEFAULT_ROLES = require('../config/roles.default.json');
  * Config Service
  *
  * Loads, validates, watches and writes DATA_DIR/settings.json and DATA_DIR/roles.json.
- * The Admin → Settings page and a hand edit of the file are equal ways to change them.
+ * The Admin → Settings page and a hand edit of the file are equal ways to change them. Role edits carry the
+ * file's rolesVersion(), so a save from the page can't silently overwrite a hand edit made in between.
  *
  * - Built-in defaults are merged with each file, and every key is validated.
  * - An invalid file is logged and the last good config is kept.
@@ -27,6 +29,17 @@ class ConfigValidationError extends Error {
   }
 }
 
+/** roles.json changed on disk since the caller read it (rolesVersion()). */
+class ConfigConflictError extends Error {
+  constructor() {
+    super('roles.json changed on disk since this page was loaded. Reload the page and make your changes again.');
+    this.name = 'ConfigConflictError';
+  }
+}
+
+// Names of roles created in the editor. Roles written by hand in roles.json may use other names.
+const ROLE_NAME = /^[a-z0-9][a-z0-9-]{0,31}$/;
+const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
@@ -63,6 +76,24 @@ function nestSettings(flat) {
     node[parts[parts.length - 1]] = value;
   }
   return out;
+}
+
+// What changed between two roles configs, for roles present in both: { 'roles.user.label': { from, to } }
+function diffRoles(before, after) {
+  const diff = {};
+  const add = (key, from, to) => { if (from !== to) diff[key] = { from, to }; };
+  add('defaultRole', before.defaultRole, after.defaultRole);
+  for (const [name, role] of Object.entries(before.roles)) {
+    const next = after.roles[name];
+    if (!next) continue;
+    add(`roles.${name}.label`, role.label, next.label);
+    for (const section of ['permissions', 'limits']) {
+      for (const key of Object.keys(role[section])) {
+        add(`roles.${name}.${section}.${key}`, role[section][key], next[section][key]);
+      }
+    }
+  }
+  return diff;
 }
 
 function assignableRoleNames(roles) {
@@ -177,13 +208,18 @@ class ConfigService extends EventEmitter {
     return { values, errors, warnings };
   }
 
-  _mergeRoles(data) {
+  /**
+   * Merge roles data over a base (the built-in roles by default) and validate it.
+   * strict (edits from the admin page): unknown keys are errors, and new role names must match ROLE_NAME.
+   */
+  _mergeRoles(data, { base = DEFAULT_ROLES, strict = false } = {}) {
     const errors = [];
     const warnings = [];
-    const roles = clone(DEFAULT_ROLES);
+    const roles = clone(base);
+    const unknown = (message) => (strict ? errors.push(message) : warnings.push(`${message} (ignored)`));
 
     for (const key of Object.keys(data)) {
-      if (key !== 'defaultRole' && key !== 'roles') warnings.push(`roles.json: unknown key "${key}" (ignored)`);
+      if (key !== 'defaultRole' && key !== 'roles') unknown(`roles.json: unknown key "${key}"`);
     }
 
     const fileRoles = data.roles === undefined ? {} : data.roles;
@@ -198,20 +234,29 @@ class ConfigService extends EventEmitter {
         errors.push(`roles.json: ${where} must be an object`);
         continue;
       }
+      const isNew = !has(roles.roles, name);
+      if (isNew && (name in Object.prototype || name === '__proto__')) {
+        errors.push(`roles.json: "${name}" is a reserved name and can't be a role`);
+        continue;
+      }
+      if (isNew && strict && !ROLE_NAME.test(name)) {
+        errors.push(`roles.json: role name "${name}" must be 1 to 32 lowercase letters, digits or dashes, not starting with a dash`);
+        continue;
+      }
       // Custom roles start from the built-in user role: "like a user, except …".
-      const role = roles.roles[name] || { ...clone(DEFAULT_ROLES.roles.user), label: name };
+      const role = isNew ? { ...clone(DEFAULT_ROLES.roles.user), label: name } : roles.roles[name];
 
       for (const key of Object.keys(override)) {
-        if (!['label', 'permissions', 'limits'].includes(key)) warnings.push(`roles.json: unknown key "${where}.${key}" (ignored)`);
+        if (!['label', 'permissions', 'limits'].includes(key)) unknown(`roles.json: unknown key "${where}.${key}"`);
       }
 
       if (override.label !== undefined) {
-        if (typeof override.label === 'string' && override.label.trim()) role.label = override.label;
+        if (typeof override.label === 'string' && override.label.trim()) role.label = override.label.trim();
         else errors.push(`roles.json: ${where}.label must be a non-empty string (got ${JSON.stringify(override.label)})`);
       }
 
-      this._mergeSection(override, role, where, 'permissions', schema.PERMISSIONS, schema.checkPermission, errors, warnings);
-      this._mergeSection(override, role, where, 'limits', schema.LIMITS, schema.checkLimit, errors, warnings);
+      this._mergeSection(override, role, where, 'permissions', schema.PERMISSIONS, schema.checkPermission, errors, unknown);
+      this._mergeSection(override, role, where, 'limits', schema.LIMITS, schema.checkLimit, errors, unknown);
 
       roles.roles[name] = role;
     }
@@ -227,7 +272,7 @@ class ConfigService extends EventEmitter {
     return { roles, errors, warnings };
   }
 
-  _mergeSection(override, role, where, section, known, check, errors, warnings) {
+  _mergeSection(override, role, where, section, known, check, errors, unknown) {
     if (override[section] === undefined) return;
     if (!isPlainObject(override[section])) {
       errors.push(`roles.json: ${where}.${section} must be an object`);
@@ -235,8 +280,8 @@ class ConfigService extends EventEmitter {
     }
     for (const [key, value] of Object.entries(override[section])) {
       const keyPath = `${where}.${section}.${key}`;
-      if (!(key in known)) {
-        warnings.push(`roles.json: unknown ${section === 'limits' ? 'limit' : 'permission'} "${keyPath}" (ignored)`);
+      if (!has(known, key)) {
+        unknown(`roles.json: unknown ${section === 'limits' ? 'limit' : 'permission'} "${keyPath}"`);
         continue;
       }
       const problem = check(value);
@@ -290,6 +335,90 @@ class ConfigService extends EventEmitter {
     this._settings = values;
     if (Object.keys(diff).length) this.emit('change', { file: 'settings' });
     return diff;
+  }
+
+  /** A fingerprint of roles.json as it is on disk; pass it back to the edit methods to detect hand edits in between. */
+  rolesVersion() {
+    let text = '';
+    try {
+      text = fs.readFileSync(this.rolesPath, 'utf8');
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+    return crypto.createHash('sha256').update(text).digest('hex');
+  }
+
+  /**
+   * Validate and save role changes: { defaultRole?, roles?: { name: { label?, permissions?, limits? } } }.
+   * A name that doesn't exist yet creates a role (starting from the built-in user role).
+   * The whole file is written, every role with every key.
+   * @param {object} [options.version] - rolesVersion() when the caller read the roles; a mismatch throws ConfigConflictError
+   * @returns {{ changed: object, created: string[] }} changed: { 'roles.user.limits.urlsPerHour': { from, to } }
+   * @throws {ConfigValidationError|ConfigConflictError}
+   */
+  updateRoles(patch, { version } = {}) {
+    this._ensureLoaded();
+    this._checkRolesVersion(version);
+    if (!isPlainObject(patch)) throw new ConfigValidationError(['roles.json: expected an object']);
+
+    const { roles, errors } = this._mergeRoles(patch, { base: this._roles, strict: true });
+    if (errors.length) throw new ConfigValidationError(errors);
+
+    const changed = diffRoles(this._roles, roles);
+    const created = Object.keys(roles.roles).filter(name => !has(this._roles.roles, name));
+    this._saveRoles(roles);
+    return { changed, created };
+  }
+
+  /**
+   * Remove a custom role. Accounts that still name it fall back to defaultRole; move them first.
+   * @returns {object} The removed role
+   * @throws {ConfigValidationError|ConfigConflictError}
+   */
+  deleteRole(name, { version } = {}) {
+    this._ensureLoaded();
+    this._checkRolesVersion(version);
+    if (schema.BUILT_IN_ROLES.includes(name)) throw new ConfigValidationError([`"${name}" is a built-in role and can't be deleted`]);
+    if (!has(this._roles.roles, name)) throw new ConfigValidationError([`there is no role "${name}"`]);
+    if (this._roles.defaultRole === name) {
+      throw new ConfigValidationError([`"${name}" is the default role; choose another default role first`]);
+    }
+
+    const roles = clone(this._roles);
+    const removed = roles.roles[name];
+    delete roles.roles[name];
+    this._saveRoles(roles);
+    return removed;
+  }
+
+  /**
+   * Put a built-in role back to its built-in permissions, limits and label.
+   * @returns {object} What changed, as updateRoles
+   * @throws {ConfigValidationError|ConfigConflictError}
+   */
+  resetRole(name, { version } = {}) {
+    this._ensureLoaded();
+    this._checkRolesVersion(version);
+    if (!schema.BUILT_IN_ROLES.includes(name)) {
+      throw new ConfigValidationError([`only built-in roles can be reset ("${name}" is not one)`]);
+    }
+
+    const roles = clone(this._roles);
+    roles.roles[name] = clone(DEFAULT_ROLES.roles[name]);
+    const changed = diffRoles(this._roles, roles);
+    this._saveRoles(roles);
+    return changed;
+  }
+
+  _checkRolesVersion(version) {
+    if (version !== undefined && version !== this.rolesVersion()) throw new ConfigConflictError();
+  }
+
+  _saveRoles(roles) {
+    this._writeAtomic(this.rolesPath, roles);
+    const changed = JSON.stringify(roles) !== JSON.stringify(this._roles);
+    this._roles = deepFreeze(roles);
+    if (changed) this.emit('change', { file: 'roles' });
   }
 
   _writeAtomic(filePath, data) {
@@ -349,3 +478,4 @@ const configService = new ConfigService({
 module.exports = configService;
 module.exports.ConfigService = ConfigService;
 module.exports.ConfigValidationError = ConfigValidationError;
+module.exports.ConfigConflictError = ConfigConflictError;

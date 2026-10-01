@@ -48,7 +48,7 @@ LinkSnip is configured in three places:
 
 - **Environment variables**: infrastructure only (secrets, paths, ports).
 - **\`DATA_DIR/settings.json\`**: how the instance behaves. Edit it in **Admin → Settings** or by hand.
-- **\`DATA_DIR/roles.json\`**: who may do what, and how much. Edit it by hand; Admin → Settings shows it read-only.
+- **\`DATA_DIR/roles.json\`**: who may do what, and how much. Edit it in Admin → Settings → Roles or by hand.
 
 Both JSON files are created with every key and its default on first start, so opening them shows every option.
 Missing keys use the defaults, so a partial file is fine.
@@ -88,6 +88,10 @@ A role is a named set of permissions and limits. Every account has one; visitors
   registrations. An account with an unknown role also gets it.
 - **Built-in roles:** ${roleNames.map(r => `\`${r}\``).join(', ')}. Anything you set is merged over their defaults.
 - **Custom roles:** add a new name under \`roles\`. It starts as a copy of \`user\`, with your changes on top.
+- **In Admin → Settings → Roles** you can edit every role, change \`defaultRole\`, add roles (keys of lowercase letters,
+  digits and dashes), reset a built-in role to its defaults, and delete a custom role. Deleting asks where its accounts go:
+  another role, or back to the default role. Saving writes the whole file, every role with every key, and is
+  audit-logged. If the file was edited by hand while the page was open, the save is refused: reload the page first.
 - **Limits:** a whole number, or \`null\` for unlimited. \`0\` means none allowed.
 - \`files.globalMaxFileSizeMB\` in settings.json caps \`maxFileSizeMB\` for every role whose limit isn't \`null\`.
 
