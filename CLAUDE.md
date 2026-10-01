@@ -259,8 +259,13 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Admin
 - `/admin` (links), `/admin/users` (role filter/select, **Create user** → `POST /api/admin/users`), `/admin/files`,
   `/admin/pastes`, `/admin/reports`, `/admin/analytics`, `/admin/analytics-shares`, `/admin/audit-logs` (also manual
-  backup/cleanup), `/admin/settings` (form from the schema plus read-only role grids; `PUT /api/admin/settings`
-  validates, writes and logs `UPDATE_SETTINGS` with the diff).
+  backup/cleanup), `/admin/settings` (form from the schema; `PUT /api/admin/settings` validates, writes and logs
+  `UPDATE_SETTINGS` with the diff), plus the roles editor (`public/js/rolesEditor.js`: a column per role, one card per
+  role on phones). `PUT /api/admin/roles` (edit/create), `POST /api/admin/roles/:name/reset` (built-in only),
+  `DELETE /api/admin/roles/:name` with `moveTo` (a role, or `null` = clear `users.role`; users and file in one
+  transaction). Each request carries `configService.rolesVersion()` (hash of roles.json): a hand edit in between
+  → 409. `updateRoles` rejects unknown keys and new names outside `[a-z0-9-]`, writes the full file. Audit:
+  `UPDATE_ROLES`, `CREATE_ROLE`, `DELETE_ROLE`, `RESET_ROLE`.
 - Block, unblock and delete for every type (`routes/adminItemRoutes.js`, `controllers/adminItemController.js`):
   `POST /api/admin/:type/:id/block` | `/unblock`, `DELETE /api/admin/:type/:id`, `POST /api/admin/:type/bulk-block` |
   `/bulk-unblock` (`{ ids }`, at most 200). `:type` is `url`/`bundle`/`paste`/`file`; an unknown type or a switched-off

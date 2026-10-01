@@ -5,9 +5,12 @@ const AuditLogController = require('../controllers/auditLogController');
 const AdminSettingsController = require('../controllers/adminSettingsController');
 const { isAuthenticated, isAdmin } = require('../middleware/auth');
 
-// Instance settings (settings.json) and read-only roles (roles.json)
+// Instance settings (settings.json) and roles (roles.json)
 router.get('/admin/settings', isAuthenticated, isAdmin, AdminSettingsController.getSettingsPage);
 router.put('/api/admin/settings', isAuthenticated, isAdmin, AdminSettingsController.updateSettings);
+router.put('/api/admin/roles', isAuthenticated, isAdmin, AdminSettingsController.updateRoles);
+router.post('/api/admin/roles/:name/reset', isAuthenticated, isAdmin, AdminSettingsController.resetRole);
+router.delete('/api/admin/roles/:name', isAuthenticated, isAdmin, AdminSettingsController.deleteRole);
 
 // Admin users page
 router.get('/admin/users', isAuthenticated, isAdmin, AdminController.getUsersPage);

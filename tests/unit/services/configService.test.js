@@ -405,4 +405,252 @@ describe('ConfigService', () => {
       expect(fs.readdirSync(dir)).toEqual([]);
     });
   });
+
+  describe('editing roles', () => {
+    const { ConfigConflictError } = require('../../../services/configService');
+
+    function expectInvalid(fn, pattern) {
+      let error;
+      try { fn(); } catch (e) { error = e; }
+      expect(error).toBeInstanceOf(ConfigValidationError);
+      if (pattern) expect(error.errors.join('\n')).toMatch(pattern);
+      return error;
+    }
+
+    describe('rolesVersion', () => {
+      it('changes when the file changes on disk', () => {
+        writeJson('roles.json', { roles: {} });
+        makeService().load();
+        const before = service.rolesVersion();
+
+        writeJson('roles.json', { roles: { user: { label: 'Member' } } });
+
+        expect(service.rolesVersion()).not.toBe(before);
+        expect(typeof before).toBe('string');
+      });
+
+      it('works without a file', () => {
+        makeService().load();
+        expect(service.rolesVersion()).toEqual(expect.any(String));
+      });
+    });
+
+    describe('updateRoles', () => {
+      it('changes labels, permissions, limits and the default role, and applies them at once', () => {
+        makeService().load();
+
+        service.updateRoles({
+          defaultRole: 'trusted',
+          roles: {
+            user: { label: 'Member', permissions: { uploadFiles: true }, limits: { urlsPerHour: 5 } },
+            anonymous: { limits: { urlsPerHour: null } }
+          }
+        });
+
+        const { defaultRole, roles } = service.getRoles();
+        expect(defaultRole).toBe('trusted');
+        expect(roles.user.label).toBe('Member');
+        expect(roles.user.permissions.uploadFiles).toBe(true);
+        expect(roles.user.limits.urlsPerHour).toBe(5);
+        expect(roles.user.limits.pastesPerHour).toBe(defaultRoles.roles.user.limits.pastesPerHour);
+        expect(roles.anonymous.limits.urlsPerHour).toBeNull();
+      });
+
+      it('writes the full file: every role with every key', () => {
+        makeService().load();
+        service.updateRoles({ roles: { user: { limits: { urlsPerHour: 5 } } } });
+
+        const file = readJson('roles.json');
+        expect(file.defaultRole).toBe('user');
+        expect(Object.keys(file.roles)).toEqual(['anonymous', 'user', 'trusted', 'unlimited']);
+        expect(file.roles.trusted).toEqual(defaultRoles.roles.trusted);
+        expect(file.roles.user.limits.urlsPerHour).toBe(5);
+        expect(Object.keys(file.roles.user.permissions)).toEqual(Object.keys(defaultRoles.roles.user.permissions));
+        expect(fs.readdirSync(dir).filter(f => f.includes('.tmp'))).toEqual([]);
+      });
+
+      it('returns what changed, by path', () => {
+        makeService().load();
+        const result = service.updateRoles({
+          defaultRole: 'user',
+          roles: { user: { label: 'Member', limits: { urlsPerHour: 5, pastesPerHour: 100 } } }
+        });
+
+        expect(result).toEqual({
+          changed: {
+            'roles.user.label': { from: 'User', to: 'Member' },
+            'roles.user.limits.urlsPerHour': { from: 100, to: 5 }
+          },
+          created: []
+        });
+      });
+
+      it('creates a role from the built-in user role', () => {
+        makeService().load();
+        const result = service.updateRoles({ roles: { marketing: { label: 'Marketing', limits: { urlsPerHour: 1000 } } } });
+
+        const role = service.getRoles().roles.marketing;
+        expect(role.label).toBe('Marketing');
+        expect(role.limits.urlsPerHour).toBe(1000);
+        expect(role.permissions).toEqual(defaultRoles.roles.user.permissions);
+        expect(result.created).toEqual(['marketing']);
+        expect(result.changed).toEqual({});
+        expect(readJson('roles.json').roles.marketing.limits.urlsPerHour).toBe(1000);
+      });
+
+      it('can make a new role the default in the same save', () => {
+        makeService().load();
+        service.updateRoles({ defaultRole: 'member', roles: { member: { label: 'Member' } } });
+        expect(service.getRoles().defaultRole).toBe('member');
+      });
+
+      it.each([
+        ['Marketing', /lowercase/],
+        ['has space', /lowercase/],
+        ['-dash', /lowercase/],
+        ['a'.repeat(33), /lowercase/],
+        ['__proto__', /reserved/],
+        ['constructor', /reserved/]
+      ])('rejects the new role name %j', (name, pattern) => {
+        makeService().load();
+        expectInvalid(() => service.updateRoles({ roles: { [name]: { label: 'X' } } }), pattern);
+        expect(fs.existsSync(path.join(dir, 'roles.json'))).toBe(false);
+      });
+
+      it('keeps roles from the file whose names the editor would not allow', () => {
+        writeJson('roles.json', { roles: { Old_Name: { label: 'Old' } } });
+        makeService().load();
+
+        service.updateRoles({ roles: { Old_Name: { limits: { urlsPerHour: 3 } } } });
+
+        expect(service.getRoles().roles.Old_Name.limits.urlsPerHour).toBe(3);
+      });
+
+      it('rejects unknown keys, permissions and limits instead of ignoring them', () => {
+        makeService().load();
+        expectInvalid(() => service.updateRoles({ roles: { user: { permissions: { flyPlanes: true } } } }), /flyPlanes/);
+        expectInvalid(() => service.updateRoles({ roles: { user: { limits: { urlsPerDay: 3 } } } }), /urlsPerDay/);
+        expectInvalid(() => service.updateRoles({ roles: { user: { colour: 'red' } } }), /colour/);
+        expectInvalid(() => service.updateRoles({ teams: {} }), /teams/);
+      });
+
+      it('rejects bad values with every error, changing nothing', () => {
+        writeJson('roles.json', { roles: { user: { limits: { urlsPerHour: 7 } } } });
+        makeService().load();
+
+        const error = expectInvalid(() => service.updateRoles({
+          defaultRole: 'anonymous',
+          roles: { user: { label: '  ', permissions: { tags: 'yes' }, limits: { urlsPerHour: -1 } } }
+        }));
+
+        expect(error.errors).toHaveLength(4);
+        expect(service.getRoles().roles.user.limits.urlsPerHour).toBe(7);
+        expect(service.getRoles().defaultRole).toBe('user');
+        expect(readJson('roles.json')).toEqual({ roles: { user: { limits: { urlsPerHour: 7 } } } });
+      });
+
+      it('trims labels', () => {
+        makeService().load();
+        service.updateRoles({ roles: { user: { label: '  Member ' } } });
+        expect(service.getRoles().roles.user.label).toBe('Member');
+      });
+
+      it('refuses to save over a file that changed since the version was read', () => {
+        writeJson('roles.json', { roles: {} });
+        makeService().load();
+        const version = service.rolesVersion();
+        writeJson('roles.json', { roles: { user: { limits: { urlsPerHour: 7 } } } });
+
+        expect(() => service.updateRoles({ roles: { user: { label: 'Member' } } }, { version }))
+          .toThrow(ConfigConflictError);
+        expect(readJson('roles.json')).toEqual({ roles: { user: { limits: { urlsPerHour: 7 } } } });
+      });
+
+      it('saves when the version matches', () => {
+        writeJson('roles.json', { roles: {} });
+        makeService().load();
+
+        service.updateRoles({ roles: { user: { label: 'Member' } } }, { version: service.rolesVersion() });
+
+        expect(service.getRoles().roles.user.label).toBe('Member');
+      });
+
+      it('emits change', () => {
+        makeService().load();
+        const onChange = jest.fn();
+        service.on('change', onChange);
+
+        service.updateRoles({ roles: { user: { label: 'Member' } } });
+
+        expect(onChange).toHaveBeenCalledWith({ file: 'roles' });
+      });
+    });
+
+    describe('deleteRole', () => {
+      beforeEach(() => {
+        writeJson('roles.json', { roles: { marketing: { label: 'Marketing' } } });
+      });
+
+      it('removes a custom role from memory and the file', () => {
+        makeService().load();
+        const removed = service.deleteRole('marketing');
+
+        expect(removed.label).toBe('Marketing');
+        expect(service.getRoles().roles.marketing).toBeUndefined();
+        expect(readJson('roles.json').roles.marketing).toBeUndefined();
+        expect(readJson('roles.json').roles.trusted).toEqual(defaultRoles.roles.trusted);
+      });
+
+      it.each(['anonymous', 'user', 'trusted', 'unlimited'])('refuses to delete the built-in role %s', (name) => {
+        makeService().load();
+        expectInvalid(() => service.deleteRole(name), /built-in/);
+      });
+
+      it('refuses an unknown role', () => {
+        makeService().load();
+        expectInvalid(() => service.deleteRole('ghost'), /ghost/);
+      });
+
+      it('refuses to delete the default role', () => {
+        writeJson('roles.json', { defaultRole: 'marketing', roles: { marketing: { label: 'Marketing' } } });
+        makeService().load();
+        expectInvalid(() => service.deleteRole('marketing'), /default/);
+        expect(service.getRoles().roles.marketing).toBeDefined();
+      });
+
+      it('checks the version', () => {
+        makeService().load();
+        expect(() => service.deleteRole('marketing', { version: 'stale' })).toThrow(ConfigConflictError);
+        expect(service.getRoles().roles.marketing).toBeDefined();
+      });
+    });
+
+    describe('resetRole', () => {
+      it('puts a built-in role back to its defaults and returns what changed', () => {
+        writeJson('roles.json', { roles: { trusted: { label: 'VIP', limits: { urlsPerHour: 1 } } } });
+        makeService().load();
+
+        const changed = service.resetRole('trusted');
+
+        expect(service.getRoles().roles.trusted).toEqual(defaultRoles.roles.trusted);
+        expect(readJson('roles.json').roles.trusted).toEqual(defaultRoles.roles.trusted);
+        expect(changed).toEqual({
+          'roles.trusted.label': { from: 'VIP', to: 'Trusted' },
+          'roles.trusted.limits.urlsPerHour': { from: 1, to: 500 }
+        });
+      });
+
+      it('refuses a custom or unknown role', () => {
+        writeJson('roles.json', { roles: { marketing: { label: 'Marketing' } } });
+        makeService().load();
+        expectInvalid(() => service.resetRole('marketing'), /built-in/);
+        expectInvalid(() => service.resetRole('ghost'), /built-in/);
+      });
+
+      it('checks the version', () => {
+        makeService().load();
+        expect(() => service.resetRole('user', { version: 'stale' })).toThrow(ConfigConflictError);
+      });
+    });
+  });
 });
