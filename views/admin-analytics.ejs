@@ -39,9 +39,7 @@
     }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'admin-analytics' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin-analytics' }) %>
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -129,7 +127,5 @@
   </main>
 
   <script src="/js/main.js"></script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

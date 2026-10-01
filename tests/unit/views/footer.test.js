@@ -7,11 +7,23 @@ const pages = fs.readdirSync(VIEWS).filter(f => f.endsWith('.ejs'));
 const renderFooter = (locals = {}) => ejs.renderFile(path.join(VIEWS, 'partials/footer.ejs'), locals);
 
 describe('footer', () => {
-  it.each(pages)('%s includes the footer partial before </body>', (page) => {
+  // The frame (header or sidebar, .page, footer) comes from two partials, so every page gets the same one
+  it.each(pages)('%s opens with partials/layout-start and closes with partials/layout-end', (page) => {
     const html = fs.readFileSync(path.join(VIEWS, page), 'utf8');
-    const include = html.indexOf("include('partials/footer')");
-    expect(include).toBeGreaterThan(-1);
-    expect(include).toBeLessThan(html.lastIndexOf('</body>'));
+    const start = html.indexOf("include('partials/layout-start'");
+    const end = html.indexOf("include('partials/layout-end'");
+    expect(start).toBeGreaterThan(html.indexOf('</head>'));
+    expect(end).toBeGreaterThan(start);
+    expect(html.slice(end)).toMatch(/^include\('partials\/layout-end'[^)]*\) %>\s*<\/html>\s*$/);
+    expect(html).not.toMatch(/<body/);
+  });
+
+  it('partials/layout-end has the footer', async () => {
+    for (const shell of ['app', 'public', 'standalone']) {
+      const html = await ejs.renderFile(path.join(VIEWS, 'partials/layout-end.ejs'), { shell, appVersion: '1.3.0' });
+      expect(html).toContain('<footer class="site-footer">');
+      expect(html).toMatch(/<\/body>\s*$/);
+    }
   });
 
   it('credits the author with a link to their GitHub profile', async () => {

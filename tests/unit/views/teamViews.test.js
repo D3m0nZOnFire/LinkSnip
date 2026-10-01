@@ -122,15 +122,16 @@ describe('partials/team-invites.ejs (dashboard banner)', () => {
   });
 });
 
-describe('header', () => {
-  const header = (locals) => render('partials/header.ejs', { currentPage: 'home', ...locals });
+// The app's navigation is the sidebar (partials/sidebar)
+describe('sidebar', () => {
+  const sidebar = (locals) => render('partials/sidebar.ejs', { currentPage: 'home', ...locals });
 
   it('links to Teams when the feature is on', async () => {
-    expect(await header({ user, features: { teams: true } })).toContain('href="/teams"');
-    expect(await header({ user, features: { teams: false } })).not.toContain('href="/teams"');
+    expect(await sidebar({ user, features: { teams: true } })).toContain('href="/teams"');
+    expect(await sidebar({ user, features: { teams: false } })).not.toContain('href="/teams"');
   });
 
   it('lists Admin → Teams for admins', async () => {
-    expect(await header({ user: { ...user, isAdmin: 1 }, features: { teams: true } })).toContain('href="/admin/teams"');
+    expect(await sidebar({ user: { ...user, isAdmin: 1 }, features: { teams: true } })).toContain('href="/admin/teams"');
   });
 });

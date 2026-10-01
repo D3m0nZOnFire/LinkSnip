@@ -79,9 +79,7 @@
     }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'admin-settings' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin-settings' }) %>
 
   <%
     const SECTION_TITLES = {
@@ -297,7 +295,5 @@
       }
     }
   </script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

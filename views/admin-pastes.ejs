@@ -3,9 +3,7 @@
 <head>
   <%- include('partials/head', { title: 'Pastes · Admin', styles: ['tables', 'forms'] }) %>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'admin-pastes' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin-pastes' }) %>
 
   <main class="main-content-wide">
     <div class="header-section">
@@ -138,7 +136,5 @@
       }
     }
   </script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

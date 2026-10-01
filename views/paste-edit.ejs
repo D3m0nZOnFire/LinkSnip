@@ -47,9 +47,7 @@
     }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'dashboard' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'dashboard' }) %>
 
   <main class="main-content">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
@@ -171,7 +169,5 @@
       }
     }
   </script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

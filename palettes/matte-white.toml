@@ -1,0 +1,8 @@
+# LinkSnip palette (Omarchy colors.toml format). Edited in Admin → Appearance, or by hand.
+name = "Matte White"
+mode = "light"
+accent = "#e68e0d"
+background = "#ffffff"
+foreground = "#000000"
+red = "#d35f5f"
+yellow = "#ffc107"

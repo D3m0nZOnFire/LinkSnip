@@ -138,9 +138,7 @@
     }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: '' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'public' }) %>
 
   <div class="unlock-container">
     <div class="unlock-box">
@@ -224,7 +222,5 @@
       }
     }
   </script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'public' }) %>
 </html>

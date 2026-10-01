@@ -20,9 +20,7 @@
     .data-table td:first-child { white-space: normal; overflow-wrap: anywhere; }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'teams' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'teams' }) %>
 
   <%
     const isManager = myRole === 'owner' || myRole === 'admin';
@@ -186,7 +184,5 @@
 
   <script src="/js/main.js"></script>
   <script src="/js/team.js"></script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

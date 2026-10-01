@@ -78,25 +78,8 @@ code, kbd, pre, samp {
 }
 
 /* ========================================
-   Header & Navigation
+   Logo (login pages)
    ======================================== */
-
-.header {
-  border-bottom: 1px solid var(--border);
-  background-color: var(--card);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.header-content {
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: var(--spacing-md);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 
 .logo-container {
   display: flex;
@@ -174,109 +157,6 @@ code, kbd, pre, samp {
   padding: 0.3rem;
 }
 
-.nav {
-  display: flex;
-  gap: var(--spacing-lg);
-  align-items: center;
-}
-
-.nav a {
-  color: var(--foreground);
-  text-decoration: none;
-  transition: color var(--transition-base);
-  font-weight: 500;
-}
-
-.nav a:hover {
-  color: var(--primary);
-}
-
-.nav a.active {
-  color: var(--primary);
-}
-
-.nav a.primary {
-  color: var(--primary);
-}
-
-/* Navigation Dropdown */
-.nav-dropdown {
-  position: relative;
-  /* Add padding to create a larger hover area */
-  padding: 0.5rem 0;
-  margin: -0.5rem 0;
-}
-
-.nav-dropdown-toggle {
-  display: flex;
-  align-items: center;
-  background: none;
-  border: none;
-  color: var(--foreground);
-  font-weight: 500;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 0;
-  transition: color var(--transition-base);
-  font-family: inherit;
-}
-
-.nav-dropdown-toggle:hover,
-.nav-dropdown-toggle.active {
-  color: var(--primary);
-}
-
-.nav-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
-  min-width: 12rem;
-  background-color: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-sm);
-  display: none;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  box-shadow: var(--shadow-lg);
-  z-index: 1000;
-}
-
-/* Add a pseudo-element to bridge the gap between button and menu */
-.nav-dropdown-menu::before {
-  content: '';
-  position: absolute;
-  top: -0.5rem;
-  left: 0;
-  right: 0;
-  height: 0.5rem;
-  background: transparent;
-}
-
-.nav-dropdown:hover .nav-dropdown-menu,
-.nav-dropdown:focus-within .nav-dropdown-menu {
-  display: flex;
-}
-
-.nav-dropdown-menu a {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-sm);
-  color: var(--foreground);
-  text-decoration: none;
-  transition: background-color var(--transition-base), color var(--transition-base);
-  font-weight: 500;
-}
-
-.nav-dropdown-menu a:hover {
-  background-color: var(--secondary);
-  color: var(--primary);
-}
-
-.nav-dropdown-menu a.active {
-  background-color: var(--status-active-bg);
-  color: var(--primary);
-}
-
 /* ========================================
    Badges
    ======================================== */
@@ -307,17 +187,6 @@ code, kbd, pre, samp {
   background-color: var(--status-warning-bg);
   color: var(--status-warning-text);
   border: 1px solid var(--status-warning-border);
-}
-
-.admin-badge {
-  margin-left: var(--spacing-md);
-  background-color: var(--status-active-bg);
-}
-
-.admin-badge svg {
-  width: 1rem;
-  height: 1rem;
-  color: var(--primary);
 }
 
 /* ========================================
@@ -881,11 +750,6 @@ code, kbd, pre, samp {
     flex-direction: column;
   }
 
-  .nav {
-    gap: var(--spacing-md);
-    font-size: 0.875rem;
-  }
-
   .header-section {
     flex-direction: column;
     align-items: flex-start;
@@ -1198,100 +1062,3 @@ code, kbd, pre, samp {
 .file-ext-vid  { background: #8b5cf6; }
 .file-ext-aud  { background: #ec4899; }
 .file-ext-code { background: #6366f1; }
-
-/* ========================================
-   Navigation on small screens: the links fold into a menu under a button (public/js/nav.js)
-   ======================================== */
-.nav-toggle {
-  display: none;
-}
-
-@media (max-width: 1024px) {
-  .header-content {
-    position: relative;
-  }
-
-  .nav-toggle {
-    display: inline-flex;
-    color: var(--foreground);
-  }
-
-  .nav {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    padding: 0 var(--spacing-md) var(--spacing-sm);
-    background-color: var(--card);
-    border-bottom: 1px solid var(--border);
-    box-shadow: var(--shadow-lg);
-    font-size: 1rem;
-    max-height: calc(100vh - 4rem);
-    overflow-y: auto;
-  }
-
-  .nav.open {
-    display: flex;
-  }
-
-  .nav > a,
-  .nav-dropdown-menu a {
-    padding: 0.75rem 0.25rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  /* The admin links are listed in place, under an "Admin" heading */
-  .nav-dropdown {
-    padding: 0;
-    margin: 0;
-  }
-
-  .nav-dropdown-toggle {
-    width: 100%;
-    padding: 0.75rem 0.25rem 0.25rem;
-    color: var(--muted-foreground);
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    pointer-events: none;
-  }
-
-  .nav-dropdown-toggle svg {
-    display: none;
-  }
-
-  .nav-dropdown-menu {
-    position: static;
-    display: flex;
-    min-width: 0;
-    padding: 0 0 0 var(--spacing-md);
-    gap: 0;
-    background: none;
-    border: none;
-    box-shadow: none;
-  }
-
-  .nav-dropdown-menu::before {
-    display: none;
-  }
-
-  .nav-dropdown-menu a {
-    border-radius: 0;
-  }
-}
-
-@media (max-width: 400px) {
-  /* Room for logo, admin badge, theme and menu buttons on the narrowest phones */
-  #theme-toggle {
-    margin-right: 0.25rem !important;
-  }
-
-  .header-content {
-    padding-inline: 0.75rem;
-  }
-}
-

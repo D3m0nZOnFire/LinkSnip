@@ -1,0 +1,17 @@
+<%# The logged-in person's menu: Settings, theme, Log out. { place: 'sidebar' | 'header' } %>
+<% const menuId = `userMenu-${locals.place || 'sidebar'}`; %>
+<div class="user-menu user-menu-<%= locals.place || 'sidebar' %>" data-user-menu>
+  <button type="button" class="user-button" aria-haspopup="menu" aria-expanded="false" aria-controls="<%= menuId %>">
+    <span class="avatar" aria-hidden="true"><%= user.username.charAt(0).toUpperCase() %></span>
+    <span class="user-meta">
+      <span class="user-name"><%= user.username %></span>
+      <% if (user.isAdmin) { %><span class="user-role">Admin</span><% } %>
+    </span>
+    <%- include('icon', { icon: 'chevronsUpDown' }) %>
+  </button>
+  <div class="user-menu-list" id="<%= menuId %>" role="menu" hidden>
+    <a href="/settings" role="menuitem"><%- include('icon', { icon: 'settings' }) %> Settings</a>
+    <button type="button" role="menuitem" data-theme-toggle><span data-theme-icon></span> <span data-theme-label>Switch theme</span></button>
+    <a href="/logout" role="menuitem"><%- include('icon', { icon: 'logout' }) %> Log out</a>
+  </div>
+</div>

@@ -10,9 +10,8 @@
     .url-info a { color: var(--status-active-text); word-break: break-all; }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'analytics' }) %>
-  <div class="page">
+<% const shell = locals.readOnly || !user ? 'public' : 'app'; %>
+<%- include('partials/layout-start', { shell, currentPage: 'analytics' }) %>
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -274,7 +273,5 @@
     });
     <% } %>
   </script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: shell }) %>
 </html>

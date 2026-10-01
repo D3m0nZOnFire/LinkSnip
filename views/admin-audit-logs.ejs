@@ -50,9 +50,7 @@
     }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'admin-audit-logs' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin-audit-logs' }) %>
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -315,7 +313,5 @@
       }
     });
   </script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

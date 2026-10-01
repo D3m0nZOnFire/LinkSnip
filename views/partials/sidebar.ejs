@@ -1,0 +1,58 @@
+<%# Navigation of the logged-in pages (layout-start, shell 'app'). A drawer below 1024px (public/js/shell.js). %>
+<%
+  const can = locals.can || {};
+  const features = locals.features || {};
+  const page = locals.currentPage || '';
+  const current = (key) => (page === key ? ' aria-current="page"' : '');
+  const links = [
+    { href: '/dashboard', icon: 'dashboard', label: 'Dashboard', key: 'dashboard', show: true },
+    { href: '/tags', icon: 'tag', label: 'Tags', key: 'tags', show: can.tags },
+    { href: '/teams', icon: 'teams', label: 'Teams', key: 'teams', show: features.teams },
+    { href: '/bio/settings', icon: 'bio', label: 'Bio page', key: 'bio-settings', show: can.bioPage },
+    { href: '/import', icon: 'importExport', label: 'Import / export', key: 'import', show: can.importExport }
+  ];
+  const adminLinks = [
+    { href: '/admin', label: 'Links', key: 'admin', show: true },
+    { href: '/admin/users', label: 'Users', key: 'admin-users', show: true },
+    { href: '/admin/teams', label: 'Teams', key: 'admin-teams', show: features.teams },
+    { href: '/admin/files', label: 'Files', key: 'admin-files', show: features.files },
+    { href: '/admin/pastes', label: 'Pastes', key: 'admin-pastes', show: features.pastes },
+    { href: '/admin/reports', label: 'Reports', key: 'admin-reports', show: features.reports },
+    { href: '/admin/analytics', label: 'Analytics', key: 'admin-analytics', show: true },
+    { href: '/admin/analytics-shares', label: 'Analytics shares', key: 'admin-analytics-shares', show: features.analyticsShareLinks },
+    { href: '/admin/settings', label: 'Settings', key: 'admin-settings', show: true },
+    { href: '/admin/appearance', label: 'Appearance', key: 'admin-appearance', show: true },
+    { href: '/admin/audit-logs', label: 'Audit logs', key: 'admin-audit-logs', show: true }
+  ];
+-%>
+<aside class="sidebar" id="sidebar" aria-label="Main menu">
+  <div class="sidebar-head">
+    <%- include('brand', { large: false }) %>
+    <button type="button" class="icon-btn sidebar-close" data-sidebar-close aria-label="Close menu"><%- include('icon', { icon: 'close' }) %></button>
+  </div>
+
+  <a href="/" class="sidebar-create btn"<%- current('home') %>><%- include('icon', { icon: 'plus' }) %> Create</a>
+
+  <nav class="sidebar-nav">
+    <% links.filter(l => l.show).forEach(l => { %>
+    <a href="<%= l.href %>" class="sidebar-link"<%- current(l.key) %>><%- include('icon', { icon: l.icon }) %> <%= l.label %></a>
+    <% }) %>
+  </nav>
+
+  <% if (user && user.isAdmin) { %>
+  <details class="sidebar-group"<%= page.startsWith('admin') ? ' open' : '' %>>
+    <summary class="sidebar-link"><%- include('icon', { icon: 'admin' }) %> Admin <%- include('icon', { icon: 'chevronRight' }) %></summary>
+    <nav class="sidebar-subnav" aria-label="Admin">
+      <% adminLinks.filter(l => l.show).forEach(l => { %>
+      <a href="<%= l.href %>" class="sidebar-link"<%- current(l.key) %>><%= l.label %></a>
+      <% }) %>
+    </nav>
+  </details>
+  <% } %>
+
+  <div class="sidebar-foot">
+    <%- include('user-menu', { place: 'sidebar' }) %>
+  </div>
+</aside>
+<div class="sidebar-backdrop" data-sidebar-close hidden></div>
+<script src="/js/shell.js" defer></script>

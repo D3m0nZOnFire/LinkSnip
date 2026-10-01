@@ -1,0 +1,8 @@
+# LinkSnip palette (Omarchy colors.toml format). Edited in Admin → Appearance, or by hand.
+name = "Matte Black Revanced"
+mode = "dark"
+accent = "#e68e0d"
+background = "#000000"
+foreground = "#ffffff"
+red = "#d35f5f"
+yellow = "#ffc107"

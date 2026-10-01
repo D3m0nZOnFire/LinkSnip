@@ -3,9 +3,7 @@
 <head>
   <%- include('partials/head', { title: 'Links · Admin', styles: ['tables', 'forms', 'modals'] }) %>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'admin' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin' }) %>
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -965,7 +963,5 @@
       </div>
     </div>
   </div>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

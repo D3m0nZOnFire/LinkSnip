@@ -7,7 +7,7 @@ const configService = require('../../../services/configService');
 const teamService = require('../../../services/teamService');
 const AnalyticsShare = require('../../../models/AnalyticsShare');
 const { viewLocals, appLocals, brandingLocals } = require('../../../middleware/viewLocals');
-const { bodyChildren } = require('../../setup/htmlTree');
+const { bodyTree } = require('../../setup/htmlTree');
 const { getTestDatabase } = require('../../setup/testDatabase');
 const {
   createTestUser, createTestUrl, createTestTag, createTestBundle, createTestBundleItem, createTestFile,
@@ -140,6 +140,14 @@ function bioSettingsData() {
   };
 }
 
+async function localsFor(user) {
+  const req = request(user);
+  const res = createMockResponse();
+  brandingLocals(req, res, () => {});
+  viewLocals(req, res, () => {});
+  return res.locals;
+}
+
 async function renderPage(name) {
   const { req, view, data } = await PAGES[name]();
   expect(view).toBe(name);
@@ -150,6 +158,35 @@ async function renderPage(name) {
 }
 
 const pages = fs.readdirSync(VIEWS).filter(f => f.endsWith('.ejs')).map(f => f.replace(/\.ejs$/, ''));
+
+// Which frame each page has, as the seeded case renders it:
+//   app: sidebar + main column (top bar on small screens, page, footer) for logged-in work
+//   public: slim header, page, footer, for anyone (the item pages, the home page of a visitor)
+//   standalone: page and footer only (login, errors, bio pages)
+const SHELL = Object.fromEntries(pages.map(name => [name,
+  ['url-info', 'paste-view', 'paste-info', 'file-download', 'bundle-launcher', 'unlock'].includes(name) ? 'public'
+    : ['login', 'register', 'setup', 'error', 'scheduled', 'quarantine', 'bio-page'].includes(name) ? 'standalone'
+      : 'app']));
+
+const visible = (nodes) => nodes.filter(el => !['script', 'noscript', 'template'].includes(el.name));
+const describeNode = (el) => `${el.name}${el.classes.map(c => `.${c}`).join('')}`;
+
+// The footer is the last thing in its column, after .page (main.css pins it to the bottom of the window)
+function expectLayout(html, shell) {
+  const body = bodyTree(html);
+  const top = visible(body.children).map(describeNode);
+  if (shell === 'app') {
+    expect(body.classes).toContain('app');
+    expect(top).toEqual(['aside.sidebar', 'div.sidebar-backdrop', 'div.app-main']);
+    const main = body.children.find(el => el.classes.includes('app-main'));
+    expect(visible(main.children).map(describeNode)).toEqual(['header.topbar', 'div.page', 'footer.site-footer']);
+  } else if (shell === 'public') {
+    expect(body.classes).not.toContain('app');
+    expect(top).toEqual(['header.site-header', 'div.page', 'footer.site-footer']);
+  } else {
+    expect(top).toEqual([expect.stringMatching(/^div\.page/), 'footer.site-footer']);
+  }
+}
 
 describe('every page renders', () => {
   it('has a case for every page in views/', () => {
@@ -170,16 +207,7 @@ describe('every page renders', () => {
     expect(withoutFooter).not.toMatch(/>\s*LinkSnip\s*</);
     expect(withoutFooter).not.toMatch(/alt="LinkSnip/);
 
-    // header, then .page with everything else, then the footer (main.css pins it to the bottom)
-    const children = bodyChildren(html).filter(el => !['script', 'noscript', 'template'].includes(el.name));
-    const pageAt = children.findIndex(el => el.classes.includes('page'));
-    const footerAt = children.findIndex(el => el.name === 'footer');
-    expect(pageAt).toBeGreaterThan(-1);
-    expect(footerAt).toBe(children.length - 1);
-    children.forEach((el, i) => {
-      if (i === pageAt || i === footerAt) return;
-      expect({ el, before: i < pageAt }).toEqual({ el: expect.objectContaining({ name: 'header' }), before: true });
-    });
+    expectLayout(html, SHELL[name]);
   });
 });
 
@@ -191,5 +219,34 @@ describe('admin-appearance', () => {
     expect(html).toContain('data-new="light"');
     const data = JSON.parse(html.match(/<script type="application\/json" id="paletteData">([\s\S]*?)<\/script>/)[1]);
     expect(data.find(p => p.id === 'company')).toMatchObject({ builtIn: false, mode: 'dark' });
+  });
+});
+
+describe('pages with two frames', () => {
+  it('index: the public header for visitors', async () => {
+    const { data } = await rendered(c('urlController').getCreateForm, request(null));
+    const res = createMockResponse();
+    brandingLocals(request(null), res, () => {});
+    viewLocals(request(null), res, () => {});
+    const html = await ejs.renderFile(path.join(VIEWS, 'index.ejs'), { ...appLocals(), ...res.locals, ...data });
+    expectLayout(html, 'public');
+  });
+
+  it('analytics: the public header on a read-only share link (/stats/:token)', async () => {
+    const { data } = await rendered(c('analyticsController').getAnalyticsPage, request(s.user, { params: { type: 'url', id: String(s.url.id) } }));
+    const html = await ejs.renderFile(path.join(VIEWS, 'analytics.ejs'), { ...appLocals(), ...(await localsFor(null)), ...data, user: null, readOnly: true });
+    expectLayout(html, 'public');
+  });
+});
+
+describe('index: links in the address (lnksnp.ch/<link>)', () => {
+  const YOUTUBE = 'https://www.youtube.com/watch?v=JSur9qyqtuA&t=262s';
+
+  it('fills the Link tab with the whole link, query string included', async () => {
+    const req = request(s.user, { prefillUrl: YOUTUBE });
+    const { data } = await rendered(c('urlController').getCreateForm, req);
+    const html = await ejs.renderFile(path.join(VIEWS, 'index.ejs'), { ...appLocals(), ...(await localsFor(s.user)), ...data });
+    expect(html).toMatch(/<input[^>]*id="longUrl"[^>]*value="https:\/\/www\.youtube\.com\/watch\?v=JSur9qyqtuA&amp;t=262s"/);
+    expect(html).toMatch(/<button[^>]*class="mode-pill active" id="pillUrl"/);
   });
 });

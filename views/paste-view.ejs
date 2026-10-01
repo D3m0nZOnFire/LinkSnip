@@ -153,9 +153,7 @@
     }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: '' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'public' }) %>
 
   <div class="paste-container">
     <div class="paste-card">
@@ -239,7 +237,5 @@
     <%- include('partials/report-modal', { type: 'paste', id: paste.id, noun: 'paste' }) %>
   <% } %>
   <script src="/js/main.js"></script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'public' }) %>
 </html>
