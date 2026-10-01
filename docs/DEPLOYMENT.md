@@ -114,4 +114,12 @@ different one, visits from then on no longer match earlier ones (startup logs a 
 on start and refreshed monthly (the container needs outbound HTTPS for that). Visitor IPs never leave the server. On a
 server without outbound access, see the country lookup note in [CONFIGURATION.md](CONFIGURATION.md).
 
+**Updating with a safety net:** [`docker/deploy/linksnip-deploy`](../docker/deploy/linksnip-deploy) deploys a
+release tag into a Compose checkout. Before each update it snapshots the database, `settings.json` and `roles.json`
+(a consistent online copy, into `/srv/linksnip-snapshots/`, keeping the last 10). If the new version isn't healthy
+within 60 seconds, it restores that snapshot and the previous code. Migrations are one-way, so rolling back the code
+alone could leave the old version on a database it doesn't understand. The failed version's database and log are kept
+in the snapshot folder. Install it as root and run `linksnip-deploy vX.Y.Z`; `linksnip-deploy restore <snapshot>` puts
+a snapshot back by hand. Set `LINKSNIP_DIR` if your checkout isn't `/srv/linksnip` (see the script's header).
+
 **Configuration:** see [CONFIGURATION.md](CONFIGURATION.md). Settings are also editable in Admin → Settings.
