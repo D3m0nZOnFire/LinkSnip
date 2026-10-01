@@ -38,7 +38,7 @@ describe('palette files in DATA_DIR/palettes', () => {
   });
 
   it('take an Omarchy colors.toml as it is (file name = id)', () => {
-    write('my-omarchy-theme.toml', fs.readFileSync(path.join(paths.PROJECT_ROOT, 'config/palettes/omarchy/nord.toml'), 'utf8'));
+    write('my-omarchy-theme.toml', fs.readFileSync(path.join(__dirname, '../../fixtures/omarchy-matte-black.toml'), 'utf8'));
     paletteService.reload();
     expect(paletteService.getPalette('my-omarchy-theme')).toMatchObject({ name: 'My Omarchy Theme', mode: 'dark' });
   });
@@ -181,12 +181,31 @@ describe('report (editor warnings)', () => {
     expect(paletteService.report(paletteService.getPalette('tokyo-night'))).toEqual([]);
   });
 
-  it('says which colors were adjusted and why', () => {
+  it('says which color is used instead and why, naming both', () => {
     const notes = paletteService.report({ mode: 'dark', colors: { ...COLORS, accent: '#333a44', red: '#3355ff', yellow: '#22cc88' } });
-    expect(notes).toEqual(expect.arrayContaining([
-      expect.objectContaining({ key: 'accent', from: '#333a44', to: expect.stringMatching(/^#/), message: expect.stringMatching(/too dark to read/) }),
-      expect.objectContaining({ key: 'red', from: '#3355ff', message: expect.stringMatching(/not a red/) }),
-      expect.objectContaining({ key: 'yellow', from: '#22cc88', message: expect.stringMatching(/not a warm color/) })
-    ]));
+    const by = Object.fromEntries(notes.map(n => [n.key, n]));
+    expect(by.accent.from).toBe('#333a44');
+    expect(by.accent.message).toBe(`Accent #333a44 is too dark to read on the background, so links and buttons use ${by.accent.to}, a lighter shade of it.`);
+    expect(by.red.message).toBe(`Delete buttons and errors need a red. #3355ff is a blue, so ${by.red.to} (LinkSnip's red) is used instead.`);
+    expect(by.yellow.message).toBe(`Warnings need a yellow or orange. #22cc88 is a green, so ${by.yellow.to} (LinkSnip's amber) is used instead.`);
+  });
+
+  it("names a color picked from the palette's own extra colors (a hand-dropped Omarchy file)", () => {
+    write('mine.toml', fs.readFileSync(path.join(__dirname, '../../fixtures/omarchy-matte-black.toml'), 'utf8'));
+    paletteService.reload();
+    const [note] = paletteService.report(paletteService.getPalette('mine'));
+    expect(note).toEqual({
+      key: 'yellow', from: '#b91c1c', to: '#ffc107',
+      message: "Warnings need a yellow or orange. #b91c1c is a red, so #ffc107 (this palette's green) is used instead."
+    });
+  });
+
+  it('counts a slightly lime yellow as yellow', () => {
+    expect(paletteService.report({ mode: 'dark', colors: { ...COLORS, yellow: '#d4e157' } })).toEqual([]);
+  });
+
+  it('says "an orange"', () => {
+    const [note] = paletteService.report({ mode: 'dark', colors: { ...COLORS, red: '#f97316' } });
+    expect(note.message).toMatch(/#f97316 is an orange,/);
   });
 });

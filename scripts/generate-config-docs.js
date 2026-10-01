@@ -77,7 +77,8 @@ return 404 and its buttons and menus are hidden.
 **Appearance:** the \`branding.*\` keys are easiest to set in **Admin → Appearance**, which previews every palette.
 The logo and favicon uploaded there are stored in \`DATA_DIR/branding/\`. Visitors see the dark or the light palette
 depending on their device, and can switch with the theme button. Palettes to choose from (besides LinkSnip's own,
-the color schemes of [Omarchy](https://github.com/omacom/omarchy)'s themes, MIT license):
+adaptations of [Omarchy](https://github.com/omacom/omarchy)'s themes, MIT license; \`config/palettes/omarchy/SOURCE.md\`
+lists what was changed):
 
 ${table(['Mode', 'Palette ids'], ['dark', 'light'].map(mode => [
     mode,

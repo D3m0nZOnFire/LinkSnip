@@ -68,6 +68,15 @@ describe('services/color', () => {
     });
   });
 
+  describe('hueName', () => {
+    it.each([
+      ['#b91c1c', 'red'], ['#f97316', 'orange'], ['#facc15', 'yellow'], ['#22cc88', 'green'], ['#14b8a6', 'teal'],
+      ['#3355ff', 'blue'], ['#a855f7', 'purple'], ['#ec4899', 'pink'], ['#808080', 'grey'], ['#d9dbdc', 'grey']
+    ])('%s is %s', (hex, name) => {
+      expect(color.hueName(hex)).toBe(name);
+    });
+  });
+
   describe('hsl', () => {
     it('gives hue in degrees and saturation/lightness from 0 to 1', () => {
       const { h, s, l } = color.hsl('#ff0000');

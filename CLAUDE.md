@@ -242,9 +242,12 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `POST|DELETE /api/admin/branding/:asset` (`UPDATE_BRANDING`).
 - `services/paletteService.js`: palettes in Omarchy's `colors.toml` format (`mode`, `accent`, `background`,
   `foreground`, `red`, `yellow`, optional `name`), built in from `config/palettes/*.toml` (LinkSnip Dark/Light) and
-  `config/palettes/omarchy/` (copied unchanged, commit in `SOURCE.md`, MIT). `tokens(palette)` maps one to the theme
+  `config/palettes/omarchy/` (adapted from Omarchy's themes: only the five colors, changed where they didn't read
+  well or red/yellow weren't red/yellow; `SOURCE.md` lists each change, MIT). A test requires every built-in palette to
+  need no adjusting. `tokens(palette)` maps one to the theme
   colors: surfaces are mixed from background and foreground, text colors are nudged (same hue) to 4.5:1 (7:1 for
-  foreground), a red/yellow that isn't red/warm falls back to LinkSnip's. `themeCss()` serves both as `/theme.css`
+  foreground), a red/yellow that isn't red/warm is taken from the palette's other Omarchy colors (`extras`: orange,
+  bright_red, …) or else LinkSnip's; `report()` explains each change in the editor. `themeCss()` serves both as `/theme.css`
   (`:root` = dark, `html[data-theme="light"]`), linked as `/theme.css?v=<hash>` (cached for good). An unknown or
   wrong-mode palette id in settings.json falls back to the default with a warning; `services/color.js` does the math.
 - `services/brandingService.js`: logo/favicon in `DATA_DIR/branding/` (`paths.BRANDING_DIR`; PNG/JPG/WebP/SVG, ICO

@@ -29,11 +29,15 @@
   const colors = () => Object.fromEntries(KEYS.map(k => [k, form.querySelector(`[data-hex="${k}"]`).value.trim()]));
   const byId = (id) => palettes.find(p => p.id === id);
 
+  function setColor(key, value) {
+    const hex = form.querySelector(`[data-hex="${key}"]`);
+    hex.value = value;
+    hex.classList.remove('invalid');
+    form.querySelector(`[data-color="${key}"]`).value = value;
+  }
+
   function setColors(values) {
-    for (const key of KEYS) {
-      form.querySelector(`[data-hex="${key}"]`).value = values[key];
-      form.querySelector(`[data-color="${key}"]`).value = values[key];
-    }
+    for (const key of KEYS) setColor(key, values[key]);
   }
 
   function setMode(value) {
@@ -87,7 +91,19 @@
         const swatch = document.createElement('span');
         swatch.className = 'adjust-swatch';
         swatch.style.background = note.to;
-        li.append(swatch, document.createTextNode(note.message));
+        const text = document.createElement('span');
+        text.textContent = note.message;
+        // Take the color that is shown anyway, and the note goes away
+        const use = document.createElement('button');
+        use.type = 'button';
+        use.className = 'btn btn-small btn-secondary adjust-use';
+        use.textContent = `Use ${note.to}`;
+        use.addEventListener('click', () => {
+          setColor(note.key, note.to);
+          preview();
+        });
+        text.appendChild(use);
+        li.append(swatch, text);
         adjustments.appendChild(li);
       }
     } catch (_) { /* offline: keep the last preview */ }

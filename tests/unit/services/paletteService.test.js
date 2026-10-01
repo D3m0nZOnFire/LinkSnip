@@ -15,15 +15,17 @@ afterEach(() => {
 });
 
 describe('parsePalette', () => {
-  const MATTE_BLACK = fs.readFileSync(path.join(OMARCHY, 'matte-black.toml'), 'utf8');
+  // Omarchy's own file (themes/matte-black/colors.toml), as hosts may drop it into DATA_DIR/palettes
+  const OMARCHY_MATTE_BLACK = fs.readFileSync(path.join(__dirname, '../../fixtures/omarchy-matte-black.toml'), 'utf8');
 
-  it("reads an Omarchy colors.toml as it is", () => {
-    const p = paletteService.parsePalette(MATTE_BLACK, { id: 'matte-black' });
+  it("reads an Omarchy colors.toml as it is, keeping its other colors aside", () => {
+    const p = paletteService.parsePalette(OMARCHY_MATTE_BLACK, { id: 'matte-black' });
     expect(p).toMatchObject({
       id: 'matte-black',
       name: 'Matte Black',
       mode: 'dark',
-      colors: { background: '#121212', foreground: '#bebebe', accent: '#e68e0d', red: '#d35f5f', yellow: '#b91c1c' }
+      colors: { background: '#121212', foreground: '#bebebe', accent: '#e68e0d', red: '#d35f5f', yellow: '#b91c1c' },
+      extras: { green: '#ffc107', orange: '#c63d3d' }
     });
   });
 
@@ -123,29 +125,16 @@ describe('tokens', () => {
     expect(t['--warning']).toBe('#e0af68');
   });
 
-  it('lightens a dim accent on a dark background just enough, keeping its hue', () => {
-    const miasma = paletteService.getPalette('miasma');
-    const t = paletteService.tokens(miasma);
-    expect(t['--primary']).not.toBe(miasma.colors.accent);
-    expect(Math.abs(color.hsl(t['--primary']).h - color.hsl(miasma.colors.accent).h)).toBeLessThan(4);
+  // The adapted files are shown as they are, and "Start from" copies them: no note in the editor
+  it.each(all.map(p => [p.id, p]))('%s has colors that need no adjusting', (id, palette) => {
+    expect(paletteService.report(palette)).toEqual([]);
+    const t = paletteService.tokens(palette);
+    expect([t['--foreground'], t['--primary'], t['--destructive'], t['--warning']])
+      .toEqual([palette.colors.foreground, palette.colors.accent, palette.colors.red, palette.colors.yellow]);
   });
+
 
   // Delete buttons and errors must look dangerous
-  it("uses LinkSnip's red where a theme's red is not red", () => {
-    const fallback = paletteService.tokens(paletteService.getPalette('linksnip-dark'))['--destructive'];
-    for (const id of ['lumon', 'hackerman', 'vantablack', 'solitude']) {
-      expect(paletteService.tokens(paletteService.getPalette(id))['--destructive']).toBe(fallback);
-    }
-    const light = paletteService.tokens(paletteService.getPalette('linksnip-light'))['--destructive'];
-    expect(paletteService.tokens(paletteService.getPalette('white'))['--destructive']).toBe(light);
-  });
-
-  it("uses LinkSnip's amber where a theme's yellow is not warm", () => {
-    const fallback = paletteService.tokens(paletteService.getPalette('linksnip-dark'))['--warning'];
-    for (const id of ['matte-black', 'hackerman', 'lumon', 'vantablack']) {
-      expect(paletteService.tokens(paletteService.getPalette(id))['--warning']).toBe(fallback);
-    }
-  });
 
   it('lifts cards above a dark background and keeps them white-ish on a light one', () => {
     const dark = paletteService.tokens(paletteService.getPalette('linksnip-dark'));

@@ -524,6 +524,14 @@
   margin-bottom: var(--spacing-sm);
 }
 
+.adjust-use {
+  display: flex;
+  margin-top: var(--spacing-xs);
+  padding: 0.2rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
 .adjust-swatch {
   flex-shrink: 0;
   width: 0.9rem;

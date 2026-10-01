@@ -10,7 +10,8 @@ const color = require('./color');
  * Color palettes, in Omarchy's colors.toml format (https://github.com/omacom/omarchy, themes/<name>/colors.toml):
  * `mode`, `accent`, `background`, `foreground`, `red`, `yellow` (other keys are ignored), plus an optional `name`.
  *
- * Built in: LinkSnip Dark/Light (config/palettes) and every Omarchy theme (config/palettes/omarchy).
+ * Built in: LinkSnip Dark/Light (config/palettes) and LinkSnip's adaptations of the Omarchy themes
+ * (config/palettes/omarchy, see SOURCE.md there): their colors need no adjusting, a test checks that.
  * Custom: DATA_DIR/palettes/<id>.toml, made in Admin → Appearance or dropped in by hand (re-read every few seconds,
  * like settings.json; a broken file is skipped and reported by problems()).
  * The host picks one dark and one light palette (branding.darkPalette / branding.lightPalette); themeCss() turns
@@ -20,6 +21,9 @@ const color = require('./color');
 const BUILT_IN_DIRS = [path.join(__dirname, '../config/palettes'), path.join(__dirname, '../config/palettes/omarchy')];
 const DEFAULTS = { dark: 'linksnip-dark', light: 'linksnip-light' };
 const COLOR_KEYS = ['accent', 'background', 'foreground', 'red', 'yellow'];
+// Omarchy's other colors: where to look for a red or a yellow when those slots hold something else
+const EXTRA_KEYS = ['bright_red', 'orange', 'bright_yellow', 'magenta', 'bright_magenta', 'green', 'bright_green',
+  'brown', 'cyan', 'bright_cyan', 'blue', 'bright_blue'];
 const NAMES = { 'rose-pine': 'Rosé Pine' }; // where title case isn't the theme's real name
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const MAX_NAME = 40;
@@ -55,7 +59,9 @@ function parsePalette(text, { id, builtIn = false }) {
   if (data.name !== undefined && (typeof data.name !== 'string' || !data.name.trim())) errors.push('name must be text');
   if (errors.length) throw new PaletteError(errors);
 
-  return { id, name: data.name ? data.name.trim() : (NAMES[id] || titleCase(id)), mode, builtIn, colors };
+  const extras = {};
+  for (const key of EXTRA_KEYS) if (color.parse(data[key])) extras[key] = color.normalize(data[key]);
+  return { id, name: data.name ? data.name.trim() : (NAMES[id] || titleCase(id)), mode, builtIn, colors, extras };
 }
 
 // mode and the five colors, normalized; every problem in `errors`
@@ -84,6 +90,7 @@ function loadBuiltIns() {
   return palettes;
 }
 const builtIns = loadBuiltIns();
+const DEFAULT_COLORS = { dark: builtIns.get(DEFAULTS.dark).colors, light: builtIns.get(DEFAULTS.light).colors };
 
 // ─── Custom palettes (DATA_DIR/palettes) ──────────────────────────────────────
 
@@ -169,7 +176,8 @@ function checkChoice(mode, id) {
 // Is the theme's "red" actually red, its "yellow" warm? Some themes use other hues there (Lumon's red is blue,
 // Hackerman's green), but delete buttons and errors must look dangerous.
 const isRed = (hex) => { const { h, s } = color.hsl(hex); return s >= 0.3 && (h >= 340 || h <= 15); };
-const isWarm = (hex) => { const { h, s } = color.hsl(hex); return s >= 0.3 && h >= 20 && h <= 65; };
+const isWarm = (hex) => { const { h, s } = color.hsl(hex); return s >= 0.3 && h >= 20 && h <= 70; };
+const article = (word) => (/^[aeiou]/.test(word) ? `an ${word}` : `a ${word}`);
 
 // Readable on every one of `backgrounds`
 function readable(hex, backgrounds, ratio) {
@@ -183,37 +191,45 @@ function readable(hex, backgrounds, ratio) {
  */
 function derive(palette) {
   const dark = palette.mode === 'dark';
-  const fallback = builtIns.get(DEFAULTS[palette.mode]).colors;
+  const fallback = DEFAULT_COLORS[palette.mode];
   const { background: bg, accent } = palette.colors;
+  const extras = palette.extras || {};
   const between = (share) => color.mix(bg, palette.colors.foreground, share);
   const notes = [];
   const shade = dark ? 'lighter' : 'darker';
   const hard = dark ? 'too dark' : 'too light';
-  const note = (key, to, message) => { if (to !== palette.colors[key]) notes.push({ key, from: palette.colors[key], to, message }); };
+  const note = (key, to, message) => notes.push({ key, from: palette.colors[key], to, message });
 
   const card = dark ? between(0.04) : color.mix(bg, '#ffffff', 0.6);
   const surfaces = [bg, card];
-  const fg = readable(palette.colors.foreground, surfaces, 7);
-  note('foreground', fg, `Foreground is ${hard} to read on the background; text uses a ${shade} shade.`);
-  const primary = readable(accent, surfaces, 4.5);
-  note('accent', primary, `Accent is ${hard} to read on the background; links and buttons use a ${shade} shade.`);
 
-  let destructive;
-  if (isRed(palette.colors.red)) {
-    destructive = readable(palette.colors.red, surfaces, 4.5);
-    note('red', destructive, `Red is ${hard} to read on the background; a ${shade} shade is used.`);
-  } else {
-    destructive = readable(fallback.red, surfaces, 4.5);
-    note('red', destructive, "Red is not a red, so delete buttons and errors use LinkSnip's red.");
-  }
-  let warning;
-  if (isWarm(palette.colors.yellow)) {
-    warning = readable(palette.colors.yellow, surfaces, 4.5);
-    note('yellow', warning, `Yellow is ${hard} to read on the background; a ${shade} shade is used.`);
-  } else {
-    warning = readable(fallback.yellow, surfaces, 4.5);
-    note('yellow', warning, "Yellow is not a warm color, so warnings use LinkSnip's amber.");
-  }
+  // A color that reads, said so when it had to be changed
+  const nudged = (key, ratio, uses) => {
+    const from = palette.colors[key];
+    const to = readable(from, surfaces, ratio);
+    if (to !== from) note(key, to, `${uses.label} ${from} is ${hard} to read on the background, so ${uses.what} ${to}, a ${shade} shade of it.`);
+    return to;
+  };
+  // red / yellow: the slot if it holds the right kind of color, else one of the palette's other colors, else LinkSnip's
+  const signal = (key, fits, need, fallbackName) => {
+    const from = palette.colors[key];
+    if (fits(from)) {
+      const to = readable(from, surfaces, 4.5);
+      if (to !== from) note(key, to, `${need.label} ${from} is ${hard} to read on the background, so ${to}, a ${shade} shade of it, is used.`);
+      return to;
+    }
+    const other = key === 'red' ? 'yellow' : 'red';
+    const found = [[other, palette.colors[other]], ...Object.entries(extras)].find(([, hex]) => fits(hex));
+    const to = readable(found ? found[1] : fallback[key], surfaces, 4.5);
+    const source = found ? `this palette's ${found[0]}` : fallbackName;
+    note(key, to, `${need.sentence} ${from} is ${article(color.hueName(from))}, so ${to} (${source}) is used instead.`);
+    return to;
+  };
+
+  const fg = nudged('foreground', 7, { label: 'Foreground', what: 'text uses' });
+  const primary = nudged('accent', 4.5, { label: 'Accent', what: 'links and buttons use' });
+  const destructive = signal('red', isRed, { label: 'Red', sentence: 'Delete buttons and errors need a red.' }, "LinkSnip's red");
+  const warning = signal('yellow', isWarm, { label: 'Yellow', sentence: 'Warnings need a yellow or orange.' }, "LinkSnip's amber");
 
   const tokens = {
     '--background': bg,
