@@ -301,6 +301,8 @@ share links · 5:30 expired files · 5:45 country database check.
 
 ## UI patterns
 
+- Below 1024px the header nav folds into a menu button (`public/js/nav.js`, loaded by the header partial); the
+  admin dropdown is listed in place there. Pages must not scroll sideways at 320px.
 - Every page includes `partials/header` (`<%- include('partials/header', { currentPage: '...' }) %>`, except
   standalone pages like login/setup/error) and **every** page includes `partials/footer` (a test checks this).
 - `currentPage` values: 'home', 'dashboard', 'tags', 'settings', 'admin', 'admin-users', 'admin-analytics',

@@ -1231,3 +1231,96 @@ body.standalone-page > .error-container {
 .file-ext-vid  { background: #8b5cf6; }
 .file-ext-aud  { background: #ec4899; }
 .file-ext-code { background: #6366f1; }
+
+/* ========================================
+   Navigation on small screens: the links fold into a menu under a button (public/js/nav.js)
+   ======================================== */
+.nav-toggle {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .header-content {
+    position: relative;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+    color: var(--foreground);
+  }
+
+  .nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0 var(--spacing-md) var(--spacing-sm);
+    background-color: var(--card);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    font-size: 1rem;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+  }
+
+  .nav.open {
+    display: flex;
+  }
+
+  .nav > a,
+  .nav-dropdown-menu a {
+    padding: 0.75rem 0.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* The admin links are listed in place, under an "Admin" heading */
+  .nav-dropdown {
+    padding: 0;
+    margin: 0;
+  }
+
+  .nav-dropdown-toggle {
+    width: 100%;
+    padding: 0.75rem 0.25rem 0.25rem;
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    pointer-events: none;
+  }
+
+  .nav-dropdown-toggle svg {
+    display: none;
+  }
+
+  .nav-dropdown-menu {
+    position: static;
+    display: flex;
+    min-width: 0;
+    padding: 0 0 0 var(--spacing-md);
+    gap: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+
+  .nav-dropdown-menu::before {
+    display: none;
+  }
+
+  .nav-dropdown-menu a {
+    border-radius: 0;
+  }
+}
+
+@media (max-width: 400px) {
+  /* Room for logo, admin badge, theme and menu buttons on the narrowest phones */
+  #theme-toggle {
+    margin-right: 0.25rem !important;
+  }
+}
+
