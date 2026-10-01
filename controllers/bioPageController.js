@@ -213,7 +213,8 @@ class BioPageController {
         return res.status(404).json({ error: 'URL not found' });
       }
 
-      if (url.creatorId !== req.session.userId) {
+      // Personal links only: team links belong to the team
+      if (url.creatorId !== req.session.userId || url.teamId != null) {
         return res.status(403).json({ error: 'Not authorized' });
       }
 
@@ -269,7 +270,7 @@ class BioPageController {
       // Verify all URLs belong to user
       for (const { urlId } of urlPositions) {
         const url = Url.findById(urlId);
-        if (!url || url.creatorId !== req.session.userId) {
+        if (!url || url.creatorId !== req.session.userId || url.teamId != null) {
           return res.status(403).json({ error: 'Not authorized' });
         }
       }

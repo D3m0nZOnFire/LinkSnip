@@ -247,6 +247,16 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `DECLINE_TEAM_INVITE`, `CHANGE_TEAM_ROLE`, `REMOVE_TEAM_MEMBER`, `LEAVE_TEAM` (a site admin outside the team:
   `ADMIN_ACTION`, else `ACCOUNT_CHANGE`).
 - Invites show on the dashboard (`partials/team-invites.ejs`).
+- Team items: `itemPermissions` decides by team role (viewer: view; member: view + edit what they created; admin,
+  owner: edit all; a creator who left loses access). `canMoveToTeam` (own personal item, member or above) /
+  `canMoveFromTeam` (owners and admins; back to the creator): `POST /api/items/:type/:id/team { teamId | null }`
+  (`MOVE_ITEM_TO_TEAM` / `MOVE_ITEM_FROM_TEAM`), tags follow (`Team.moveItem`).
+- Creating: every create handler reads `teamId` through `teamService.teamForNewItem` (member or above; 400 while
+  `features.teams` is off). The create page's "Create in" select (`res.locals.writableTeams`, `?team=` preselects).
+- Lists take a scope (`services/itemScope.js`): a user ID / `{ userId }` = personal items only (`teamId IS NULL`),
+  `{ teamId }` = the team's. `/dashboard?team=:id` shows a team (rows carry `canEdit`, `canMoveIn`, `canMoveOut`).
+  Team items count toward their creator's limits and storage quota. Tags of team items are the team's
+  (`tags.teamId`, `Tag.forTeam`). Bio pages, import/export and `/tags` stay personal.
 
 ### Reports and quarantine
 - Every type is reportable: `POST /api/reports` `{ type, id, reason, description }` (`controllers/reportController.js`,

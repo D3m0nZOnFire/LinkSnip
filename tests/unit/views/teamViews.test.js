@@ -60,6 +60,7 @@ describe('views/team.ejs', () => {
     expect(html).toContain('data-member-id="2"');
     expect(html).toContain('id="deleteTeamBtn"');
     expect(html).toContain('3 links');
+    expect(html).toContain('href="/dashboard?team=5"');
   });
 
   it('members see the team and can leave, but manage nothing', async () => {

@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const Tag = require('./Tag');
+const { scopeCondition } = require('../services/itemScope');
 
 class File {
   static create({ userId, slug, originalName, storedName, mimeType, size, expiresAt, activateAt, deactivateAt, maxDownloads, password, sharingMode, allowedUsers }) {
@@ -38,15 +39,17 @@ class File {
     return file;
   }
 
+  /** A user's personal files, or a team's ({ teamId }) */
   static findByUserId(userId, limit = null, offset = 0) {
+    const scope = scopeCondition('file', userId);
     let query = `
       SELECT files.*, users.username AS ownerUsername
       FROM files
       LEFT JOIN users ON files.userId = users.id
-      WHERE files.userId = ?
+      WHERE ${scope.sql}
       ORDER BY files.createdAt DESC
     `;
-    const params = [userId];
+    const params = [...scope.params];
     if (limit !== null) {
       query += ' LIMIT ? OFFSET ?';
       params.push(limit, offset);

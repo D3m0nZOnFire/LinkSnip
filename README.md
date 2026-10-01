@@ -19,9 +19,10 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 - **Analytics**: clicks over time, referrers, countries, devices, browsers and operating systems. Visitor IPs are only stored as keyed hashes.
 - **Analytics share links**: read-only, revocable `/stats/…` links for people without an account
 - **QR codes**, **tags**, and **bulk import/export** (CSV, JSON, plain text)
-- **Roles**: you decide what each kind of account, and visitors without one, may do and how much
+- **Roles**: you decide what each kind of account, and visitors without one, may do and how much, in the file or in the admin panel
+- **Teams**: links, bundles, pastes and files shared by several people, with owner, admin, member and viewer roles
 - **Moderation**: visitors can report links, and reported links show a warning page until an admin blocks or clears them
-- **Admin panel**: users, links, files, pastes, reports, settings and a full audit log
+- **Admin panel**: users, teams, links, files, pastes, reports, settings and roles, and a full audit log
 - **Operations**: nightly online backups and cleanup of expired content
 
 ### Screenshots

@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const Tag = require('./Tag');
+const { scopeCondition } = require('../services/itemScope');
 
 const withTags = (bundle) => bundle && { ...bundle, tags: Tag.forItem('bundle', bundle.id) };
 
@@ -86,18 +87,20 @@ class Bundle {
   }
 
   /**
-   * Find bundles by creator ID with item count, paginated
+   * A user's personal bundles, or a team's ({ teamId }), with item count, paginated
    */
   static findByCreatorId(creatorId, limit = null, offset = 0) {
+    const scope = scopeCondition('bundle', creatorId);
     let query = `
-      SELECT bundles.*,
+      SELECT bundles.*, creator.username AS creatorUsername,
         (SELECT COUNT(*) FROM bundle_items WHERE bundleId = bundles.id) AS itemCount
       FROM bundles
-      WHERE creatorId = ?
-      ORDER BY createdAt DESC
+      LEFT JOIN users creator ON creator.id = bundles.creatorId
+      WHERE ${scope.sql}
+      ORDER BY bundles.createdAt DESC
     `;
 
-    const params = [creatorId];
+    const params = [...scope.params];
 
     if (limit !== null) {
       query += ' LIMIT ? OFFSET ?';

@@ -7,6 +7,9 @@ const { logAdminAction, ACTIONS } = require('../services/auditService');
 const { checkAccess, sendAccessDenied } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 const { readSettings, SettingsError } = require('../services/itemSettings');
+const Team = require('../models/Team');
+const teamService = require('../services/teamService');
+const { TeamError } = teamService;
 
 class UrlController {
   /**
@@ -22,11 +25,12 @@ class UrlController {
       prefillUrl = req.query.url;
     }
 
-    res.render('index', { 
+    res.render('index', {
       user: req.user || null,
       prefillUrl,
       error: null,
-      success: null
+      success: null,
+      selectedTeamId: Number(req.query.team) || null
     });
   }
 
@@ -89,6 +93,14 @@ class UrlController {
       });
     }
 
+    let teamId;
+    try {
+      teamId = teamService.teamForNewItem(req.user || null, req.body.teamId);
+    } catch (error) {
+      if (!(error instanceof TeamError)) throw error;
+      return res.status(error.status).render('index', { user: req.user || null, prefillUrl: longUrl, error: error.message, success: null });
+    }
+
     try {
       // Generate or validate slug
       const { slug } = SlugGenerator.getValidSlug(customSlug || null);
@@ -101,6 +113,7 @@ class UrlController {
         ...settings.values
       });
 
+      if (teamId) Team.moveItem('url', url.id, teamId);
       if (tags) Tag.setForItem('url', url.id, Tag.parseTagString(tags));
 
       const shortUrl = `${req.protocol}://${req.get('host')}/s/${slug}`;

@@ -6,6 +6,9 @@ const { logAdminAction, ACTIONS } = require('../services/auditService');
 const { checkAccess, sendAccessDenied } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 const { readSettings, SettingsError } = require('../services/itemSettings');
+const Team = require('../models/Team');
+const teamService = require('../services/teamService');
+const { TeamError } = teamService;
 
 const MAX_ITEMS_REGISTERED = 20;
 const MAX_ITEMS_ANONYMOUS = 5;
@@ -73,6 +76,14 @@ async function createBundle(req, res) {
   const denied = deniedPermission(req.user || null, { ...settings.uses, tags: filled(tags) });
   if (denied) return denyJson(res, denied);
 
+  let teamId;
+  try {
+    teamId = teamService.teamForNewItem(req.user || null, req.body.teamId);
+  } catch (error) {
+    if (!(error instanceof TeamError)) throw error;
+    return res.status(error.status).json({ error: error.message });
+  }
+
   // Generate or validate slug
   let slug;
   try {
@@ -102,6 +113,7 @@ async function createBundle(req, res) {
     label: item.label ? item.label.trim() : null
   }));
   Bundle.replaceItems(bundle.id, cleanItems);
+  if (teamId) Team.moveItem('bundle', bundle.id, teamId);
   if (tags) Tag.setForItem('bundle', bundle.id, Tag.parseTagString(tags));
 
   // Audit log

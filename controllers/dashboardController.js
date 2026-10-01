@@ -8,6 +8,8 @@ const configService = require('../services/configService');
 const { withAccessStatus } = require('../services/accessService');
 const { deletesInDays } = require('../services/retentionService');
 const teamService = require('../services/teamService');
+const Team = require('../models/Team');
+const { canEdit, canMoveToTeam, canMoveFromTeam } = require('../services/itemPermissions');
 
 class DashboardController {
   /**
@@ -15,6 +17,32 @@ class DashboardController {
    * GET /dashboard
    */
   static getUserDashboard(req, res) {
+    // Switched-off features (settings.json → features.*) show no rows
+    const features = configService.getSettings().features;
+
+    // Whose items: the user's personal ones, or a team's (?team=:id, for its members and site admins)
+    const dashboardTeams = features.teams ? teamService.listForUser(req.user) : [];
+    const writableTeams = dashboardTeams.filter(team => team.role !== 'viewer');
+    let currentTeam = null;
+    let scope = req.session.userId;
+    if (features.teams && req.query.team) {
+      const team = Team.findById(Number(req.query.team));
+      const role = team ? (Team.memberRole(team.id, req.user.id) || (req.user.isAdmin ? 'owner' : null)) : null;
+      if (!role) {
+        return res.status(404).render('error', { title: 'Not Found', message: 'This team does not exist.', code: 404 });
+      }
+      currentTeam = { id: team.id, name: team.name, role };
+      scope = { teamId: team.id };
+    }
+
+    // What the user may do to each row (team rows: by their role in the team)
+    const withActions = (type, rows) => rows.map(row => ({
+      ...row,
+      canEdit: canEdit(req.user, type, row),
+      canMoveIn: !currentTeam && writableTeams.some(team => canMoveToTeam(req.user, type, row, team.id)),
+      canMoveOut: !!currentTeam && canMoveFromTeam(req.user, type, row)
+    }));
+
     // Pagination parameters
     const limit = req.query.limit ? (req.query.limit === 'all' ? null : parseInt(req.query.limit)) : 50;
     const page = parseInt(req.query.page) || 1;
@@ -26,30 +54,28 @@ class DashboardController {
 
     // Get URLs and total count (with filters if provided)
     const filterOptions = { limit, offset, search, sort };
-    const urls = Url.findByCreatorIdWithFilters(req.session.userId, filterOptions);
-    const totalUrls = Url.countByCreatorIdWithFilters(req.session.userId, { search });
+    const urls = Url.findByCreatorIdWithFilters(scope, filterOptions);
+    const totalUrls = Url.countByCreatorIdWithFilters(scope, { search });
 
     // Number of active analytics share links per URL, and the deletion countdown
-    const urlsWithShares = withAccessStatus('url', urls).map(url => ({
+    const urlsWithShares = withActions('url', withAccessStatus('url', urls)).map(url => ({
       ...url,
       shareCount: AnalyticsShare.countActive('url', url.id),
       deletesInDays: deletesInDays('url', url)
     }));
 
-    // Switched-off features (settings.json → features.*) show no rows
-    const features = configService.getSettings().features;
+    // Get all bundles (no pagination — typically few bundles)
+    const bundles = features.bundles ? withActions('bundle', withAccessStatus('bundle', Bundle.findByCreatorId(scope))) : [];
 
-    // Get all bundles for the user (no pagination — typically few bundles)
-    const bundles = features.bundles ? withAccessStatus('bundle', Bundle.findByCreatorId(req.session.userId)) : [];
-
-    // Files for unified list (only for roles that can upload)
+    // Files: personal ones for roles that can upload; a team's for every member
     const canUploadFiles = features.files && RoleService.can(req.user, 'uploadFiles');
-    const files = canUploadFiles ? withAccessStatus('file', File.findByUserId(req.session.userId)) : [];
+    const showFiles = features.files && (canUploadFiles || !!currentTeam);
+    const files = showFiles ? withActions('file', withAccessStatus('file', File.findByUserId(scope))) : [];
     const fileCount = files.length;
 
     // Pastes for unified list (available to every logged-in user)
     const pastes = features.pastes
-      ? withAccessStatus('paste', Paste.findByUserId(req.session.userId))
+      ? withActions('paste', withAccessStatus('paste', Paste.findByUserId(scope)))
         .map(paste => ({ ...paste, deletesInDays: deletesInDays('paste', paste) }))
       : [];
     const pasteCount = pastes.length;
@@ -60,6 +86,9 @@ class DashboardController {
     res.render('dashboard', {
       user: req.user,
       teamInvites: features.teams ? teamService.invitesForUser(req.user) : [],
+      dashboardTeams,
+      writableTeams,
+      currentTeam,
       urls: urlsWithShares,
       bundles,
       baseUrl: `${req.protocol}://${req.get('host')}`,
@@ -75,6 +104,7 @@ class DashboardController {
       files,
       fileCount,
       canUploadFiles,
+      showFiles,
       pastes,
       pasteCount
     });
