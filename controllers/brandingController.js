@@ -6,6 +6,7 @@ const { ConfigValidationError } = require('../services/configService');
 const paletteService = require('../services/paletteService');
 const brandingService = require('../services/brandingService');
 const { BrandingError } = brandingService;
+const { PaletteError } = paletteService;
 const { logAdminAction, ACTIONS } = require('../services/auditService');
 
 /**
@@ -60,6 +61,8 @@ function pageData(user) {
       dark: paletteService.listPalettes('dark').map(withTokens),
       light: paletteService.listPalettes('light').map(withTokens)
     },
+    problems: paletteService.problems(),
+    palettesDir: paths.PALETTES_DIR,
     current: {
       name: configService.get('branding.name'),
       tagline: configService.get('branding.tagline'),
@@ -148,4 +151,79 @@ exports.deleteAsset = (req, res) => {
     logAdminAction(ACTIONS.UPDATE_BRANDING, req, 'branding', null, name, { asset: name, removed: true });
   }
   res.json({ success: true, url: brandingService.locals()[`${name}Url`] });
+};
+
+// ─── Custom palettes ──────────────────────────────────────────────────────────
+
+const forPage = (p) => ({ ...p, tokens: paletteService.tokens(p) });
+
+function paletteFailure(res, error, what) {
+  if (error instanceof PaletteError) return res.status(error.status).json({ success: false, errors: error.errors });
+  console.error(`${what} error:`, error);
+  return res.status(500).json({ success: false, errors: ['Could not save the palette file.'] });
+}
+
+/**
+ * POST /api/admin/palettes { name, mode, colors: { accent, background, foreground, red, yellow } }
+ */
+exports.createPalette = (req, res) => {
+  let palette;
+  try {
+    palette = paletteService.createPalette(req.body || {});
+  } catch (error) {
+    return paletteFailure(res, error, 'Create palette');
+  }
+  logAdminAction(ACTIONS.CREATE_PALETTE, req, 'palette', null, palette.name, { id: palette.id, mode: palette.mode, colors: palette.colors });
+  res.status(201).json({ success: true, palette: forPage(palette) });
+};
+
+/**
+ * PUT /api/admin/palettes/:id (same body; custom palettes only)
+ */
+exports.updatePalette = (req, res) => {
+  const before = paletteService.getPalette(req.params.id);
+  let palette;
+  try {
+    palette = paletteService.updatePalette(req.params.id, req.body || {});
+  } catch (error) {
+    return paletteFailure(res, error, 'Update palette');
+  }
+  const flat = (p) => ({ name: p.name, mode: p.mode, ...p.colors });
+  const changed = {};
+  for (const [key, to] of Object.entries(flat(palette))) {
+    const from = flat(before)[key];
+    if (from !== to) changed[key] = { from, to };
+  }
+  if (Object.keys(changed).length) {
+    logAdminAction(ACTIONS.UPDATE_PALETTE, req, 'palette', null, palette.name, { id: palette.id, changed });
+  }
+  res.json({ success: true, palette: forPage(palette) });
+};
+
+/**
+ * DELETE /api/admin/palettes/:id (custom palettes not in use)
+ */
+exports.deletePalette = (req, res) => {
+  let palette;
+  try {
+    palette = paletteService.deletePalette(req.params.id);
+  } catch (error) {
+    return paletteFailure(res, error, 'Delete palette');
+  }
+  logAdminAction(ACTIONS.DELETE_PALETTE, req, 'palette', null, palette.name, { id: palette.id, mode: palette.mode, colors: palette.colors });
+  res.json({ success: true });
+};
+
+/**
+ * POST /api/admin/palettes/preview { mode, colors }: the theme colors and what was adjusted, nothing saved
+ */
+exports.previewPalette = (req, res) => {
+  const { mode, colors } = req.body || {};
+  let palette;
+  try {
+    palette = paletteService.checkInput({ name: 'Preview', mode, colors });
+  } catch (error) {
+    return paletteFailure(res, error, 'Preview palette');
+  }
+  res.json({ tokens: paletteService.tokens(palette), adjustments: paletteService.report(palette) });
 };

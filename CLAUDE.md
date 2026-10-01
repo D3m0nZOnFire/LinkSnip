@@ -252,6 +252,13 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `res.locals.branding` `{ name, tagline, logoUrl, faviconUrl, themeUrl }` from `brandingLocals`
   (`middleware/viewLocals.js`, mounted with `routes/brandingRoutes.js` right after `express.static`, so setup and error
   pages have it). Show the name with `partials/brand.ejs`; "Powered by LinkSnip" in the footer stays.
+- Custom palettes: `DATA_DIR/palettes/<id>.toml` (`paths.PALETTES_DIR`, same format; file name = id, can't reuse a
+  built-in id). Re-read at most every 2 s (`reload()` right after a write); a broken file is skipped, warned once and
+  listed by `problems()` on the Appearance page. `createPalette` (id from the name: `company-blue`, `-2`, …),
+  `updatePalette`, `deletePalette` (built-in 403, unknown 404, in use as dark/light palette 409 for delete or a mode
+  switch), `report()` (what `tokens()` adjusted, for the editor). API: `POST /api/admin/palettes`,
+  `PUT|DELETE /api/admin/palettes/:id`, `POST /api/admin/palettes/preview` (tokens + adjustments, saves nothing);
+  audit `CREATE_PALETTE`, `UPDATE_PALETTE`, `DELETE_PALETTE`. Editor: `public/js/paletteEditor.js`.
 - The off-site backup copies `data/branding/` and `data/palettes/` too.
 
 ### Teams

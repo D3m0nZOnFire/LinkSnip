@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Appearance · Admin', styles: ['forms', 'appearance'] }) %>
+  <%- include('partials/head', { title: 'Appearance · Admin', styles: ['forms', 'modals', 'appearance'] }) %>
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'admin-appearance' }) %>
@@ -65,7 +65,7 @@
           <p class="field-help"><%= group.help %> Picking one previews it here while this page is in <%= group.mode %> mode.</p>
           <div class="palette-grid" role="radiogroup" aria-label="<%= group.title %>">
             <% palettes[group.mode].forEach(p => { const t = p.tokens; %>
-              <label class="palette-card">
+              <label class="palette-card<%= p.builtIn ? '' : ' palette-custom' %>">
                 <input type="radio" name="<%= group.mode %>Palette" value="<%= p.id %>" class="visually-hidden"
                   data-mode="<%= group.mode %>" data-tokens="<%= JSON.stringify(t) %>"
                   <%= current[group.mode + 'Palette'] === p.id ? 'checked' : '' %>>
@@ -81,13 +81,39 @@
                     </span>
                   </span>
                 </span>
-                <span class="palette-name"><%= p.name %></span>
+                <span class="palette-name">
+                  <span><%= p.name %></span>
+                  <% if (!p.builtIn) { %>
+                    <button type="button" class="palette-edit" data-edit="<%= p.id %>" aria-label="Edit <%= p.name %>" title="Edit">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    </button>
+                  <% } %>
+                </span>
               </label>
             <% }) %>
+            <button type="button" class="palette-card palette-new" data-new="<%= group.mode %>">
+              <span class="palette-new-icon" aria-hidden="true">+</span>
+              <span class="palette-name">New <%= group.mode %> palette</span>
+            </button>
           </div>
         </section>
       <% }) %>
 
+      <% if (problems.length) { %>
+        <div class="alert alert-error palette-problems" role="alert">
+          <strong>Some palette files couldn't be used</strong> (in <code><%= palettesDir %></code>):
+          <ul>
+            <% problems.forEach(problem => { %>
+              <li><code><%= problem.file %></code>: <%= problem.errors.join('; ') %></li>
+            <% }) %>
+          </ul>
+        </div>
+      <% } %>
+
+      <p class="palette-credit">
+        Your own palettes are saved in <code><%= palettesDir %></code>, in Omarchy's <code>colors.toml</code> format:
+        you can drop theme files there too, and they show up within a few seconds.
+      </p>
       <p class="palette-credit">
         Besides LinkSnip's own, the palettes are the color schemes of
         <a href="https://github.com/omacom/omarchy" target="_blank" rel="noopener">Omarchy</a>'s themes (MIT license).
@@ -102,8 +128,80 @@
     </form>
   </main>
 
+  <!-- Palette editor -->
+  <div id="paletteEditor" class="modal-overlay">
+    <div class="modal palette-editor" role="dialog" aria-modal="true" aria-labelledby="paletteEditorTitle">
+      <div class="modal-header">
+        <h3 id="paletteEditorTitle">New palette</h3>
+        <button type="button" class="modal-close" data-close aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <form id="paletteForm" class="modal-body palette-editor-body" novalidate>
+        <div class="palette-fields">
+          <div class="form-group">
+            <label class="form-label" for="paletteName">Name</label>
+            <input class="form-input" id="paletteName" name="name" maxlength="40" required>
+          </div>
+          <div class="form-group">
+            <span class="form-label" id="paletteModeLabel">Mode</span>
+            <div class="segmented" role="radiogroup" aria-labelledby="paletteModeLabel">
+              <label><input type="radio" name="mode" value="dark"> <span>Dark</span></label>
+              <label><input type="radio" name="mode" value="light"> <span>Light</span></label>
+            </div>
+          </div>
+          <div class="form-group" id="paletteStartFrom">
+            <label class="form-label" for="paletteBase">Start from</label>
+            <select class="form-input" id="paletteBase"></select>
+          </div>
+          <% [
+            ['background', 'Background', 'The page.'],
+            ['foreground', 'Foreground', 'Text. Cards, borders and muted text are mixed from these two.'],
+            ['accent', 'Accent', 'Links, buttons, the selected item.'],
+            ['red', 'Red', 'Delete buttons and errors.'],
+            ['yellow', 'Yellow', 'Warnings.']
+          ].forEach(([key, label, help]) => { %>
+            <div class="color-field">
+              <input type="color" id="paletteColor-<%= key %>" data-color="<%= key %>" aria-label="<%= label %> color picker">
+              <div>
+                <label class="form-label" for="paletteHex-<%= key %>"><%= label %></label>
+                <input class="form-input color-hex" id="paletteHex-<%= key %>" data-hex="<%= key %>" maxlength="7" spellcheck="false" autocomplete="off">
+                <p class="field-help"><%= help %></p>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+        <div class="palette-preview-pane">
+          <div class="palette-live" id="paletteLive" aria-hidden="true">
+            <div class="pl-bar"><span class="pl-logo"></span><span class="pl-title"><%= branding.name %></span></div>
+            <div class="pl-card">
+              <div class="pl-heading">Dashboard</div>
+              <p class="pl-text">Short links, pastes and files. <span class="pl-link">A link</span></p>
+              <p class="pl-muted">Muted text, like dates and hints.</p>
+              <div class="pl-row">
+                <span class="pl-button">Create</span>
+                <span class="pl-badge">Active</span>
+                <span class="pl-warning">Expires soon</span>
+                <span class="pl-danger">Delete</span>
+              </div>
+            </div>
+          </div>
+          <ul class="palette-adjustments" id="paletteAdjustments" aria-live="polite"></ul>
+        </div>
+      </form>
+      <ul id="paletteErrors" class="settings-errors palette-errors" role="alert"></ul>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost palette-delete" id="paletteDelete" hidden>Delete</button>
+        <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+        <button type="submit" class="btn" form="paletteForm" id="paletteSave">Save palette</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" id="paletteData"><%- JSON.stringify([...palettes.dark, ...palettes.light].map(p => ({ id: p.id, name: p.name, mode: p.mode, builtIn: p.builtIn, colors: p.colors }))).replace(/</g, '\\u003c') %></script>
   <script src="/js/main.js"></script>
   <script src="/js/appearance.js"></script>
+  <script src="/js/paletteEditor.js"></script>
   </div>
   <%- include('partials/footer') %>
 </body>

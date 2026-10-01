@@ -22,7 +22,7 @@ and the last good configuration stays in use.
 |---|---|---|
 | `SESSION_SECRET` | required | Signs login sessions. Generate with `openssl rand -hex 32`. The app refuses to start without it. |
 | `IP_HASH_SECRET` | required | Key for the stored hashes of visitor IPs (analytics, reports), so a copy of the database can't be turned back into IPs. At least 32 characters, different from `SESSION_SECRET`. Generate with `openssl rand -hex 32`, and keep it: a new one restarts unique-visitor counts. |
-| `DATA_DIR` | project folder (`/data` in Docker) | Holds `database.db`, `uploads/`, `backups/`, `branding/` (logo, favicon), `settings.json` and `roles.json`. |
+| `DATA_DIR` | project folder (`/data` in Docker) | Holds `database.db`, `uploads/`, `backups/`, `branding/` (logo, favicon), `palettes/` (your own palettes), `settings.json` and `roles.json`. |
 | `PORT` | `8081` | Port the app listens on. |
 | `NODE_ENV` | `development` (`production` in Docker) | `development` logs every SQL query. |
 | `TRUST_PROXY` | `1` | Reverse proxies in front of the app: a hop count, `true`/`false`, or an address list (Express `trust proxy`). Use `0` if nothing is in front. |
@@ -68,6 +68,24 @@ the color schemes of [Omarchy](https://github.com/omacom/omarchy)'s themes, MIT 
 |---|---|
 | dark | `linksnip-dark`, `catppuccin`, `ethereal`, `everforest`, `gruvbox`, `hackerman`, `kanagawa`, `last-horizon`, `lumon`, `matte-black`, `miasma`, `nord`, `osaka-jade`, `retro-82`, `ristretto`, `solitude`, `tokyo-night`, `vantablack` |
 | light | `linksnip-light`, `catppuccin-latte`, `flexoki-light`, `lupine`, `rose-pine`, `white` |
+
+**Your own palettes** are files in `DATA_DIR/palettes/`, in Omarchy's `colors.toml` format; the file name is the
+palette id (lowercase letters, digits and dashes). Make them with **New palette** in Admin → Appearance, or copy any
+Omarchy theme's `colors.toml` there under a new name. Like settings.json, the folder is re-read every few seconds;
+a file with a problem is logged and listed in Admin → Appearance, and skipped.
+
+```toml
+name = "Company Blue"   # optional; otherwise from the file name
+mode = "dark"           # or "light"
+accent = "#3b82f6"      # links, buttons
+background = "#0b1220"
+foreground = "#e6edf3"  # text; cards and borders are mixed from these two
+red = "#ef4444"         # delete buttons, errors
+yellow = "#f59e0b"      # warnings
+```
+
+Colors that would be hard to read are given a lighter or darker shade of the same hue, and a `red` or `yellow` that
+isn't red or warm is replaced by LinkSnip's; the editor shows when that happens.
 
 **Country lookup:** `geo.enabled` looks countries up in a local DB-IP Lite database, `DATA_DIR/geo/dbip-country-lite.mmdb`
 (CC BY 4.0; analytics pages credit DB-IP). Visitor IPs never leave the server. LinkSnip downloads the file on start
