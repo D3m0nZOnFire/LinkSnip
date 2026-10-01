@@ -1,3 +1,4 @@
+const { canEdit } = require('../services/itemPermissions');
 const Paste = require('../models/Paste');
 const Tag = require('../models/Tag');
 const User = require('../models/User');
@@ -106,7 +107,7 @@ exports.list = (req, res) => {
 exports.getById = (req, res) => {
   const paste = Paste.findById(parseInt(req.params.id));
   if (!paste) return res.status(404).json({ error: 'Paste not found' });
-  if (paste.userId !== req.user.id && !req.user.isAdmin) {
+  if (!canEdit(req.user, 'paste', paste)) {
     return res.status(403).json({ error: 'Access denied' });
   }
   return res.json(paste);
@@ -118,7 +119,7 @@ exports.getById = (req, res) => {
 exports.updateSettings = async (req, res) => {
   const paste = Paste.findById(parseInt(req.params.id));
   if (!paste) return res.status(404).json({ error: 'Paste not found' });
-  if (paste.userId !== req.user.id && !req.user.isAdmin) {
+  if (!canEdit(req.user, 'paste', paste)) {
     return res.status(403).json({ error: 'Access denied' });
   }
 
@@ -164,7 +165,7 @@ exports.updateSettings = async (req, res) => {
 exports.delete = (req, res) => {
   const paste = Paste.findById(parseInt(req.params.id));
   if (!paste) return res.status(404).json({ error: 'Paste not found' });
-  if (paste.userId !== req.user.id && !req.user.isAdmin) {
+  if (!canEdit(req.user, 'paste', paste)) {
     return res.status(403).json({ error: 'Access denied' });
   }
 
@@ -193,7 +194,7 @@ exports.bulkDelete = (req, res) => {
     try {
       const paste = Paste.findById(id);
       if (!paste) { errors.push(`${id}: not found`); continue; }
-      if (paste.userId !== req.user.id && !req.user.isAdmin) {
+      if (!canEdit(req.user, 'paste', paste)) {
         errors.push(`${id}: access denied`); continue;
       }
       Paste.delete(id);
@@ -248,7 +249,7 @@ exports.showEditPage = (req, res) => {
   if (!paste) {
     return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
   }
-  if (paste.userId !== req.user.id && !req.user.isAdmin) {
+  if (!canEdit(req.user, 'paste', paste)) {
     return res.redirect('/dashboard');
   }
   return res.render('paste-edit', { user: req.user, paste });
