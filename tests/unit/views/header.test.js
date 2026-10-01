@@ -122,17 +122,17 @@ describe('partials/admin-sidebar (admin mode)', () => {
     const headings = [...html.matchAll(/<p class="sidebar-heading">([^<]+)<\/p>/g)].map(m => m[1]);
     expect(headings).toEqual(['Content', 'People', 'Insights', 'System']);
     const hrefs = [...html.matchAll(/<a href="(\/admin[^"]*)" class="sidebar-link"/g)].map(m => m[1]);
-    expect(hrefs).toEqual(['/admin', '/admin/links', '/admin/files', '/admin/pastes', '/admin/reports',
+    expect(hrefs).toEqual(['/admin', '/admin/items', '/admin/reports',
       '/admin/users', '/admin/teams', '/admin/analytics', '/admin/analytics-shares',
       '/admin/settings', '/admin/appearance', '/admin/audit-logs']);
   });
 
   it('leaves out the pages of switched-off features', async () => {
     const html = await adminSidebar({ features: NONE });
-    for (const href of ['/admin/files', '/admin/pastes', '/admin/reports', '/admin/teams', '/admin/analytics-shares']) {
+    for (const href of ['/admin/reports', '/admin/teams', '/admin/analytics-shares']) {
       expect(linkTo(html, href)).toBe(false);
     }
-    expect(linkTo(html, '/admin/links')).toBe(true);
+    expect(linkTo(html, '/admin/items')).toBe(true);
   });
 
   it('marks the current page', async () => {

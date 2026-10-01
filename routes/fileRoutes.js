@@ -10,6 +10,7 @@ const requirePermission = require('../middleware/requirePermission');
 const { uploadLimiter } = require('../middleware/rateLimiter');
 const { UPLOADS_DIR } = require('../config/paths');
 const fileController = require('../controllers/fileController');
+const AdminItemsController = require('../controllers/adminItemsController');
 
 // Ensure uploads directory exists
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -38,7 +39,7 @@ router.patch('/api/files/:id', canUpload, fileController.updateSettings);
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────
 
-router.get('/admin/files', isAuthenticated, isAdmin, fileController.adminList);
+router.get('/admin/files', isAuthenticated, isAdmin, AdminItemsController.redirectTo('file'));
 
 // ─── Unlock file (password) ───────────────────────────────────────────────────
 

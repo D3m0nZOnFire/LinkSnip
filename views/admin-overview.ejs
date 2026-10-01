@@ -5,7 +5,7 @@
 </head>
 <%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin' }) %>
 <%
-  const ITEM_PAGES = { url: '/admin/links', bundle: '/admin/links', paste: '/admin/pastes', file: '/admin/files' };
+  const ITEM_PAGES = { url: '/admin/items?type=url', bundle: '/admin/items?type=bundle', paste: '/admin/items?type=paste', file: '/admin/items?type=file' };
   const number = (n) => Number(n || 0).toLocaleString('en-US');
   const bytes = (n) => {
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -65,7 +65,7 @@
         </span>
       </a>
       <% if (features.files) { %>
-        <a class="stat-card" href="/admin/files">
+        <a class="stat-card" href="/admin/items?type=file">
           <span class="stat-label">Storage</span>
           <span class="stat-value"><%= bytes(summary.storage.bytes) %></span>
           <span class="stat-detail"><%= number(summary.storage.files) %> file<%= summary.storage.files === 1 ? '' : 's' %></span>

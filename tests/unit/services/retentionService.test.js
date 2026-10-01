@@ -3,7 +3,6 @@ const paths = require('../../../config/paths');
 const configService = require('../../../services/configService');
 const retention = require('../../../services/retentionService');
 const DashboardController = require('../../../controllers/dashboardController');
-const pasteController = require('../../../controllers/pasteController');
 const {
   createTestUser, createTestUrl, createTestPaste, createMockRequest, createMockResponse
 } = require('../../setup/testHelpers');
@@ -112,18 +111,18 @@ describe('list rows carry deletesInDays from the setting', () => {
     expect(row(pastes, 'new-paste').deletesInDays).toBeNull();
   });
 
-  it('Admin → Pastes', () => {
+  it('Admin → Items: pastes', () => {
     createTestPaste(admin.id, { slug: 'old-paste', expiresAt: expiredDaysAgo(25) });
     createTestPaste(null, { slug: 'anon-paste', expiresAt: expiredDaysAgo(25) });
-    const pastes = render(pasteController.adminList).pastes;
+    const pastes = require('../../../services/adminItems').list({ type: 'paste' }).rows;
     expect(row(pastes, 'old-paste').deletesInDays).toBe(15);
     expect(row(pastes, 'anon-paste').deletesInDays).toBeNull();
   });
 
-  it('admin', () => {
+  it('Admin → Items: links', () => {
     createTestUrl({ slug: 'old', creatorId: admin.id, expiresAt: expiredDaysAgo(25) });
     createTestUrl({ slug: 'anon', expiresAt: expiredDaysAgo(25) });
-    const urls = render(DashboardController.getAdminDashboard).urls;
+    const urls = require('../../../services/adminItems').list({ type: 'url' }).rows;
     expect(row(urls, 'old').deletesInDays).toBe(15);
     expect(row(urls, 'anon').deletesInDays).toBeNull();
   });

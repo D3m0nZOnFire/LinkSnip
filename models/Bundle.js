@@ -203,34 +203,6 @@ class Bundle {
   }
 
   /**
-   * Find all bundles system-wide with creator username and item count (admin use)
-   */
-  static findAll(limit = null, offset = 0) {
-    let query = `
-      SELECT bundles.*,
-        users.username AS creatorUsername,
-        (SELECT COUNT(*) FROM bundle_items WHERE bundleId = bundles.id) AS itemCount
-      FROM bundles
-      LEFT JOIN users ON bundles.creatorId = users.id
-      ORDER BY bundles.createdAt DESC, bundles.id DESC
-    `;
-    const params = [];
-    if (limit !== null) {
-      query += ' LIMIT ? OFFSET ?';
-      params.push(limit, offset);
-    }
-    return db.prepare(query).all(...params).map(withTags);
-  }
-
-  /**
-   * Count all bundles system-wide (admin use)
-   */
-  static countAll() {
-    const result = db.prepare('SELECT COUNT(*) as count FROM bundles').get();
-    return result ? result.count : 0;
-  }
-
-  /**
    * Delete expired/deactivated anonymous bundles (no creatorId)
    */
   static deleteInactiveAnonymous() {

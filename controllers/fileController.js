@@ -7,7 +7,7 @@ const User = require('../models/User');
 const { logAccountChange, ACTIONS } = require('../services/auditService');
 const { UPLOADS_DIR } = require('../config/paths');
 const AnalyticsService = require('../services/analyticsService');
-const { checkAccess, sendAccessDenied, withAccessStatus } = require('../services/accessService');
+const { checkAccess, sendAccessDenied } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 const { readSettings, SettingsError } = require('../services/itemSettings');
 const Team = require('../models/Team');
@@ -256,25 +256,4 @@ exports.download = async (req, res) => {
 };
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
-
-/**
- * GET /admin/files
- */
-exports.adminList = (req, res) => {
-  const search = req.query.search || '';
-  const page = Math.max(1, parseInt(req.query.page) || 1);
-  const limit = 50;
-  const offset = (page - 1) * limit;
-
-  const files = File.findAll(limit, offset, search);
-  const total = File.countAll(search);
-  const totalPages = Math.ceil(total / limit);
-
-  return res.render('admin-files', {
-    user: req.user,
-    files: withAccessStatus('file', files).map(f => ({ ...f, sizeFormatted: formatBytes(f.size) })),
-    search,
-    pagination: { page, totalPages, total, limit }
-  });
-};
 

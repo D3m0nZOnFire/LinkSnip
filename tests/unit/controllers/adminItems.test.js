@@ -13,7 +13,7 @@ const {
 // One set of admin routes for every content type:
 //   POST   /api/admin/:type/:id/block | unblock
 //   DELETE /api/admin/:type/:id
-//   POST   /api/admin/:type/bulk-block | bulk-unblock   { ids }
+//   POST   /api/admin/:type/bulk-block | bulk-unblock | bulk-delete   { ids }
 // Audit action names stay what they were (BLOCK_URL, ADMIN_DELETE_FILE, …).
 
 function makeApp(routers = ['adminItemRoutes']) {
@@ -117,10 +117,45 @@ describe.each(Object.keys(MAKE))('%s', (type) => {
   });
 
   it('refuses a bulk request without IDs or with more than 200', async () => {
-    for (const body of [{}, { ids: [] }, { ids: 'all' }, { ids: Array.from({ length: 201 }, (_, i) => i + 1) }]) {
-      expect((await as(request(app).post(`/api/admin/${type}/bulk-block`).send(body))).status).toBe(400);
+    for (const action of ['bulk-block', 'bulk-delete']) {
+      for (const body of [{}, { ids: [] }, { ids: 'all' }, { ids: Array.from({ length: 201 }, (_, i) => i + 1) }]) {
+        expect((await as(request(app).post(`/api/admin/${type}/${action}`).send(body))).status).toBe(400);
+      }
     }
   });
+
+  // Admin → Items: delete several at once, each logged like a single delete
+  it('bulk-deletes, each one audit-logged, reporting IDs it could not find', async () => {
+    const a = MAKE[type]();
+    const b = MAKE[type]();
+    const keep = MAKE[type]();
+
+    const res = await as(request(app).post(`/api/admin/${type}/bulk-delete`).send({ ids: [a.id, b.id, 99999] }));
+    expect(res.body).toEqual({ success: true, deleted: 2, errors: ['99999: not found'] });
+    expect([row(type, a.id), row(type, b.id)]).toEqual([undefined, undefined]);
+    expect(row(type, keep.id)).toBeDefined();
+    const logged = audit().filter(e => e.action === `ADMIN_DELETE_${NAME[type]}`);
+    expect(logged.map(e => e.targetId).sort()).toEqual([a.id, b.id].sort());
+    expect(JSON.parse(logged[0].details)).toEqual(expect.objectContaining({ bulk: true }));
+  });
+
+  it('keeps non-admins out of bulk delete', async () => {
+    const item = MAKE[type]();
+    const user = JSON.stringify({ id: owner.id, isAdmin: 0 });
+    expect((await as(request(app).post(`/api/admin/${type}/bulk-delete`).send({ ids: [item.id] }), user)).status).toBe(302);
+    expect(row(type, item.id)).toBeDefined();
+  });
+});
+
+it('bulk-deleting files also removes their uploads', async () => {
+  const file = MAKE.file();
+  const stored = path.join(paths.UPLOADS_DIR, file.storedName);
+  fs.mkdirSync(paths.UPLOADS_DIR, { recursive: true });
+  fs.writeFileSync(stored, 'bytes');
+
+  await as(request(app).post('/api/admin/file/bulk-delete').send({ ids: [file.id] }));
+
+  expect(fs.existsSync(stored)).toBe(false);
 });
 
 it('deleting a file also removes the stored upload', async () => {
