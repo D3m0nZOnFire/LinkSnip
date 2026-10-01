@@ -169,7 +169,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Anonymous links always expire within `anonymous.urlExpirationDays`; expired anonymous content is deleted nightly
   (4:00), registered users' after `retention.expiredGraceDays` (the "Deletes in Nd" badge on links and pastes:
   `services/retentionService.js` `deletesInDays`, shown by `partials/deletion-badge.ejs`).
-- URL prefill: `/https://example.com` prefills the creation form.
+- URL prefill (`middleware/prefill.js`, before the routes): `/https://example.com/a?b=1`, `/example.com/a` (first
+  segment a host name) or an encoded link opens the create page (`/`) with it in the Link tab; a merged `https:/` is
+  repaired. Only http(s), at most 2048 characters; LinkSnip's own paths never match.
 
 ### Pastes
 - `/p/:slug`, `/p/:slug/raw`, `/p-info/:slug`, editor `/pastes/:id/edit`, API `/api/pastes`. Model `models/Paste.js`,
@@ -357,24 +359,35 @@ share links · 5:30 expired files · 5:45 country database check.
 ## UI patterns
 
 - **Page skeleton** (every view): `<head>` starts with `<%- include('partials/head', { title, styles: ['tables', …],
-  noindex }) %>` (charset, viewport, `<title>` "title · LinkSnip", favicon, Geist preload, `tokens.css`, `main.css`,
-  the listed stylesheets, `theme.js`); page-only `<style>`/scripts follow it. `<body>` holds the header (if any),
-  then `<div class="page">` with everything else (modals and scripts included), then `partials/footer`. `body` is a
-  flex column and `.page` grows, so the footer sits at the bottom of short pages. Centered pages (login, setup,
-  errors) use `page page-center`. Always pass `title` (also `null`): includes inherit the page's locals.
+  noindex }) %>` (charset, viewport, `<title>` "title · <site name>", favicon, Geist preload, `tokens.css`,
+  `/theme.css`, `main.css`, `shell.css`, the listed stylesheets, `theme.js`); page-only `<style>`/scripts follow it.
+  Always pass `title` (also `null`): includes inherit the page's locals.
+  After `</head>`: `<%- include('partials/layout-start', { shell, currentPage }) %>` … page content (modals and
+  scripts included) … `<%- include('partials/layout-end', { shell }) %>` then `</html>` (no `<body>` tag in pages; a
+  test checks this). `shell`:
+  - `'app'` (logged-in work: dashboard, create, tags, teams, settings, admin pages): `body.app` grid with
+    `partials/sidebar` (+ Create, Dashboard, Tags, Teams, Bio page, Import/export by permission/feature, an Admin
+    `<details>` group for admins, `partials/user-menu` at the bottom) and `.app-main` (`partials/topbar` on small
+    screens, `.page`, footer).
+  - `'public'` (item pages: info, paste, file, bundle, unlock, `/stats`; the home page of a visitor):
+    `partials/header` (brand, theme button, Log in/Register or Dashboard + user menu), `.page`, footer.
+  - `'standalone'` (login, register, setup, error, scheduled, quarantine, bio page): `.page` and footer; centered ones
+    pass `pageClass: 'page-center'`; `bodyClass`/`bodyStyle` set `<body>` attributes (bio themes).
+  `index` and `analytics` pick the shell from `user` / `readOnly`. The footer sits at the bottom of short pages
+  (`.page` grows in its column). `renderPages.test.js` checks each page's frame.
 - **Design tokens** live only in `public/css/tokens.css` (Geist fonts, dark `:root` + `html[data-theme="light"]`
   colors, type/spacing/radius scales). Use the variables; accent tints are `color-mix()` of `var(--primary)`
   (`--status-active-bg`, `--focus-ring`, …). Never write the accent as a hex/rgba elsewhere, and canvas code (Chart.js)
   reads the variables with `getComputedStyle`. `tests/unit/views/tokens.test.js` enforces this.
 - `tests/unit/views/renderPages.test.js` renders every view for real (controller data from a seeded DB + view
   locals) and checks the skeleton; a new view needs a case there.
-- Below 1024px the header nav folds into a menu button (`public/js/nav.js`, loaded by the header partial); the
-  admin dropdown is listed in place there. Pages must not scroll sideways at 320px.
-- Every page includes `partials/header` (`<%- include('partials/header', { currentPage: '...' }) %>`, except
-  standalone pages like login/setup/error) and **every** page includes `partials/footer` (a test checks this).
-- `currentPage` values: 'home', 'dashboard', 'tags', 'settings', 'admin', 'admin-users', 'admin-analytics',
+- Below 1024px the sidebar is a drawer opened from the top bar (`public/js/shell.js`, also the user menu; both close
+  on Escape and outside clicks). Theme buttons are `[data-theme-toggle]` (with `[data-theme-icon]` /
+  `[data-theme-label]` slots), wired by `public/js/theme.js`. Icons: `partials/icon` (`{ icon: 'tag' }`).
+  Pages must not scroll sideways at 320px.
+- `currentPage` values (marks the sidebar entry): 'home', 'dashboard', 'tags', 'settings', 'admin', 'admin-users', 'admin-analytics',
   'admin-reports', 'admin-audit-logs', 'admin-files', 'admin-pastes', 'admin-analytics-shares', 'admin-settings',
-  'teams', 'admin-teams', 'admin-appearance',
+  'teams', 'admin-teams', 'admin-appearance', 'bio-settings', 'import',
   'analytics', 'info'.
 - `views/error.ejs` takes `{ title, message, code }` (it also tolerates `statusCode` / `error.status`).
 - Modals: `public/css/modals.css`, `openModal(id)` / `closeModal(id)` in `public/js/main.js`; `showToast`,

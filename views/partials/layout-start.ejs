@@ -1,0 +1,17 @@
+<%#
+  Opens <body> and the page frame; partials/layout-end closes it. { shell, currentPage, pageClass, bodyClass, bodyStyle }
+  shell 'app': sidebar + main column (logged-in pages) · 'public': slim header · 'standalone': nothing around the page
+%>
+<%
+  const shell = locals.shell || 'app';
+  const bodyClasses = [shell === 'app' ? 'app' : '', locals.bodyClass || ''].filter(Boolean).join(' ');
+-%>
+<body<% if (bodyClasses) { %> class="<%= bodyClasses %>"<% } %><% if (locals.bodyStyle) { %> style="<%= bodyStyle %>"<% } %>>
+<% if (shell === 'app') { %>
+  <%- include('sidebar') %>
+  <div class="app-main">
+    <%- include('topbar') %>
+<% } else if (shell === 'public') { %>
+  <%- include('header') %>
+<% } %>
+  <div class="page<%= locals.pageClass ? ' ' + pageClass : '' %>">

@@ -3,9 +3,7 @@
 <head>
   <%- include('partials/head', { title: 'Import / export', styles: ['tables', 'forms'] }) %>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'import' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'import' }) %>
 
   <main class="container">
     <div style="max-width: 900px; margin: 0 auto;">
@@ -321,7 +319,5 @@ https://example.com/page3</code></pre>
       }
     });
   </script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

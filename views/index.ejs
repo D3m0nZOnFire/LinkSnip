@@ -778,9 +778,8 @@
     .create-in-team select { padding: 0.4rem 0.6rem; background: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius-md); font: inherit; max-width: 60vw; }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'home' }) %>
-  <div class="page">
+<% const shell = user ? 'app' : 'public'; %>
+<%- include('partials/layout-start', { shell, currentPage: 'home' }) %>
 
   <main class="main-content">
 
@@ -2477,7 +2476,5 @@
     });
     <% } %>
   </script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: shell }) %>
 </html>

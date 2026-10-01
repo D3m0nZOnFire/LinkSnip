@@ -58,6 +58,7 @@ const requireSetupComplete = require('./middleware/requireSetupComplete');
 const { createUrlLimiter, redirectLimiter, apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 const requirePermission = require('./middleware/requirePermission');
 const { viewLocals, appLocals, brandingLocals } = require('./middleware/viewLocals');
+const { prefillFromPath } = require('./middleware/prefill');
 const { featureRoutes } = require('./middleware/requireFeature');
 
 const app = express();
@@ -113,63 +114,8 @@ Object.assign(app.locals, appLocals());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Middleware to handle URL prefill (MUST come before other routes)
-app.use((req, res, next) => {
-  // Security: Limit max URL length to prevent DoS (browser standard is 2048)
-  const MAX_URL_LENGTH = 2048;
-
-  // Check if the path starts with /http:// or /https://
-  if (req.path.startsWith('/http://') || req.path.startsWith('/https://')) {
-    // Extract the URL (remove leading slash)
-    const extractedUrl = req.originalUrl.substring(1);
-
-    // Security: Validate length
-    if (extractedUrl.length > MAX_URL_LENGTH) {
-      return next(); // Skip prefill for overly long URLs
-    }
-
-    // Security: Validate it's a proper URL with safe protocol
-    try {
-      const urlObj = new URL(extractedUrl);
-      // Only allow http and https protocols
-      if (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') {
-        req.prefillUrl = extractedUrl;
-        return UrlController.getCreateForm(req, res);
-      }
-    } catch (e) {
-      // Invalid URL, skip prefill
-      return next();
-    }
-  }
-
-  // Check if the path looks like a URL without protocol (contains a dot and isn't a known route)
-  const pathWithoutSlash = req.path.substring(1); // Remove leading slash
-  if (pathWithoutSlash && pathWithoutSlash.includes('.') && !pathWithoutSlash.startsWith('s/')) {
-    // Add https:// prefix - use originalUrl to preserve query parameters
-    const urlWithoutSlash = req.originalUrl.substring(1); // Includes query params
-    const fullUrl = 'https://' + urlWithoutSlash;
-
-    // Security: Validate length
-    if (fullUrl.length > MAX_URL_LENGTH) {
-      return next(); // Skip prefill for overly long URLs
-    }
-
-    // Security: Validate it's a proper URL after adding https://
-    try {
-      const urlObj = new URL(fullUrl);
-      // Double-check protocol is https (should always be true here)
-      if (urlObj.protocol === 'https:') {
-        req.prefillUrl = fullUrl;
-        return UrlController.getCreateForm(req, res);
-      }
-    } catch (e) {
-      // Invalid URL after adding https://, skip prefill
-      return next();
-    }
-  }
-
-  next();
-});
+// lnksnp.ch/<a link> opens the create page with it filled in (before the routes)
+app.use(prefillFromPath(UrlController.getCreateForm));
 
 // Routes
 app.use('/', authRoutes); // Auth routes have their own rate limiter applied in authRoutes.js

@@ -3,9 +3,7 @@
 <head>
   <%- include('partials/head', { title: `${tag.name} · Tag analytics`, styles: ['tables'] }) %>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'tags' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'tags' }) %>
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -199,7 +197,5 @@
     // Load on page ready
     document.addEventListener('DOMContentLoaded', loadAnalytics);
   </script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

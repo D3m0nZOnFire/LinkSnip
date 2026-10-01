@@ -5,9 +5,7 @@
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'bio-settings' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'bio-settings' }) %>
 
   <main class="main-content">
     <div class="header-section">
@@ -263,7 +261,5 @@
   </div>
 
   <script src="/js/bio-settings.js"></script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

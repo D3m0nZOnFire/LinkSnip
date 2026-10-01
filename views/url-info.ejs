@@ -120,9 +120,7 @@
     }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'info' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'public', currentPage: 'info' }) %>
 
   <!-- Main Content -->
   <main class="info-container">
@@ -296,7 +294,5 @@
   <% } %>
 
   <script src="/js/main.js"></script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'public' }) %>
 </html>

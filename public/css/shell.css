@@ -1,0 +1,387 @@
+/* ========================================
+   Page frame (views/partials/layout-start.ejs, public/js/shell.js)
+   app: sidebar + main column · public: slim header
+   ======================================== */
+
+:root {
+  --sidebar-width: 15rem;
+}
+
+/* ─── App: sidebar + main column ─────────────────────────────── */
+body.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  align-items: start;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100dvh;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding: var(--spacing-md) var(--spacing-sm);
+  overflow-y: auto;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: 0 var(--spacing-sm) var(--spacing-md);
+}
+
+.sidebar-head .brand-logo {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.sidebar-head .brand-name {
+  font-size: var(--text-base);
+}
+
+.sidebar-close {
+  display: none;
+}
+
+.sidebar-create.btn {
+  justify-content: flex-start;
+  gap: 0.625rem;
+  margin: 0 0 var(--spacing-md);
+  padding: 0.5rem 0.625rem;
+  font-size: var(--text-sm);
+}
+
+.sidebar-nav,
+.sidebar-subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.45rem 0.625rem;
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.sidebar-link:hover {
+  background: var(--secondary);
+  color: var(--foreground);
+}
+
+.sidebar-link[aria-current="page"] {
+  background: var(--secondary);
+  color: var(--foreground);
+}
+
+.sidebar-link:focus-visible,
+.sidebar-create.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.sidebar-link .icon {
+  flex-shrink: 0;
+}
+
+.sidebar-group {
+  margin-top: var(--spacing-md);
+}
+
+.sidebar-group > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sidebar-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-group > summary .icon:last-child {
+  margin-left: auto;
+  transition: transform var(--transition-fast);
+}
+
+.sidebar-group[open] > summary .icon:last-child {
+  transform: rotate(90deg);
+}
+
+.sidebar-subnav {
+  margin-top: 2px;
+  padding-left: 1.625rem;
+}
+
+.sidebar-subnav .sidebar-link {
+  padding-block: 0.35rem;
+}
+
+.sidebar-foot {
+  margin-top: auto;
+  padding-top: var(--spacing-md);
+}
+
+.topbar {
+  display: none;
+}
+
+/* ─── User menu ─────────────────────────────────────────────── */
+.user-menu {
+  position: relative;
+}
+
+.user-button {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.user-button:hover,
+.user-button[aria-expanded="true"] {
+  background: var(--secondary);
+}
+
+.user-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.user-button > .icon {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full);
+  background: var(--status-active-bg);
+  color: var(--primary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.user-meta {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.user-name {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-role {
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+.user-menu-list {
+  position: absolute;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: 0.3rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.user-menu-sidebar .user-menu-list {
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+}
+
+.user-menu-header .user-menu-list {
+  right: 0;
+  top: calc(100% + 0.4rem);
+}
+
+.user-menu-list [role="menuitem"] {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--foreground);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.user-menu-list [role="menuitem"]:hover,
+.user-menu-list [role="menuitem"]:focus-visible {
+  background: var(--secondary);
+  outline: none;
+}
+
+.user-menu-list .icon,
+.user-menu-list [data-theme-icon] {
+  display: inline-flex;
+  color: var(--muted-foreground);
+}
+
+[data-theme-icon] svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ─── Public: slim header ───────────────────────────────────── */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--background) 85%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0.7rem var(--spacing-md);
+}
+
+.site-header-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.user-menu-header .user-button {
+  width: auto;
+  padding: 0.2rem;
+}
+
+.user-menu-header .user-meta,
+.user-menu-header .user-button > .icon {
+  display: none;
+}
+
+/* ─── Small screens: the sidebar becomes a drawer ───────────── */
+@media (max-width: 1023.98px) {
+  body.app {
+    display: block;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    width: min(18rem, 85vw);
+    box-shadow: var(--shadow-xl);
+    transform: translateX(-100%);
+    visibility: hidden;
+    /* Hidden (out of the tab order) only once it has slid away */
+    transition: transform var(--transition-base), visibility 0s linear 0.2s;
+  }
+
+  body.sidebar-open {
+    overflow: hidden;
+  }
+
+  /* Visible at once, so focus can move into it */
+  body.sidebar-open .sidebar {
+    transform: none;
+    visibility: visible;
+    transition: transform var(--transition-base), visibility 0s;
+  }
+
+  .sidebar-close {
+    display: inline-flex;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: var(--modal-overlay-bg);
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 0.55rem var(--spacing-md);
+    background: color-mix(in srgb, var(--background) 85%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .topbar .icon-btn {
+    color: var(--foreground);
+  }
+}
+
+@media (max-width: 400px) {
+  .site-header-inner {
+    padding-inline: 0.75rem;
+    gap: var(--spacing-sm);
+  }
+
+  .site-header-actions {
+    gap: 0.25rem;
+  }
+
+  .site-header-actions .btn-small {
+    padding-inline: 0.65rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
+}

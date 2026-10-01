@@ -14,9 +14,7 @@
     .form-errors { color: var(--destructive); margin-top: 0.75rem; }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'teams' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'teams' }) %>
 
   <main class="main-content-wide">
     <div class="header-section">
@@ -81,7 +79,5 @@
     });
   </script>
   <% } %>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

@@ -3,8 +3,7 @@
 <head>
   <%- include('partials/head', { title: title }) %>
 </head>
-<body>
-  <div class="page page-center">
+<%- include('partials/layout-start', { shell: 'standalone', pageClass: 'page-center' }) %>
   <div class="error-container">
     <div class="error-box">
       <!-- Status Icon -->
@@ -53,7 +52,5 @@
       </div>
     </div>
   </div>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'standalone' }) %>
 </html>

@@ -1,88 +1,20 @@
-<!-- Header Navigation -->
-<header class="header">
-  <div class="header-content">
-    <div class="logo-container">
-      <%- include('brand', { large: false }) %>
-      <% if (user && user.isAdmin) { %>
-        <div class="badge admin-badge" style="margin-left: 0.5rem;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          </svg>
-          <span>Admin</span>
-        </div>
+<%# Header of the public pages (layout-start, shell 'public'): the brand, theme, and log in / the user's menu %>
+<% const user = locals.user || null; %>
+<header class="site-header">
+  <div class="site-header-inner">
+    <%- include('brand', { large: false }) %>
+    <div class="site-header-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Switch theme"><span data-theme-icon></span></button>
+      <% if (user) { %>
+        <a href="/dashboard" class="btn btn-small btn-secondary">Dashboard</a>
+        <%- include('user-menu', { place: 'header' }) %>
+      <% } else { %>
+        <a href="/login" class="btn btn-small btn-ghost">Log in</a>
+        <% if (locals.registrationOpen !== false) { %>
+        <a href="/register" class="btn btn-small">Register</a>
+        <% } %>
       <% } %>
     </div>
-
-    <!-- Theme toggle button -->
-    <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme" title="Toggle theme" style="margin-left: auto; margin-right: 1rem;">
-      <!-- Icon will be injected by theme.js -->
-    </button>
-
-    <!-- Menu button: only shown when the nav doesn't fit (public/js/nav.js) -->
-    <button type="button" class="icon-btn nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Open menu">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-      </svg>
-    </button>
-
-    <nav class="nav" id="site-nav">
-      <% const can = locals.can || {}; const features = locals.features || {}; %>
-      <% if (user) { %>
-        <!-- Logged-in user navigation -->
-        <a href="/" class="<%= currentPage === 'home' ? 'active' : '' %>">Home</a>
-        <a href="/dashboard" class="<%= currentPage === 'dashboard' ? 'active' : '' %>">Dashboard</a>
-        <% if (can.tags) { %>
-        <a href="/tags" class="<%= currentPage === 'tags' ? 'active' : '' %>">Tags</a>
-        <% } %>
-        <% if (features.teams) { %>
-        <a href="/teams" class="<%= currentPage === 'teams' ? 'active' : '' %>">Teams</a>
-        <% } %>
-
-        <% if (user.isAdmin) { %>
-          <!-- Admin dropdown menu -->
-          <div class="nav-dropdown">
-            <button class="nav-dropdown-toggle <%= currentPage && currentPage.startsWith('admin') ? 'active' : '' %>">
-              Admin
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; margin-left: 4px;">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            <div class="nav-dropdown-menu">
-              <a href="/admin" class="<%= currentPage === 'admin' ? 'active' : '' %>">URLs</a>
-              <a href="/admin/users" class="<%= currentPage === 'admin-users' ? 'active' : '' %>">Users</a>
-              <a href="/admin/analytics" class="<%= currentPage === 'admin-analytics' ? 'active' : '' %>">Analytics</a>
-              <% if (features.analyticsShareLinks) { %><a href="/admin/analytics-shares" class="<%= currentPage === 'admin-analytics-shares' ? 'active' : '' %>">Analytics Shares</a><% } %>
-              <% if (features.files) { %><a href="/admin/files" class="<%= currentPage === 'admin-files' ? 'active' : '' %>">Files</a><% } %>
-              <% if (features.pastes) { %><a href="/admin/pastes" class="<%= currentPage === 'admin-pastes' ? 'active' : '' %>">Pastes</a><% } %>
-              <% if (features.reports) { %><a href="/admin/reports" class="<%= currentPage === 'admin-reports' ? 'active' : '' %>">Reports</a><% } %>
-              <% if (features.teams) { %><a href="/admin/teams" class="<%= currentPage === 'admin-teams' ? 'active' : '' %>">Teams</a><% } %>
-              <a href="/admin/audit-logs" class="<%= currentPage === 'admin-audit-logs' ? 'active' : '' %>">Audit Logs</a>
-              <a href="/admin/settings" class="<%= currentPage === 'admin-settings' ? 'active' : '' %>">Settings</a>
-              <a href="/admin/appearance" class="<%= currentPage === 'admin-appearance' ? 'active' : '' %>">Appearance</a>
-            </div>
-          </div>
-        <% } %>
-
-        <% if (can.bioPage) { %>
-        <a href="/bio/settings" class="<%= currentPage === 'bio-settings' ? 'active' : '' %>">Bio Page</a>
-        <% } %>
-        <% if (can.importExport) { %>
-        <a href="/import" class="<%= currentPage === 'import' ? 'active' : '' %>">Import/Export</a>
-        <% } %>
-        <a href="/settings" class="<%= currentPage === 'settings' ? 'active' : '' %>">Settings</a>
-        <a href="/logout">Logout</a>
-      <% } else { %>
-        <!-- Guest navigation -->
-        <a href="/login" class="<%= currentPage === 'login' ? 'active' : '' %>">Login</a>
-        <% if (locals.registrationOpen !== false) { %>
-        <a href="/register" class="<%= currentPage === 'register' ? 'primary' : '' %>">Register</a>
-        <% } %>
-      <% } %>
-    </nav>
   </div>
 </header>
-<script src="/js/nav.js" defer></script>
-
-
+<script src="/js/shell.js" defer></script>

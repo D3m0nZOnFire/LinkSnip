@@ -3,9 +3,7 @@
 <head>
   <%- include('partials/head', { title: 'Settings', styles: ['forms'] }) %>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'settings' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'settings' }) %>
 
   <!-- Main Content -->
   <main class="main-content">
@@ -102,7 +100,5 @@
 
   <script src="/js/main.js"></script>
   <script src="/js/settings.js"></script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

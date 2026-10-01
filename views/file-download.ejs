@@ -146,9 +146,7 @@
     }
   </style>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: '' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'public' }) %>
 
   <div class="file-preview-container">
     <div class="file-card">
@@ -234,7 +232,5 @@
   <% if (features.reports) { %>
     <%- include('partials/report-modal', { type: 'file', id: file.id, noun: 'file' }) %>
   <% } %>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'public' }) %>
 </html>

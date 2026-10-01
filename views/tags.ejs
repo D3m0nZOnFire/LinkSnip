@@ -3,9 +3,7 @@
 <head>
   <%- include('partials/head', { title: 'Tags', styles: ['tables', 'forms', 'modals'] }) %>
 </head>
-<body>
-  <%- include('partials/header', { currentPage: 'tags' }) %>
-  <div class="page">
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'tags' }) %>
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -269,7 +267,5 @@
       }
     }
   </script>
-  </div>
-  <%- include('partials/footer') %>
-</body>
+<%- include('partials/layout-end', { shell: 'app' }) %>
 </html>
