@@ -22,16 +22,26 @@
     <!-- Header Section -->
     <div class="header-section">
       <div>
-        <h2>Your Dashboard</h2>
+        <h2 style="overflow-wrap:anywhere;"><%= currentTeam ? currentTeam.name : 'Your Dashboard' %></h2>
         <p id="dashHeaderCount">
-          <span class="count"><%= pagination.totalUrls %></span> link<%= pagination.totalUrls !== 1 ? 's' : '' %><% if (bundles.length > 0) { %> &nbsp;·&nbsp; <span class="count"><%= bundles.length %></span> bundle<%= bundles.length !== 1 ? 's' : '' %><% } %><% if (canUploadFiles && fileCount > 0) { %> &nbsp;·&nbsp; <span class="count"><%= fileCount %></span> file<%= fileCount !== 1 ? 's' : '' %><% } %>
+          <span class="count"><%= pagination.totalUrls %></span> link<%= pagination.totalUrls !== 1 ? 's' : '' %><% if (bundles.length > 0) { %> &nbsp;·&nbsp; <span class="count"><%= bundles.length %></span> bundle<%= bundles.length !== 1 ? 's' : '' %><% } %><% if (showFiles && fileCount > 0) { %> &nbsp;·&nbsp; <span class="count"><%= fileCount %></span> file<%= fileCount !== 1 ? 's' : '' %><% } %>
         </p>
       </div>
       <div style="display:flex; gap:0.75rem; align-items:center;">
-        <% if (pagination.totalUrls > 0) { %>
+        <% if (dashboardTeams.length) { %>
+          <select id="dashboardScope" class="form-input" aria-label="Show items of" style="width:auto; padding:0.5rem 0.75rem;" onchange="window.location.href = this.value ? '/dashboard?team=' + this.value : '/dashboard'">
+            <option value=""<%= currentTeam ? '' : ' selected' %>>Personal</option>
+            <% dashboardTeams.forEach(team => { %>
+              <option value="<%= team.id %>"<%= currentTeam && currentTeam.id === team.id ? ' selected' : '' %>><%= team.name %></option>
+            <% }) %>
+          </select>
+        <% } %>
+        <% if (urls.some(url => url.canEdit)) { %>
           <button id="toggleSelectBtn" class="btn" style="background-color:var(--secondary); color:var(--foreground);" onclick="toggleSelectionMode()">Select</button>
         <% } %>
-        <a href="/" class="btn" style="color: var(--primary-foreground);">Create New</a>
+        <% if (!currentTeam || currentTeam.role !== 'viewer') { %>
+        <a href="/<%= currentTeam ? `?team=${currentTeam.id}` : '' %>" class="btn" style="color: var(--primary-foreground);">Create New</a>
+        <% } %>
       </div>
     </div>
 
@@ -53,7 +63,7 @@
         </svg>
         Bundles<% if (bundles.length > 0) { %> (<%= bundles.length %>)<% } %>
       </button>
-      <% if (canUploadFiles) { %>
+      <% if (showFiles) { %>
       <button type="button" class="dash-filter-pill" id="pill-files" onclick="setDashFilter('files')">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;">
           <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
@@ -87,6 +97,7 @@
       }
       .dash-filter-pill:hover { border-color: var(--primary); color: var(--foreground); }
       .dash-filter-pill.active { border-color: var(--primary); color: var(--primary); background: var(--status-active-bg); }
+      .team-creator { margin-left: 0.5rem; color: var(--muted-foreground); font-size: 0.75rem; white-space: nowrap; }
     </style>
 
     <!-- Pagination Controls -->
@@ -144,6 +155,7 @@
     <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
       <form id="dashboardFilterForm" method="GET" action="/dashboard" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end;">
         <input type="hidden" name="limit" value="<%= pagination.limit %>">
+        <% if (currentTeam) { %><input type="hidden" name="team" value="<%= currentTeam.id %>"><% } %>
         <div style="flex:2; min-width:220px;">
           <label for="dashSearchInput" style="display:block; margin-bottom:0.4rem; font-size:0.875rem; color:var(--muted-foreground);">Search</label>
           <input type="text" id="dashSearchInput" name="search" value="<%= filters.search %>" placeholder="Search slug or URL..." style="width:100%; padding:0.5rem 0.75rem; background-color:var(--secondary); color:var(--foreground); border:1px solid var(--border); border-radius:0.375rem;">
@@ -160,7 +172,7 @@
         <div style="display:flex; gap:0.5rem; align-items:flex-end;">
           <button type="submit" class="btn" style="color:var(--primary-foreground);">Apply</button>
           <% if (filters.search || (filters.sort && filters.sort !== 'newest')) { %>
-            <a href="/dashboard?limit=<%= pagination.limit %>" class="btn" style="background-color:var(--secondary); color:var(--foreground);">Clear</a>
+            <a href="/dashboard?limit=<%= pagination.limit %><%= currentTeam ? `&team=${currentTeam.id}` : '' %>" class="btn" style="background-color:var(--secondary); color:var(--foreground);">Clear</a>
           <% } %>
         </div>
       </form>
@@ -228,6 +240,7 @@
                   <a href="<%= baseUrl %>/s/<%= url.slug %>" target="_blank" class="url-link" onclick="event.stopPropagation();" style="font-weight: 500; color: var(--primary);">
                     /s/<%= url.slug %>
                   </a>
+                  <% if (currentTeam && url.creatorUsername) { %><span class="team-creator">by <strong><%= url.creatorUsername %></strong></span><% } %>
                   <% if (features.analyticsShareLinks && url.shareCount > 0) { %>
                   <span
                     style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.125rem 0.5rem; background-color: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 4px; font-size: 0.75rem; font-weight: 500;"
@@ -311,6 +324,7 @@
                     </svg>
                   </button>
                   <% } %>
+                  <% if (url.canEdit) { %>
                   <button class="icon-btn" onclick="event.stopPropagation(); editUrl(<%= url.id %>);" title="Edit">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -323,6 +337,7 @@
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                     </svg>
                   </button>
+                  <% } %>
                 </div>
               </div>
             </div>
@@ -434,6 +449,8 @@
                   QR Code
                 </button>
                 <% } %>
+                <%- include('partials/team-move-button', { type: 'url', id: url.id, item: url }) %>
+                <% if (url.canEdit) { %>
                 <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="editUrl(<%= url.id %>)">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -448,6 +465,7 @@
                   </svg>
                   Delete
                 </button>
+                <% } %>
               </div>
             </div>
           </div>
@@ -472,6 +490,7 @@
                   <a href="<%= baseUrl %>/b/<%= bundle.slug %>" target="_blank" style="color: var(--primary); text-decoration: none;">
                     /b/<%= bundle.slug %>
                   </a>
+                  <% if (currentTeam && bundle.creatorUsername) { %><span class="team-creator">by <strong><%= bundle.creatorUsername %></strong></span><% } %>
                 </div>
                 <%- include('partials/tag-chips', { tags: bundle.tags }) %>
               </div>
@@ -514,6 +533,8 @@
                   </svg>
                 </a>
                 <% } %>
+                <%- include('partials/team-move-button', { type: 'bundle', id: bundle.id, item: bundle }) %>
+                <% if (bundle.canEdit) { %>
                 <button class="icon-btn" title="Edit bundle" onclick="editBundle(<%= bundle.id %>)">
                   <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -525,6 +546,7 @@
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                   </svg>
                 </button>
+                <% } %>
               </div>
 
             </div>
@@ -532,7 +554,7 @@
         <% }) %>
 
         <!-- File Rows (roles with uploadFiles, same flat style as bundles) -->
-        <% if (canUploadFiles) { %>
+        <% if (showFiles) { %>
           <% files.forEach(file => { %>
             <%
               const fmtSize = file.size < 1024 ? file.size + ' B'
@@ -557,6 +579,7 @@
                     <a href="<%= baseUrl %>/f/<%= file.slug %>" target="_blank" style="color: var(--primary); text-decoration: none;">
                       /f/<%= file.slug %>
                     </a>
+                    <% if (currentTeam && file.ownerUsername) { %><span class="team-creator">by <strong><%= file.ownerUsername %></strong></span><% } %>
                   </div>
                   <%- include('partials/tag-chips', { tags: file.tags }) %>
                 </div>
@@ -600,6 +623,8 @@
                     </svg>
                   </a>
                   <% } %>
+                  <%- include('partials/team-move-button', { type: 'file', id: file.id, item: file }) %>
+                  <% if (file.canEdit) { %>
                   <button class="icon-btn" title="Edit" onclick="openFileEdit(<%= file.id %>)">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                       <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -611,6 +636,7 @@
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                     </svg>
                   </button>
+                  <% } %>
                 </div>
 
               </div>
@@ -641,6 +667,7 @@
                   <a href="<%= baseUrl %>/p/<%= paste.slug %>" target="_blank" style="color: var(--primary); text-decoration: none;">
                     /p/<%= paste.slug %>
                   </a>
+                  <% if (currentTeam && paste.ownerUsername) { %><span class="team-creator">by <strong><%= paste.ownerUsername %></strong></span><% } %>
                 </div>
                 <%- include('partials/tag-chips', { tags: paste.tags }) %>
               </div>
@@ -698,6 +725,8 @@
                   </svg>
                 </button>
                 <% } %>
+                <%- include('partials/team-move-button', { type: 'paste', id: paste.id, item: paste }) %>
+                <% if (paste.canEdit) { %>
                 <a class="icon-btn" title="Edit" href="/pastes/<%= paste.id %>/edit">
                   <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -709,6 +738,7 @@
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                   </svg>
                 </button>
+                <% } %>
               </div>
 
             </div>
@@ -724,7 +754,7 @@
     </div>
 
     <!-- Empty state when Files filter active but no files -->
-    <% if (canUploadFiles) { %>
+    <% if (showFiles) { %>
     <div id="noFilesMsg" style="display:none;" class="empty-state">
       <p>No files yet</p>
       <a href="/" class="btn btn-small">Upload your first file</a>
@@ -1285,7 +1315,7 @@
 
 
     // ─── File actions (roles with uploadFiles) ────────────────────
-    <% if (canUploadFiles) { %>
+    <% if (showFiles) { %>
     function copyFileLink(url, btn) {
       navigator.clipboard.writeText(url).then(() => {
         const orig = btn.innerHTML;
@@ -1429,8 +1459,40 @@
     // Paste editing lives on its own full page: GET /pastes/:id/edit
   </script>
 
+  <!-- Move to a team -->
+  <% if (writableTeams.length && !currentTeam) { %>
+  <div id="moveToTeamModal" class="modal-overlay">
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-header">
+        <h3>Move to a team</h3>
+        <button type="button" class="modal-close" onclick="closeModal('moveToTeamModal')" aria-label="Close">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <form class="modal-body" id="moveToTeamForm">
+        <div class="form-group">
+          <label for="moveTeamSelect" class="form-label">Team</label>
+          <select id="moveTeamSelect" class="form-input">
+            <% writableTeams.forEach(team => { %><option value="<%= team.id %>"><%= team.name %></option><% }) %>
+          </select>
+        </div>
+        <p style="color:var(--muted-foreground); font-size:0.875rem;">Its tags move along. The team's members will see it, and only team owners and admins can move it back out.</p>
+        <p id="moveTeamError" style="color:var(--destructive);" role="alert"></p>
+        <div class="modal-footer">
+          <button type="button" class="btn" style="background:var(--secondary); color:var(--foreground);" onclick="closeModal('moveToTeamModal')">Cancel</button>
+          <button type="submit" class="btn" style="color:var(--primary-foreground);">Move</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <% } %>
+  <script src="/js/teamMove.js"></script>
+
   <!-- File Edit Modal -->
-  <% if (canUploadFiles) { %>
+  <% if (showFiles) { %>
   <div id="fileEditModal" class="modal-overlay">
     <div class="modal" style="max-width:520px;">
       <div class="modal-header">

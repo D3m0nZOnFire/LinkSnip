@@ -3,6 +3,9 @@ const teamService = require('../services/teamService');
 const { TeamError } = teamService;
 const RoleService = require('../services/roleService');
 const { log, ACTIONS, CATEGORIES } = require('../services/auditService');
+const db = require('../config/database');
+const { contentType, isTypeEnabled } = require('../services/contentTypes');
+const { canView, canMoveToTeam, canMoveFromTeam } = require('../services/itemPermissions');
 
 /**
  * Team pages and API. The rules are in services/teamService.js; this answers HTTP and writes the audit log:
@@ -146,3 +149,45 @@ function teamRef(id) {
   const team = Team.findById(Number(id));
   return { id: Number(id), name: team ? team.name : null };
 }
+
+/**
+ * POST /api/items/:type/:id/team { teamId }
+ * Moves a personal item into a team (its creator, member or above there), or a team item back to its creator's
+ * personal items (teamId null: team owners and admins). Its tags follow.
+ */
+exports.moveItem = api((req, res) => {
+  const { type, id } = req.params;
+  if (!isTypeEnabled(type)) throw new TeamError(404, 'Not found');
+  const info = contentType(type);
+  const item = db.prepare(`SELECT * FROM ${info.table} WHERE id = ?`).get(Number(id));
+  if (!item || !canView(req.user, type, item)) throw new TeamError(404, 'Not found');
+
+  const target = req.body ? req.body.teamId : undefined;
+  const audit = (action, team) => log({
+    req,
+    action,
+    category: CATEGORIES.ACCOUNT_CHANGE,
+    targetType: type,
+    targetId: item.id,
+    targetDescription: `${info.publicPrefix}${item.slug}`,
+    details: { teamId: team.id, teamName: team.name }
+  });
+
+  if (target === null || target === undefined || target === '') {
+    if (!canMoveFromTeam(req.user, type, item)) {
+      throw new TeamError(403, 'Only team owners and admins can move items out of a team');
+    }
+    const team = Team.findById(item.teamId);
+    Team.moveItem(type, item.id, null);
+    audit(ACTIONS.MOVE_ITEM_FROM_TEAM, team);
+    return res.json({ success: true, teamId: null });
+  }
+
+  const team = Team.findById(Number(target));
+  if (!team || !canMoveToTeam(req.user, type, item, team.id)) {
+    throw new TeamError(403, 'You can only move your own personal items into a team you are a member of');
+  }
+  Team.moveItem(type, item.id, team.id);
+  audit(ACTIONS.MOVE_ITEM_TO_TEAM, team);
+  res.json({ success: true, teamId: team.id });
+});

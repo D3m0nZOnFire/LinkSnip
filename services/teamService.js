@@ -3,6 +3,7 @@ const path = require('path');
 const db = require('../config/database');
 const Team = require('../models/Team');
 const RoleService = require('./roleService');
+const configService = require('./configService');
 const { UPLOADS_DIR } = require('../config/paths');
 
 /**
@@ -220,6 +221,29 @@ function declineInvite(user, inviteId) {
   return found;
 }
 
+// ─── Team items ─────────────────────────────────────────────────────────────
+
+/**
+ * The team a new item goes into, from a create request's teamId: null for a personal item (empty or absent).
+ * Members, admins and owners of the team may create in it.
+ * @throws {TeamError} 400 while features.teams is off or for a malformed ID, 403 when the user may not
+ */
+function teamForNewItem(user, rawTeamId) {
+  if (rawTeamId === undefined || rawTeamId === null || rawTeamId === '') return null;
+  if (!configService.get('features.teams')) throw new TeamError(400, 'Teams are switched off on this instance');
+  const teamId = Number(rawTeamId);
+  if (!Number.isInteger(teamId) || teamId < 1) throw new TeamError(400, 'Invalid team');
+  const role = user ? Team.memberRole(teamId, user.id) : null;
+  if (!['owner', 'admin', 'member'].includes(role)) throw new TeamError(403, 'You can\'t create items in this team');
+  return teamId;
+}
+
+/** Teams the user may create items in (member or above), for "Create in" choices. */
+function writableTeams(user) {
+  if (!user || !configService.get('features.teams')) return [];
+  return Team.forUser(user.id).filter(team => team.role !== 'viewer');
+}
+
 // ─── Lists ──────────────────────────────────────────────────────────────────
 
 const listForUser = (user) => Team.forUser(user.id);
@@ -231,5 +255,6 @@ module.exports = {
   create, get, rename, deleteTeam,
   memberRole, changeRole, removeMember, leave,
   invite, revokeInvite, acceptInvite, declineInvite,
+  teamForNewItem, writableTeams,
   listForUser, invitesForUser, listAll
 };

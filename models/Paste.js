@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const Tag = require('./Tag');
+const { scopeCondition } = require('../services/itemScope');
 
 class Paste {
   static create({ userId, slug, title, content, language, expiresAt, activateAt, deactivateAt, maxViews, password }) {
@@ -35,15 +36,17 @@ class Paste {
     return paste;
   }
 
+  /** A user's personal pastes, or a team's ({ teamId }) */
   static findByUserId(userId, limit = null, offset = 0) {
+    const scope = scopeCondition('paste', userId);
     let query = `
       SELECT pastes.*, users.username AS ownerUsername
       FROM pastes
       LEFT JOIN users ON pastes.userId = users.id
-      WHERE pastes.userId = ?
+      WHERE ${scope.sql}
       ORDER BY pastes.createdAt DESC
     `;
-    const params = [userId];
+    const params = [...scope.params];
     if (limit !== null) {
       query += ' LIMIT ? OFFSET ?';
       params.push(limit, offset);

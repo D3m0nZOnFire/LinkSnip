@@ -780,6 +780,9 @@
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
     }
+      .create-in-team { display: flex; align-items: center; gap: 0.6rem; padding: 1.25rem 1.5rem 0; margin: 0; color: var(--muted-foreground); font-size: 0.875rem; }
+    @media (max-width: 640px) { .create-in-team { padding: 1rem 1rem 0; } }
+    .create-in-team select { padding: 0.4rem 0.6rem; background: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius-md); font: inherit; max-width: 60vw; }
   </style>
 </head>
 <body>
@@ -868,6 +871,20 @@
         <% } %>
         <% } %>
       </div>
+
+      <% const createTeams = locals.writableTeams || []; %>
+      <% if (user && createTeams.length) { %>
+      <!-- ── Create in a team (sent with every kind of item) ── -->
+      <label class="create-in-team" for="createInTeam">
+        Create in
+        <select name="teamId" id="createInTeam">
+          <option value="">Personal</option>
+          <% createTeams.forEach(team => { %>
+            <option value="<%= team.id %>"<%= locals.selectedTeamId === team.id ? ' selected' : '' %>><%= team.name %></option>
+          <% }) %>
+        </select>
+      </label>
+      <% } %>
 
       <!-- ── Bundle Section (hidden by default) ────────────── -->
       <% if (user) { %>
@@ -1449,6 +1466,14 @@
        SCRIPTS
        ═══════════════════════════════════════════════════ -->
   <script>
+    // The "Create in" team (links send it as a form field), added to the paste, bundle and file requests
+    function withTeam(body) {
+      const select = document.getElementById('createInTeam');
+      if (select && select.value) body.teamId = select.value;
+      return body;
+    }
+  </script>
+  <script>
   (function () {
     'use strict';
 
@@ -1840,7 +1865,7 @@
       fetch('/api/pastes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify(withTeam(body))
       })
         .then(r => r.json())
         .then(data => {
@@ -1962,7 +1987,7 @@
         const res = await fetch('/api/bundles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(tags ? { title, items, tags } : { title, items })
+          body: JSON.stringify(withTeam(tags ? { title, items, tags } : { title, items }))
         });
         const data = await res.json();
 
@@ -2225,6 +2250,8 @@
 
       const formData = new FormData();
       formData.append('file', input.files[0]);
+      const fileTeam = withTeam({}).teamId;
+      if (fileTeam) formData.append('teamId', fileTeam);
       const expiresAt = document.getElementById('fileExpiresAt').value;
       const maxDl     = document.getElementById('fileMaxDownloads').value;
       const password  = document.getElementById('filePassword').value;

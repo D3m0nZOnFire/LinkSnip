@@ -13,6 +13,9 @@ const { deletesInDays } = require('../services/retentionService');
 const configService = require('../services/configService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 const { readSettings, SettingsError } = require('../services/itemSettings');
+const Team = require('../models/Team');
+const teamService = require('../services/teamService');
+const { TeamError } = teamService;
 
 // Read per request so edits to settings.json apply without a restart.
 const maxPasteBytes = () => configService.get('pastes.maxSizeKB') * 1024;
@@ -49,6 +52,14 @@ exports.create = async (req, res) => {
     const denied = deniedPermission(req.user || null, { ...settings.uses, tags: filled(tags) });
     if (denied) return denyJson(res, denied);
 
+    let teamId;
+    try {
+      teamId = teamService.teamForNewItem(req.user || null, req.body.teamId);
+    } catch (error) {
+      if (!(error instanceof TeamError)) throw error;
+      return res.status(error.status).json({ success: false, error: error.message });
+    }
+
     // Slug
     let slug;
     if (customSlug && customSlug.trim()) {
@@ -73,6 +84,7 @@ exports.create = async (req, res) => {
       ...settings.values
     });
 
+    if (teamId) Team.moveItem('paste', paste.id, teamId);
     if (tags) Tag.setForItem('paste', paste.id, Tag.parseTagString(tags));
 
     logAccountChange(ACTIONS.CREATE_PASTE, req, { pasteId: paste.id, slug, title: paste.title });

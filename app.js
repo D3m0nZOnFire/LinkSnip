@@ -45,6 +45,7 @@ const infoRoutes = require('./routes/infoRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const importExportRoutes = require('./routes/importExportRoutes');
 const teamRoutes = require('./routes/teamRoutes');
+const teamService = require('./services/teamService');
 const unlockRoutes = require('./routes/unlockRoutes');
 const bioPageRoutes = require('./routes/bioPageRoutes');
 const bundleRoutes = require('./routes/bundleRoutes');
@@ -122,6 +123,8 @@ app.use((req, res, next) => {
     return [p, (!feature || features[feature]) && RoleService.can(req.user || null, p)];
   }));
   res.locals.canUploadFiles = res.locals.can.uploadFiles;
+  // Teams the user can create items in ("Create in" on the create page)
+  res.locals.writableTeams = req.user ? teamService.writableTeams(req.user) : [];
   next();
 });
 

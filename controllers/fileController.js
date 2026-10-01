@@ -10,6 +10,9 @@ const AnalyticsService = require('../services/analyticsService');
 const { checkAccess, sendAccessDenied, withAccessStatus } = require('../services/accessService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 const { readSettings, SettingsError } = require('../services/itemSettings');
+const Team = require('../models/Team');
+const teamService = require('../services/teamService');
+const { TeamError } = teamService;
 
 // Ensure uploads directory exists
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -50,6 +53,15 @@ exports.upload = async (req, res) => {
       return denyJson(res, denied);
     }
 
+    let teamId;
+    try {
+      teamId = teamService.teamForNewItem(req.user, req.body.teamId);
+    } catch (error) {
+      if (!(error instanceof TeamError)) throw error;
+      discardUpload();
+      return res.status(error.status).json({ success: false, error: error.message });
+    }
+
     let parsedAllowedUsers = [];
     if (allowedUsers) {
       try {
@@ -71,6 +83,7 @@ exports.upload = async (req, res) => {
       allowedUsers: parsedAllowedUsers
     });
 
+    if (teamId) Team.moveItem('file', file.id, teamId);
     if (tags) Tag.setForItem('file', file.id, Tag.parseTagString(tags));
 
     const fileUrl = `${req.protocol}://${req.get('host')}/f/${slug}`;

@@ -13,34 +13,36 @@ const TAG_COLORS = [
 
 class Tag {
   /**
-   * Create a new tag
+   * Create a new tag (or return the existing one with that name)
    * @param {string} name - Tag name
    * @param {number} userId - User ID (null for system-wide tags)
    * @param {string} color - Optional color (auto-assigned if not provided)
+   * @param {number} teamId - A team's tag instead of a user's (userId is then ignored)
    * @returns {object} Created tag
    */
-  static create(name, userId = null, color = null) {
+  static create(name, userId = null, color = null, teamId = null) {
     // Normalize tag name (lowercase, trim)
     const normalizedName = name.trim().toLowerCase();
+    if (teamId !== null) userId = null;
 
-    // Check if tag already exists for this user
-    const existing = this.findByName(normalizedName, userId);
+    // Check if tag already exists for this user or team
+    const existing = teamId !== null ? this.findByTeamName(normalizedName, teamId) : this.findByName(normalizedName, userId);
     if (existing) {
       return existing;
     }
 
     // Auto-assign color if not provided
     if (!color) {
-      const existingTags = userId ? this.findByUserId(userId) : this.findAll();
+      const existingTags = teamId !== null ? this.forTeam(teamId) : (userId ? this.findByUserId(userId) : this.findAll());
       color = TAG_COLORS[existingTags.length % TAG_COLORS.length];
     }
 
     const stmt = db.prepare(`
-      INSERT INTO tags (name, userId, color)
-      VALUES (?, ?, ?)
+      INSERT INTO tags (name, userId, color, teamId)
+      VALUES (?, ?, ?, ?)
     `);
 
-    const result = stmt.run(normalizedName, userId, color);
+    const result = stmt.run(normalizedName, userId, color, teamId);
     return this.findById(result.lastInsertRowid);
   }
 
@@ -62,8 +64,18 @@ class Tag {
    */
   static findByName(name, userId = null) {
     const normalizedName = name.trim().toLowerCase();
-    const stmt = db.prepare('SELECT * FROM tags WHERE name = ? AND userId IS ?');
+    const stmt = db.prepare('SELECT * FROM tags WHERE name = ? AND userId IS ? AND teamId IS NULL');
     return stmt.get(normalizedName, userId);
+  }
+
+  /** A team's tag by name */
+  static findByTeamName(name, teamId) {
+    return db.prepare('SELECT * FROM tags WHERE name = ? AND teamId = ?').get(name.trim().toLowerCase(), teamId);
+  }
+
+  /** A team's tags, by name */
+  static forTeam(teamId) {
+    return db.prepare('SELECT * FROM tags WHERE teamId = ? ORDER BY name ASC').all(teamId);
   }
 
   /**
@@ -87,7 +99,7 @@ class Tag {
   static findAll() {
     const stmt = db.prepare(`
       SELECT * FROM tags
-      WHERE userId IS NULL
+      WHERE userId IS NULL AND teamId IS NULL
       ORDER BY name ASC
     `);
     return stmt.all();
@@ -111,23 +123,25 @@ class Tag {
 
   /**
    * Replace an item's tags (an empty list removes them all). Tags belong to the
-   * item's owner, whoever edits it; an item without an owner gets none.
+   * item's owner, whoever edits it, or to its team for a team item; an item without
+   * an owner gets none.
    * @param {'url'|'bundle'|'paste'|'file'} type
    * @param {number} id
    * @param {array} tagNames
    */
   static setForItem(type, id, tagNames) {
     const { table, ownerColumn } = contentType(type);
-    const item = db.prepare(`SELECT ${ownerColumn} AS ownerId FROM ${table} WHERE id = ?`).get(id);
+    const item = db.prepare(`SELECT ${ownerColumn} AS ownerId, teamId FROM ${table} WHERE id = ?`).get(id);
     const ownerId = item ? item.ownerId : null;
-    const names = ownerId == null ? [] : [...new Set((tagNames || [])
+    const teamId = item && item.teamId != null ? item.teamId : null;
+    const names = ownerId == null && teamId == null ? [] : [...new Set((tagNames || [])
       .map(name => String(name).trim().toLowerCase())
       .filter(Boolean))];
 
     db.transaction(() => {
       db.prepare('DELETE FROM taggables WHERE targetType = ? AND targetId = ?').run(type, id);
       const insert = db.prepare('INSERT OR IGNORE INTO taggables (tagId, targetType, targetId) VALUES (?, ?, ?)');
-      for (const name of names) insert.run(this.create(name, ownerId).id, type, id);
+      for (const name of names) insert.run(this.create(name, ownerId, null, teamId).id, type, id);
     })();
   }
 

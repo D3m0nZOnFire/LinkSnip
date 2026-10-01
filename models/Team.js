@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { CONTENT_TYPES } = require('../services/contentTypes');
+const Tag = require('./Tag');
 
 /**
  * Teams, their members and pending invites (tables from migrateTeams).
@@ -98,6 +99,16 @@ class Team {
     db.transaction(() => {
       this.addMember(invite.teamId, invite.userId, invite.role);
       this.deleteInvite(invite.id);
+    })();
+  }
+
+  /** Put an item in a team (or back to personal with null). Its tags follow: same names, the new owner's set. */
+  static moveItem(type, id, teamId) {
+    const { table } = CONTENT_TYPES[type];
+    db.transaction(() => {
+      const names = Tag.forItem(type, id).map(tag => tag.name);
+      db.prepare(`UPDATE ${table} SET teamId = ? WHERE id = ?`).run(teamId, id);
+      Tag.setForItem(type, id, names);
     })();
   }
 

@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const Tag = require('./Tag');
 const { statusSql } = require('../services/accessService');
+const { scopeCondition } = require('../services/itemScope');
 
 // Status filter values (?status= and @status:) → access status; max-uses keeps its old name
 const STATUS_FILTERS = {
@@ -59,25 +60,28 @@ class Url {
   }
 
   /**
-   * Find all URLs by creator ID (with tags and report counts)
-   * @param {number} creatorId
+   * Find a user's personal links, or a team's (with tags and report counts)
+   * @param {number|object} creatorId - A user ID, { userId } or { teamId } (services/itemScope.js)
    * @param {number} limit - Number of URLs per page (null = all)
    * @param {number} offset - Number of URLs to skip
    * @returns {array} Array of URL records with tags and report counts
    */
   static findByCreatorId(creatorId, limit = null, offset = 0) {
+    const scope = scopeCondition('url', creatorId);
     let query = `
       SELECT
         urls.*,
+        creator.username AS creatorUsername,
         COUNT(CASE WHEN reports.status = 'pending' THEN 1 END) as reportCount
       FROM urls
+      LEFT JOIN users creator ON creator.id = urls.creatorId
       LEFT JOIN reports ON reports.targetType = 'url' AND reports.targetId = urls.id
-      WHERE creatorId = ?
+      WHERE ${scope.sql}
       GROUP BY urls.id
       ORDER BY urls.createdAt DESC
     `;
 
-    const params = [creatorId];
+    const params = [...scope.params];
 
     if (limit !== null) {
       query += ' LIMIT ? OFFSET ?';
@@ -106,20 +110,23 @@ class Url {
   }
 
   /**
-   * Get URLs for a creator with search + sort support
-   * @param {number} creatorId
+   * Get a user's personal links, or a team's, with search + sort support
+   * @param {number|object} creatorId - A user ID, { userId } or { teamId }
    * @param {object} options - { limit, offset, search, sort }
    */
   static findByCreatorIdWithFilters(creatorId, options = {}) {
     const { limit = null, offset = 0, search = '', sort = 'newest' } = options;
 
+    const scope = scopeCondition('url', creatorId);
     let query = `
-      SELECT urls.*, COUNT(CASE WHEN reports.status = 'pending' THEN 1 END) as reportCount
+      SELECT urls.*, creator.username AS creatorUsername,
+        COUNT(CASE WHEN reports.status = 'pending' THEN 1 END) as reportCount
       FROM urls
+      LEFT JOIN users creator ON creator.id = urls.creatorId
       LEFT JOIN reports ON reports.targetType = 'url' AND reports.targetId = urls.id
-      WHERE urls.creatorId = ?
+      WHERE ${scope.sql}
     `;
-    const params = [creatorId];
+    const params = [...scope.params];
 
     if (search && search.trim()) {
       query += ` AND (urls.slug LIKE ? OR urls.longUrl LIKE ?)`;
@@ -146,14 +153,15 @@ class Url {
   }
 
   /**
-   * Count URLs for a creator with search support
-   * @param {number} creatorId
+   * Count a user's personal links, or a team's, with search support
+   * @param {number|object} creatorId - A user ID, { userId } or { teamId }
    * @param {object} options - { search }
    */
   static countByCreatorIdWithFilters(creatorId, options = {}) {
     const { search = '' } = options;
-    let query = `SELECT COUNT(*) as count FROM urls WHERE creatorId = ?`;
-    const params = [creatorId];
+    const scope = scopeCondition('url', creatorId);
+    let query = `SELECT COUNT(*) as count FROM urls WHERE ${scope.sql}`;
+    const params = [...scope.params];
 
     if (search && search.trim()) {
       query += ` AND (slug LIKE ? OR longUrl LIKE ?)`;

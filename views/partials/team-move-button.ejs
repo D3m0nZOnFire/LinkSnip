@@ -1,0 +1,16 @@
+<%# Move an item into a team (personal dashboard) or out of it (team dashboard). Locals: type, id, item %>
+<% if (item.canMoveIn) { %>
+  <button type="button" class="icon-btn" title="Move to a team" aria-label="Move to a team" data-move-in data-type="<%= type %>" data-id="<%= id %>">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </svg>
+  </button>
+<% } else if (item.canMoveOut) { %>
+  <button type="button" class="icon-btn" title="Move out of the team (back to its creator)" aria-label="Move out of the team" data-move-out data-type="<%= type %>" data-id="<%= id %>">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle>
+      <line x1="23" y1="11" x2="17" y2="11"></line>
+    </svg>
+  </button>
+<% } %>

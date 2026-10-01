@@ -49,7 +49,10 @@
         <h2 class="team-title"><%= team.name %></h2>
         <p class="team-meta"><%= isMember ? `You are ${/^[aeiou]/.test(myRole) ? 'an' : 'a'} ${myRole}` : 'You see this team as a site admin' %> · <%= countText %></p>
       </div>
-      <a href="/teams" class="btn btn-secondary">All teams</a>
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+        <a href="/dashboard?team=<%= team.id %>" class="btn" style="color: var(--primary-foreground);">Open items</a>
+        <a href="/teams" class="btn btn-secondary">All teams</a>
+      </div>
     </div>
 
     <section class="team-section">

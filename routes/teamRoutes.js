@@ -16,6 +16,8 @@ router.post('/api/teams/:id/leave', isAuthenticated, TeamController.leave);
 router.patch('/api/teams/:id/members/:userId', isAuthenticated, TeamController.changeRole);
 router.delete('/api/teams/:id/members/:userId', isAuthenticated, TeamController.removeMember);
 
+router.post('/api/items/:type/:id/team', isAuthenticated, TeamController.moveItem);
+
 router.delete('/api/team-invites/:id', isAuthenticated, TeamController.revokeInvite);
 router.post('/api/team-invites/:id/accept', isAuthenticated, TeamController.acceptInvite);
 router.post('/api/team-invites/:id/decline', isAuthenticated, TeamController.declineInvite);
