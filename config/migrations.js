@@ -444,7 +444,84 @@ function migrateIpHashes(db, logger = console) {
   })();
 }
 
+const TEAM_CONTENT_TABLES = ['urls', 'bundles', 'pastes', 'files', 'tags'];
+
+/**
+ * Teams: shared ownership of links, bundles, pastes and files (and per-team tags).
+ * - teams, team_members (owner / admin / member / viewer), team_invites (pending, one per person and team)
+ * - teamId on the content tables and tags: NULL is personal; deleting a team deletes its items (ON DELETE CASCADE,
+ *   so the items' own delete triggers clean up analytics, tags and reports)
+ * - a trigger keeps an owner: when the last one goes (left, removed, account deleted), the longest-standing admin,
+ *   else member, else viewer becomes owner
+ * Idempotent.
+ */
+function migrateTeams(db, logger = console) {
+  const columns = (table) => db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+  const tableExists = (name) =>
+    !!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?").get(name);
+
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS teams (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        createdBy INTEGER,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (createdBy) REFERENCES users(id) ON DELETE SET NULL
+      );
+      CREATE TABLE IF NOT EXISTS team_members (
+        teamId INTEGER NOT NULL,
+        userId INTEGER NOT NULL,
+        role TEXT NOT NULL CHECK (role IN ('owner', 'admin', 'member', 'viewer')),
+        joinedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (teamId, userId),
+        FOREIGN KEY (teamId) REFERENCES teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_team_members_userId ON team_members(userId);
+      CREATE TABLE IF NOT EXISTS team_invites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        teamId INTEGER NOT NULL,
+        userId INTEGER NOT NULL,
+        role TEXT NOT NULL CHECK (role IN ('admin', 'member', 'viewer')),
+        invitedBy INTEGER,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (teamId, userId),
+        FOREIGN KEY (teamId) REFERENCES teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (invitedBy) REFERENCES users(id) ON DELETE SET NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_team_invites_userId ON team_invites(userId);
+
+      CREATE TRIGGER IF NOT EXISTS trg_team_members_keep_owner
+      AFTER DELETE ON team_members
+      WHEN OLD.role = 'owner'
+        AND NOT EXISTS (SELECT 1 FROM team_members WHERE teamId = OLD.teamId AND role = 'owner')
+      BEGIN
+        UPDATE team_members SET role = 'owner'
+        WHERE teamId = OLD.teamId AND userId = (
+          SELECT userId FROM team_members WHERE teamId = OLD.teamId
+          ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'member' THEN 1 ELSE 2 END, joinedAt, rowid
+          LIMIT 1
+        );
+      END;
+    `);
+
+    for (const table of TEAM_CONTENT_TABLES) {
+      if (!tableExists(table)) continue;
+      if (!columns(table).includes('teamId')) {
+        logger.log(`  👥 Adding teamId to ${table}...`);
+        db.exec(`ALTER TABLE ${table} ADD COLUMN teamId INTEGER REFERENCES teams(id) ON DELETE CASCADE`);
+      }
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_${table}_teamId ON ${table}(teamId)`);
+    }
+    if (tableExists('tags')) {
+      db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_team_name ON tags(teamId, name) WHERE teamId IS NOT NULL');
+    }
+  })();
+}
+
 module.exports = {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics, migrateTags, migrateIpHashes
+  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams
 };

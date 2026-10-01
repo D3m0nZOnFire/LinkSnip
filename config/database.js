@@ -3,7 +3,7 @@ const { DB_PATH, ensureDataDir } = require('./paths');
 const { configureDatabase } = require('./dbSetup');
 const {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics, migrateTags, migrateIpHashes
+  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams
 } = require('./migrations');
 
 // Initialize database (DATA_DIR must exist and be writable)
@@ -458,6 +458,12 @@ migrateTags(db);
 // ============================================================================
 
 migrateIpHashes(db);
+
+// ============================================================================
+// TEAMS (shared items; teamId on content tables and tags)
+// ============================================================================
+
+migrateTeams(db);
 
 console.log('\n✅ Database initialized and migrations completed successfully\n');
 

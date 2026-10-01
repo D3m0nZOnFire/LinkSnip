@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Teams - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <script src="/js/theme.js"></script>
+  <style>
+    .data-table td { vertical-align: middle; }
+    .data-table td:first-child { overflow-wrap: anywhere; }
+    .muted { color: var(--muted-foreground); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'admin-teams' }) %>
+  <% const NOUNS = { url: 'links', bundle: 'bundles', paste: 'pastes', file: 'files' }; %>
+
+  <main class="main-content-wide">
+    <div class="header-section">
+      <div>
+        <h2>Teams</h2>
+        <p>Every team on this instance. Deleting a team deletes its items too.</p>
+      </div>
+    </div>
+
+    <% if (!teams.length) { %>
+      <p class="muted">No teams yet.</p>
+    <% } else { %>
+      <div class="table-container" style="overflow-x: auto;">
+        <table class="data-table">
+          <thead><tr><th>Team</th><th>Owners</th><th>Members</th><th>Items</th><th>Created</th><th></th></tr></thead>
+          <tbody>
+            <% teams.forEach(team => { %>
+              <tr>
+                <td><a href="/teams/<%= team.id %>"><%= team.name %></a></td>
+                <td><%= team.owners.length ? team.owners.join(', ') : '—' %></td>
+                <td><%= team.members %></td>
+                <td class="muted">
+                  <%= Object.entries(team.items).filter(([, n]) => n).map(([type, n]) => `${n} ${NOUNS[type]}`).join(', ') || 'none' %>
+                </td>
+                <td class="muted"><%= String(team.createdAt || '').slice(0, 10) %><%= team.createdBy ? ` by ${team.createdBy}` : '' %></td>
+                <td>
+                  <button type="button" class="btn btn-small btn-danger delete-team" data-team-id="<%= team.id %>" data-team-name="<%= team.name %>">Delete</button>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </main>
+
+  <script>
+    document.querySelectorAll('.delete-team').forEach(button => {
+      button.addEventListener('click', async () => {
+        const name = button.dataset.teamName;
+        const typed = prompt(`Delete the team "${name}" and all its items? Type its name to confirm.`);
+        if (typed === null) return;
+        const response = await fetch(`/api/teams/${button.dataset.teamId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirmName: typed })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (data.success) window.location.reload();
+        else alert(data.error || 'Could not delete the team.');
+      });
+    });
+  </script>
+  <%- include('partials/footer') %>
+</body>
+</html>

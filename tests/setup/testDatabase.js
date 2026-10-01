@@ -1,5 +1,7 @@
 const Database = require('better-sqlite3');
-const { migrateAnalyticsShareLinks, migrateQuarantine, migrateReports, migrateAnalytics, migrateTags, migrateIpHashes } = require('../../config/migrations');
+const {
+  migrateAnalyticsShareLinks, migrateQuarantine, migrateReports, migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams
+} = require('../../config/migrations');
 
 let db = null;
 
@@ -164,6 +166,7 @@ function createTestDatabase() {
   migrateAnalytics(db, { log: () => {} });
   migrateTags(db, { log: () => {} });
   migrateIpHashes(db, { log: () => {}, warn: () => {} });
+  migrateTeams(db, { log: () => {} });
 
   return db;
 }
@@ -187,6 +190,9 @@ function clearTestDatabase() {
 
   // Delete in order respecting foreign key constraints
   db.exec('DELETE FROM reports');
+  db.exec('DELETE FROM team_invites');
+  db.exec('DELETE FROM team_members');
+  db.exec('DELETE FROM teams');
   db.exec('DELETE FROM bundle_items');
   db.exec('DELETE FROM bundles');
   db.exec('DELETE FROM pastes');
@@ -200,7 +206,7 @@ function clearTestDatabase() {
   db.exec('DELETE FROM users');
 
   // Reset autoincrement counters
-  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'urls', 'analytics_events', 'tags', 'reports', 'audit_logs', 'bundles', 'bundle_items', 'files', 'pastes', 'analytics_shares')");
+  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'urls', 'analytics_events', 'tags', 'reports', 'audit_logs', 'bundles', 'bundle_items', 'files', 'pastes', 'analytics_shares', 'teams', 'team_invites')");
 }
 
 /**

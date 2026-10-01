@@ -41,6 +41,9 @@
         <% if (can.tags) { %>
         <a href="/tags" class="<%= currentPage === 'tags' ? 'active' : '' %>">Tags</a>
         <% } %>
+        <% if (features.teams) { %>
+        <a href="/teams" class="<%= currentPage === 'teams' ? 'active' : '' %>">Teams</a>
+        <% } %>
 
         <% if (user.isAdmin) { %>
           <!-- Admin dropdown menu -->
@@ -59,6 +62,7 @@
               <% if (features.files) { %><a href="/admin/files" class="<%= currentPage === 'admin-files' ? 'active' : '' %>">Files</a><% } %>
               <% if (features.pastes) { %><a href="/admin/pastes" class="<%= currentPage === 'admin-pastes' ? 'active' : '' %>">Pastes</a><% } %>
               <% if (features.reports) { %><a href="/admin/reports" class="<%= currentPage === 'admin-reports' ? 'active' : '' %>">Reports</a><% } %>
+              <% if (features.teams) { %><a href="/admin/teams" class="<%= currentPage === 'admin-teams' ? 'active' : '' %>">Teams</a><% } %>
               <a href="/admin/audit-logs" class="<%= currentPage === 'admin-audit-logs' ? 'active' : '' %>">Audit Logs</a>
               <a href="/admin/settings" class="<%= currentPage === 'admin-settings' ? 'active' : '' %>">Settings</a>
             </div>

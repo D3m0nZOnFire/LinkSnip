@@ -44,6 +44,7 @@ const qrcodeRoutes = require('./routes/qrcodeRoutes');
 const infoRoutes = require('./routes/infoRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const importExportRoutes = require('./routes/importExportRoutes');
+const teamRoutes = require('./routes/teamRoutes');
 const unlockRoutes = require('./routes/unlockRoutes');
 const bioPageRoutes = require('./routes/bioPageRoutes');
 const bundleRoutes = require('./routes/bundleRoutes');
@@ -109,7 +110,8 @@ const FEATURE_OF_PERMISSION = {
   uploadFiles: 'files',
   bioPage: 'bioPages',
   importExport: 'importExport',
-  analyticsShareLinks: 'analyticsShareLinks'
+  analyticsShareLinks: 'analyticsShareLinks',
+  createTeams: 'teams'
 };
 app.use((req, res, next) => {
   const features = configService.getSettings().features;
@@ -207,6 +209,7 @@ app.use('/', tagRoutes);
 app.use('/', infoRoutes);
 app.use('/', featureRoutes('reports', reportRoutes));
 app.use('/', featureRoutes('importExport', importExportRoutes));
+app.use('/', featureRoutes('teams', teamRoutes)); // /teams, team API, /admin/teams
 
 // Home page - URL creation form
 app.get('/', UrlController.getCreateForm);
