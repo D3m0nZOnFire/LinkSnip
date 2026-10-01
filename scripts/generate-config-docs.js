@@ -77,8 +77,7 @@ return 404 and its buttons and menus are hidden.
 **Appearance:** the \`branding.*\` keys are easiest to set in **Admin → Appearance**, which previews every palette.
 The logo and favicon uploaded there are stored in \`DATA_DIR/branding/\`. Visitors see the dark or the light palette
 depending on their device, and can switch with the theme button. Palettes to choose from (besides LinkSnip's own,
-adaptations of [Omarchy](https://github.com/omacom/omarchy)'s themes, MIT license; \`config/palettes/omarchy/SOURCE.md\`
-lists what was changed):
+inspired by the themes of [Omarchy](https://github.com/omacom/omarchy)):
 
 ${table(['Mode', 'Palette ids'], ['dark', 'light'].map(mode => [
     mode,
@@ -86,7 +85,7 @@ ${table(['Mode', 'Palette ids'], ['dark', 'light'].map(mode => [
   ]))}
 
 **Your own palettes** are files in \`DATA_DIR/palettes/\`, in Omarchy's \`colors.toml\` format; the file name is the
-palette id (lowercase letters, digits and dashes). Make them with **New palette** in Admin → Appearance, or copy any
+palette id (lowercase letters, digits and dashes). Make them with **New palette** in Admin → Appearance, or copy an
 Omarchy theme's \`colors.toml\` there under a new name. Like settings.json, the folder is re-read every few seconds;
 a file with a problem is logged and listed in Admin → Appearance, and skipped.
 

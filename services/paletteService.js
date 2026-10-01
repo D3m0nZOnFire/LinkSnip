@@ -10,21 +10,19 @@ const color = require('./color');
  * Color palettes, in Omarchy's colors.toml format (https://github.com/omacom/omarchy, themes/<name>/colors.toml):
  * `mode`, `accent`, `background`, `foreground`, `red`, `yellow` (other keys are ignored), plus an optional `name`.
  *
- * Built in: LinkSnip Dark/Light (config/palettes) and LinkSnip's adaptations of the Omarchy themes
- * (config/palettes/omarchy, see SOURCE.md there): their colors need no adjusting, a test checks that.
+ * Built in: config/palettes.js (LinkSnip's own, and palettes inspired by Omarchy's themes); their colors need no
+ * adjusting, a test checks that. The file format is Omarchy's, so an Omarchy theme can be dropped in as it is.
  * Custom: DATA_DIR/palettes/<id>.toml, made in Admin → Appearance or dropped in by hand (re-read every few seconds,
  * like settings.json; a broken file is skipped and reported by problems()).
  * The host picks one dark and one light palette (branding.darkPalette / branding.lightPalette); themeCss() turns
  * them into the color variables of /theme.css. Everything else in the CSS derives from those variables.
  */
 
-const BUILT_IN_DIRS = [path.join(__dirname, '../config/palettes'), path.join(__dirname, '../config/palettes/omarchy')];
 const DEFAULTS = { dark: 'linksnip-dark', light: 'linksnip-light' };
 const COLOR_KEYS = ['accent', 'background', 'foreground', 'red', 'yellow'];
 // Omarchy's other colors: where to look for a red or a yellow when those slots hold something else
 const EXTRA_KEYS = ['bright_red', 'orange', 'bright_yellow', 'magenta', 'bright_magenta', 'green', 'bright_green',
   'brown', 'cyan', 'bright_cyan', 'blue', 'bright_blue'];
-const NAMES = { 'rose-pine': 'Rosé Pine' }; // where title case isn't the theme's real name
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const MAX_NAME = 40;
 const RESCAN_MS = 2000;
@@ -61,7 +59,7 @@ function parsePalette(text, { id, builtIn = false }) {
 
   const extras = {};
   for (const key of EXTRA_KEYS) if (color.parse(data[key])) extras[key] = color.normalize(data[key]);
-  return { id, name: data.name ? data.name.trim() : (NAMES[id] || titleCase(id)), mode, builtIn, colors, extras };
+  return { id, name: data.name ? data.name.trim() : titleCase(id), mode, builtIn, colors, extras };
 }
 
 // mode and the five colors, normalized; every problem in `errors`
@@ -79,13 +77,13 @@ function checkFields(data) {
   return { errors, mode: data.mode, colors };
 }
 
+// config/palettes.js, checked like a palette file
 function loadBuiltIns() {
   const palettes = new Map();
-  for (const dir of BUILT_IN_DIRS) {
-    for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.toml')).sort()) {
-      const id = file.replace(/\.toml$/, '');
-      palettes.set(id, parsePalette(fs.readFileSync(path.join(dir, file), 'utf8'), { id, builtIn: true }));
-    }
+  for (const { id, name, mode, colors } of require('../config/palettes')) {
+    const checked = checkFields({ mode, ...colors });
+    if (checked.errors.length) throw new Error(`config/palettes.js: ${id}: ${checked.errors.join('; ')}`);
+    palettes.set(id, { id, name, mode, builtIn: true, colors: checked.colors, extras: {} });
   }
   return palettes;
 }

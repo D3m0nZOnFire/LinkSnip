@@ -6,8 +6,7 @@ const color = require('../../../services/color');
 const paletteService = require('../../../services/paletteService');
 const { PaletteError } = paletteService;
 
-const OMARCHY = path.join(__dirname, '../../../config/palettes/omarchy');
-const omarchyIds = fs.readdirSync(OMARCHY).filter(f => f.endsWith('.toml')).map(f => f.replace(/\.toml$/, ''));
+const BUILT_IN = require('../../../config/palettes');
 
 afterEach(() => {
   fs.rmSync(paths.SETTINGS_PATH, { force: true });
@@ -57,9 +56,11 @@ describe('parsePalette', () => {
 describe('built-in palettes', () => {
   const all = paletteService.listPalettes();
 
-  it("are LinkSnip's two plus every Omarchy theme", () => {
-    expect(all.map(p => p.id).sort()).toEqual(['linksnip-dark', 'linksnip-light', ...omarchyIds].sort());
-    expect(omarchyIds.length).toBeGreaterThanOrEqual(22);
+  it('are the ones in config/palettes.js', () => {
+    expect(all.map(p => p.id).sort()).toEqual(BUILT_IN.map(p => p.id).sort());
+    expect(new Set(BUILT_IN.map(p => p.id)).size).toBe(BUILT_IN.length);
+    expect(all.map(p => p.id)).toEqual(expect.arrayContaining(['linksnip-dark', 'linksnip-light', 'tokyo-night', 'matte-black']));
+    expect(all).toHaveLength(24);
   });
 
   it("list LinkSnip's own first, then the rest by name", () => {

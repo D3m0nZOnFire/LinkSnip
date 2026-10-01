@@ -1,9 +1,0 @@
-# Ethereal: adapted for LinkSnip from Omarchy's ethereal theme (themes/ethereal/colors.toml, see SOURCE.md).
-name = "Ethereal"
-mode = "dark"
-
-accent = "#7d82d9"
-background = "#060b1e"
-foreground = "#ffcead"
-red = "#ed5b5a"
-yellow = "#e9bb4f"

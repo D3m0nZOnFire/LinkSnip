@@ -1,9 +1,0 @@
-# Catppuccin: adapted for LinkSnip from Omarchy's catppuccin theme (themes/catppuccin/colors.toml, see SOURCE.md).
-name = "Catppuccin"
-mode = "dark"
-
-accent = "#89b4fa"
-background = "#1e1e2e"
-foreground = "#cdd6f4"
-red = "#f38ba8"
-yellow = "#f9e2af"

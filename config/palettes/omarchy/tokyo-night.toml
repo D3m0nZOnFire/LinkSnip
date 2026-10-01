@@ -1,9 +1,0 @@
-# Tokyo Night: adapted for LinkSnip from Omarchy's tokyo-night theme (themes/tokyo-night/colors.toml, see SOURCE.md).
-name = "Tokyo Night"
-mode = "dark"
-
-accent = "#7aa2f7"
-background = "#1a1b26"
-foreground = "#a9b1d6"
-red = "#f7768e"
-yellow = "#e0af68"

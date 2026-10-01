@@ -1,9 +1,0 @@
-# Ristretto: adapted for LinkSnip from Omarchy's ristretto theme (themes/ristretto/colors.toml, see SOURCE.md).
-name = "Ristretto"
-mode = "dark"
-
-accent = "#f38d70"
-background = "#2c2525"
-foreground = "#e6d9db"
-red = "#fd6883"
-yellow = "#f9cc6c"

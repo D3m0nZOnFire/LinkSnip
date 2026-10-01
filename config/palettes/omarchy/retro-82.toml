@@ -1,9 +1,0 @@
-# Retro 82: adapted for LinkSnip from Omarchy's retro-82 theme (themes/retro-82/colors.toml, see SOURCE.md).
-name = "Retro 82"
-mode = "dark"
-
-accent = "#faa968"
-background = "#05182e"
-foreground = "#f6dcac"
-red = "#f85525"
-yellow = "#e97b3c"
