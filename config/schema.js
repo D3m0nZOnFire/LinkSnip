@@ -58,6 +58,23 @@ const SETTINGS = {
   'retention.expiredGraceDays': {
     type: 'integer', min: 0, default: 90, env: 'EXPIRED_URL_GRACE_PERIOD_DAYS',
     description: "Days an expired registered user's link or paste is kept before it is deleted."
+  },
+  // `editor: 'appearance'`: set on Admin → Appearance rather than in the Settings form
+  'branding.name': {
+    type: 'string', minLength: 1, maxLength: 40, default: 'LinkSnip', editor: 'appearance',
+    description: 'Name of the site, shown in the header, page titles and on the login pages.'
+  },
+  'branding.tagline': {
+    type: 'string', maxLength: 120, default: 'Short links, pastes, files and bundles, with analytics.', editor: 'appearance',
+    description: 'One sentence under the name on the home page and in link previews (search engines, chat apps). Can be empty.'
+  },
+  'branding.darkPalette': {
+    type: 'palette', mode: 'dark', default: 'linksnip-dark', editor: 'appearance',
+    description: 'Colors in dark mode: a dark palette id (Admin → Appearance lists them). An unknown id falls back to linksnip-dark.'
+  },
+  'branding.lightPalette': {
+    type: 'palette', mode: 'light', default: 'linksnip-light', editor: 'appearance',
+    description: 'Colors in light mode: a light palette id. An unknown id falls back to linksnip-light.'
   }
 };
 
@@ -114,6 +131,21 @@ function checkSetting(spec, value) {
       }
       return null;
     }
+    case 'string': {
+      if (typeof value !== 'string') return `must be text (got ${describe(value)})`;
+      const length = value.trim().length;
+      if (spec.minLength && length < spec.minLength) {
+        return `must be at least ${spec.minLength} character${spec.minLength === 1 ? '' : 's'} (got ${describe(value)})`;
+      }
+      if (spec.maxLength && length > spec.maxLength) return `must be at most ${spec.maxLength} characters (got ${length})`;
+      return null;
+    }
+    // Only the form of the id: whether the palette exists is checked where it's chosen, so deleting a
+    // palette file never makes settings.json invalid (paletteService falls back to the default)
+    case 'palette':
+      return typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,63}$/.test(value)
+        ? null
+        : `must be a palette id like "tokyo-night" (got ${describe(value)})`;
     default:
       throw new Error(`Unknown setting type: ${spec.type}`);
   }

@@ -57,7 +57,7 @@ const { attachUser } = require('./middleware/auth');
 const requireSetupComplete = require('./middleware/requireSetupComplete');
 const { createUrlLimiter, redirectLimiter, apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 const requirePermission = require('./middleware/requirePermission');
-const { viewLocals, appLocals } = require('./middleware/viewLocals');
+const { viewLocals, appLocals, brandingLocals } = require('./middleware/viewLocals');
 const { featureRoutes } = require('./middleware/requireFeature');
 
 const app = express();
@@ -73,6 +73,9 @@ app.use(require('./routes/healthRoutes'));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+// Palette CSS, logo and favicon (Admin → Appearance), and `branding` for every page, setup and errors included
+app.use(require('./routes/brandingRoutes'));
+app.use(brandingLocals);
 
 // Session configuration
 app.use(session({

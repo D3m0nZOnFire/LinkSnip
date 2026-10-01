@@ -22,7 +22,7 @@ and the last good configuration stays in use.
 |---|---|---|
 | `SESSION_SECRET` | required | Signs login sessions. Generate with `openssl rand -hex 32`. The app refuses to start without it. |
 | `IP_HASH_SECRET` | required | Key for the stored hashes of visitor IPs (analytics, reports), so a copy of the database can't be turned back into IPs. At least 32 characters, different from `SESSION_SECRET`. Generate with `openssl rand -hex 32`, and keep it: a new one restarts unique-visitor counts. |
-| `DATA_DIR` | project folder (`/data` in Docker) | Holds `database.db`, `uploads/`, `backups/`, `settings.json` and `roles.json`. |
+| `DATA_DIR` | project folder (`/data` in Docker) | Holds `database.db`, `uploads/`, `backups/`, `branding/` (logo, favicon), `settings.json` and `roles.json`. |
 | `PORT` | `8081` | Port the app listens on. |
 | `NODE_ENV` | `development` (`production` in Docker) | `development` logs every SQL query. |
 | `TRUST_PROXY` | `1` | Reverse proxies in front of the app: a hop count, `true`/`false`, or an address list (Express `trust proxy`). Use `0` if nothing is in front. |
@@ -51,9 +51,23 @@ and the last good configuration stays in use.
 | `retention.auditLogDays` | `90` | Days audit log entries are kept. Seeded once from `AUDIT_LOG_RETENTION_DAYS` if set when the file is first created. |
 | `retention.analyticsDays` | `null` | Days analytics events (visits) are kept; older ones are deleted nightly. null keeps them forever. The counters on items (clicks, views, downloads) are not affected. |
 | `retention.expiredGraceDays` | `90` | Days an expired registered user's link or paste is kept before it is deleted. Seeded once from `EXPIRED_URL_GRACE_PERIOD_DAYS` if set when the file is first created. |
+| `branding.name` | `"LinkSnip"` | Name of the site, shown in the header, page titles and on the login pages. |
+| `branding.tagline` | `"Short links, pastes, files and bundles, with analytics."` | One sentence under the name on the home page and in link previews (search engines, chat apps). Can be empty. |
+| `branding.darkPalette` | `"linksnip-dark"` | Colors in dark mode: a dark palette id (Admin → Appearance lists them). An unknown id falls back to linksnip-dark. |
+| `branding.lightPalette` | `"linksnip-light"` | Colors in light mode: a light palette id. An unknown id falls back to linksnip-light. |
 
 Switching off a `features.*` key removes that feature for everyone, admins included: its pages and API
 return 404 and its buttons and menus are hidden.
+
+**Appearance:** the `branding.*` keys are easiest to set in **Admin → Appearance**, which previews every palette.
+The logo and favicon uploaded there are stored in `DATA_DIR/branding/`. Visitors see the dark or the light palette
+depending on their device, and can switch with the theme button. Palettes to choose from (besides LinkSnip's own,
+the color schemes of [Omarchy](https://github.com/omacom/omarchy)'s themes, MIT license):
+
+| Mode | Palette ids |
+|---|---|
+| dark | `linksnip-dark`, `catppuccin`, `ethereal`, `everforest`, `gruvbox`, `hackerman`, `kanagawa`, `last-horizon`, `lumon`, `matte-black`, `miasma`, `nord`, `osaka-jade`, `retro-82`, `ristretto`, `solitude`, `tokyo-night`, `vantablack` |
+| light | `linksnip-light`, `catppuccin-latte`, `flexoki-light`, `lupine`, `rose-pine`, `white` |
 
 **Country lookup:** `geo.enabled` looks countries up in a local DB-IP Lite database, `DATA_DIR/geo/dbip-country-lite.mmdb`
 (CC BY 4.0; analytics pages credit DB-IP). Visitor IPs never leave the server. LinkSnip downloads the file on start

@@ -1,4 +1,5 @@
 const configService = require('../services/configService');
+const brandingService = require('../services/brandingService');
 const RoleService = require('../services/roleService');
 const teamService = require('../services/teamService');
 const { PERMISSIONS } = require('../config/schema');
@@ -41,4 +42,13 @@ function viewLocals(req, res, next) {
   next();
 }
 
-module.exports = { viewLocals, appLocals };
+/**
+ * `branding` (name, tagline, logo, favicon, theme stylesheet) for every page. Mounted before the session, so
+ * the setup page and early error pages have it too.
+ */
+function brandingLocals(req, res, next) {
+  res.locals.branding = brandingService.locals();
+  next();
+}
+
+module.exports = { viewLocals, appLocals, brandingLocals };

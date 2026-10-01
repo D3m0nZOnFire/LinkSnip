@@ -1,0 +1,221 @@
+/* Admin → Appearance (views/admin-appearance.ejs) */
+
+.appearance-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.appearance-section h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+}
+
+.appearance-section h3 + .field-help {
+  margin: calc(var(--spacing-md) * -0.5) 0 var(--spacing-md);
+}
+
+.identity-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--spacing-lg);
+}
+
+.identity-grid .form-group {
+  margin-bottom: 0;
+}
+
+/* Logo and favicon */
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.asset-slot {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-start;
+}
+
+.asset-preview {
+  flex-shrink: 0;
+  width: 4.5rem;
+  height: 4.5rem;
+  display: grid;
+  place-items: center;
+  padding: var(--spacing-sm);
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.asset-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.asset-info {
+  min-width: 0;
+}
+
+.asset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.asset-actions label.btn:focus-within {
+  box-shadow: var(--focus-ring);
+}
+
+/* Palette swatches */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: var(--spacing-md);
+}
+
+.palette-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.palette-card:hover {
+  border-color: var(--border-hover);
+}
+
+.palette-card:has(input:checked) {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.palette-card:has(input:focus-visible) {
+  box-shadow: var(--focus-ring);
+}
+
+.palette-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 0 var(--spacing-xs);
+}
+
+/* A tiny page in the palette's own colors */
+.palette-preview {
+  display: block;
+  padding: 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--pp-bg);
+  border: 1px solid var(--pp-border);
+}
+
+.pp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.55rem;
+  border-radius: var(--radius-sm);
+  background: var(--pp-card);
+  border: 1px solid var(--pp-border);
+}
+
+.pp-line {
+  display: block;
+  height: 0.3rem;
+  border-radius: var(--radius-full);
+}
+
+.pp-strong {
+  width: 70%;
+  background: var(--pp-fg);
+}
+
+.pp-soft {
+  width: 90%;
+  background: var(--pp-muted);
+  opacity: 0.7;
+}
+
+.pp-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+
+.pp-button {
+  width: 2.2rem;
+  height: 0.75rem;
+  border-radius: var(--radius-full);
+  background: var(--pp-primary);
+}
+
+.pp-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: var(--radius-full);
+}
+
+.pp-red { background: var(--pp-red); }
+.pp-yellow { background: var(--pp-yellow); }
+
+.palette-credit {
+  margin: 0 0 var(--spacing-lg);
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+.palette-credit a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.appearance-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.appearance-actions .field-help {
+  margin: 0;
+}
+
+.settings-errors {
+  margin: var(--spacing-sm) 0 0;
+  padding-left: 1.25rem;
+  color: var(--destructive);
+}
+
+@media (max-width: 768px) {
+  .identity-grid,
+  .asset-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .palette-grid {
+    grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .appearance-section.card {
+    padding: var(--spacing-md);
+  }
+
+  .palette-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .palette-preview {
+    padding: 0.45rem;
+  }
+}

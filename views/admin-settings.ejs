@@ -86,7 +86,7 @@
   <%
     const SECTION_TITLES = {
       registration: 'Registration', geo: 'Geolocation', features: 'Features', moderation: 'Moderation',
-      anonymous: 'Anonymous visitors', pastes: 'Pastes', files: 'Files', retention: 'Retention'
+      anonymous: 'Anonymous visitors', pastes: 'Pastes', files: 'Files', retention: 'Retention', branding: 'Branding'
     };
     // Everything the roles editor (public/js/rolesEditor.js) starts from
     const rolesData = {
@@ -116,6 +116,9 @@
       <% sections.forEach(section => { %>
         <section class="settings-section">
           <h3><%= SECTION_TITLES[section.name] || section.name %></h3>
+          <% if (section.fields.every(f => f.editor === 'appearance')) { %>
+            <p class="file-note">Set on <a href="/admin/appearance">Admin → Appearance</a>, with previews of the palettes.</p>
+          <% } %>
           <% section.fields.forEach(field => { %>
             <div class="setting-row">
               <label for="<%= field.key %>">
@@ -123,7 +126,9 @@
                 <p><%= field.description %></p>
               </label>
               <div class="setting-control">
-                <% if (field.type === 'boolean') { %>
+                <% if (field.editor === 'appearance') { %>
+                  <code class="setting-value"><%= JSON.stringify(field.value) %></code>
+                <% } else if (field.type === 'boolean') { %>
                   <input type="checkbox" id="<%= field.key %>" data-key="<%= field.key %>" data-type="boolean" <%= field.value ? 'checked' : '' %>>
                 <% } else { %>
                   <input type="number" class="form-input" id="<%= field.key %>" data-key="<%= field.key %>" data-type="integer"

@@ -30,6 +30,7 @@ class AdminSettingsController {
         min: spec.min,
         nullable: !!spec.nullable,
         description: spec.description,
+        editor: spec.editor,
         value: configService.get(key)
       });
     }

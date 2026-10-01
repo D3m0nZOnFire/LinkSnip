@@ -36,5 +36,6 @@ module.exports = {
   ROLES_PATH: path.join(DATA_DIR, 'roles.json'),
   GEO_DIR: path.join(DATA_DIR, 'geo'),
   GEO_DB_PATH: path.join(DATA_DIR, 'geo', 'dbip-country-lite.mmdb'),
+  BRANDING_DIR: path.join(DATA_DIR, 'branding'),
   ensureDataDir
 };

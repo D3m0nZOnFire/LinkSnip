@@ -1,0 +1,6 @@
+<%# The site's logo and name (Admin → Appearance), linking home. { large: true } on the login pages. %>
+<% const brand = locals.branding || {}; %>
+<a href="/" class="brand<%= locals.large ? ' brand-large' : '' %>">
+  <img src="<%= brand.logoUrl || '/logo.png' %>" alt="" class="brand-logo">
+  <span class="brand-name"><%= brand.name || 'LinkSnip' %></span>
+</a>

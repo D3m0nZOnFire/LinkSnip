@@ -97,6 +97,22 @@ describeTools('linksnip-backup', () => {
       expect(read(env.LINKSNIP_BACKUP_LOG)).toMatch(/backup 2026-10-01 done/);
     });
 
+    // Logo, favicon (Admin → Appearance) and custom palettes live in their own folders under data/
+    it('copies data/branding and data/palettes into the daily copy when they exist', () => {
+      appBackup('database-backup-2026-10-01T03-00-00-000Z.sqlite', ['new']);
+      fs.mkdirSync(path.join(data, 'branding'));
+      fs.writeFileSync(path.join(data, 'branding', 'logo.png'), 'logo');
+      fs.mkdirSync(path.join(data, 'palettes'));
+      fs.writeFileSync(path.join(data, 'palettes', 'company.toml'), 'mode = "dark"');
+
+      backupOn('2026-10-01');
+
+      const day = path.join(remote, 'daily', '2026-10-01');
+      expect(ls(day)).toEqual(['.env', 'branding', 'database.sqlite', 'palettes', 'roles.json', 'settings.json']);
+      expect(read(path.join(day, 'branding', 'logo.png'))).toBe('logo');
+      expect(read(path.join(day, 'palettes', 'company.toml'))).toBe('mode = "dark"');
+    });
+
     it('mirrors uploads and keeps files deleted on the server under uploads/deleted/<date>/', () => {
       appBackup();
       backupOn('2026-10-01');
@@ -188,6 +204,24 @@ describeTools('linksnip-backup', () => {
       expect(r.stderr).toMatch(/LINKSNIP_BACKUP_KEEP_MONTHLY must be a whole number/);
       expect(fs.existsSync(path.join(tmp, 'pwned'))).toBe(false);
     });
+  });
+
+  describe('restore of branding and palettes', () => {
+    it('puts data/branding and data/palettes back', () => {
+      appBackup('database-backup-2026-10-01T03-00-00-000Z.sqlite', ['day1']);
+      fs.mkdirSync(path.join(data, 'branding'));
+      fs.writeFileSync(path.join(data, 'branding', 'favicon.ico'), 'icon');
+      fs.mkdirSync(path.join(data, 'palettes'));
+      fs.writeFileSync(path.join(data, 'palettes', 'company.toml'), 'mode = "dark"');
+      backupOn('2026-10-01');
+
+      const dest = path.join(tmp, 'restored-branding');
+      expect(run(['restore', dest]).status).toBe(0);
+      expect(read(path.join(dest, 'data', 'branding', 'favicon.ico'))).toBe('icon');
+      expect(read(path.join(dest, 'data', 'palettes', 'company.toml'))).toBe('mode = "dark"');
+      expect(fs.existsSync(path.join(dest, '.incoming'))).toBe(false);
+    });
+
   });
 
   describe('restore', () => {

@@ -6,7 +6,7 @@ const paths = require('../../../config/paths');
 const configService = require('../../../services/configService');
 const teamService = require('../../../services/teamService');
 const AnalyticsShare = require('../../../models/AnalyticsShare');
-const { viewLocals, appLocals } = require('../../../middleware/viewLocals');
+const { viewLocals, appLocals, brandingLocals } = require('../../../middleware/viewLocals');
 const { bodyChildren } = require('../../setup/htmlTree');
 const { getTestDatabase } = require('../../setup/testDatabase');
 const {
@@ -29,6 +29,7 @@ afterEach(() => {
 
 let s; // seeded records
 beforeEach(async () => {
+  configService.updateSettings({ 'branding.name': 'Snipz' });
   const db = getTestDatabase();
   const admin = await createTestUser({ username: 'boss', isAdmin: 1 });
   const user = await createTestUser({ username: 'alice' });
@@ -110,7 +111,8 @@ const PAGES = {
   'admin-analytics-shares': () => rendered(c('analyticsShareController').getAdminPage, request(s.admin)),
   'admin-audit-logs': () => rendered(c('auditLogController').getAuditLogsPage, request(s.admin)),
   'admin-teams': () => rendered(c('teamController').adminPage, request(s.admin)),
-  'admin-settings': () => rendered(c('adminSettingsController').getSettingsPage, request(s.admin))
+  'admin-settings': () => rendered(c('adminSettingsController').getSettingsPage, request(s.admin)),
+  'admin-appearance': () => rendered(c('brandingController').appearancePage, request(s.admin))
 };
 
 // The bio page tables aren't part of the test database; same shape as BioPage.findByUsername
@@ -136,6 +138,7 @@ async function renderPage(name) {
   const { req, view, data } = await PAGES[name]();
   expect(view).toBe(name);
   const res = createMockResponse();
+  brandingLocals(req, res, () => {});
   viewLocals(req, res, () => {});
   return ejs.renderFile(path.join(VIEWS, `${view}.ejs`), { ...appLocals(), ...res.locals, ...data });
 }
@@ -154,6 +157,12 @@ describe('every page renders', () => {
     expect(html).toContain('<html lang="en">');
     expect(html.match(/<title>/g)).toHaveLength(1);
     expect(html.match(/<footer class="site-footer"/g)).toHaveLength(1);
+
+    // The site's name (Admin → Appearance), not LinkSnip's; the footer credits LinkSnip on purpose
+    expect(html).toMatch(/<title>[^<]*Snipz<\/title>/);
+    const withoutFooter = html.replace(/<footer class="site-footer"[\s\S]*?<\/footer>/, '');
+    expect(withoutFooter).not.toMatch(/>\s*LinkSnip\s*</);
+    expect(withoutFooter).not.toMatch(/alt="LinkSnip/);
 
     // header, then .page with everything else, then the footer (main.css pins it to the bottom)
     const children = bodyChildren(html).filter(el => !['script', 'noscript', 'template'].includes(el.name));

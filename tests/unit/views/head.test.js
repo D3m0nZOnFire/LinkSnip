@@ -6,6 +6,7 @@ const VIEWS = path.join(__dirname, '../../../views');
 const HEAD = path.join(VIEWS, 'partials/head.ejs');
 const render = (locals = {}) => ejs.renderFile(HEAD, locals);
 const pages = fs.readdirSync(VIEWS).filter(f => f.endsWith('.ejs'));
+const BRAND = { name: 'Snipz', tagline: 'Tiny <links>.', logoUrl: '/branding/logo?v=1', faviconUrl: '/branding/favicon?v=1', themeUrl: '/theme.css' };
 
 describe('partials/head', () => {
   it('names the page, then the site', async () => {
@@ -26,14 +27,39 @@ describe('partials/head', () => {
     const html = await render();
     expect(html).toContain('<meta charset="UTF-8">');
     expect(html).toContain('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
-    expect(html).toMatch(/<link rel="icon"[^>]*href="\/logo.png"/);
+    expect(html).toMatch(/<link rel="icon" href="\/logo.png">/);
   });
 
-  it('loads the tokens before main.css, then the page styles in the given order', async () => {
-    const html = await render({ styles: ['tables', 'forms'] });
-    const order = ['tokens', 'main', 'tables', 'forms'].map(name => html.indexOf(`href="/css/${name}.css"`));
+  it('loads the tokens, then the palette colors, then main.css and the page styles in the given order', async () => {
+    const html = await render({ styles: ['tables', 'forms'], branding: { ...BRAND, themeUrl: '/theme.css?v=abc' } });
+    const order = ['href="/css/tokens.css"', 'href="/theme.css?v=abc"', 'href="/css/main.css"',
+      'href="/css/tables.css"', 'href="/css/forms.css"'].map(tag => html.indexOf(tag));
     order.forEach(i => expect(i).toBeGreaterThan(-1));
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
+  it('still loads the palette colors when rendered without branding locals', async () => {
+    expect(await render()).toContain('<link rel="stylesheet" href="/theme.css">');
+  });
+
+  it("uses the site's name and favicon from Admin → Appearance", async () => {
+    const html = await render({ title: 'Dashboard', branding: BRAND });
+    expect(html).toContain('<title>Dashboard · Snipz</title>');
+    expect(html).toMatch(/<link rel="icon" href="\/branding\/favicon\?v=1">/);
+  });
+
+  it('describes the site for search engines and link previews', async () => {
+    const html = await render({ title: 'Dashboard', branding: BRAND });
+    expect(html).toContain('<meta name="description" content="Tiny &lt;links&gt;.">');
+    expect(html).toContain('<meta property="og:site_name" content="Snipz">');
+    expect(html).toContain('<meta property="og:title" content="Dashboard · Snipz">');
+    expect(html).toContain('<meta property="og:description" content="Tiny &lt;links&gt;.">');
+  });
+
+  it('leaves the description out when there is no tagline', async () => {
+    const html = await render({ branding: { ...BRAND, tagline: '' } });
+    expect(html).not.toContain('name="description"');
+    expect(html).not.toContain('og:description');
   });
 
   it('preloads the Geist font served by the app itself', async () => {

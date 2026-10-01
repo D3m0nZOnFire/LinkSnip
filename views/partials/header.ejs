@@ -2,12 +2,7 @@
 <header class="header">
   <div class="header-content">
     <div class="logo-container">
-      <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
-        <div class="logo">
-          <img src="/logo.png" alt="LinkSnip Logo" style="width: 100%; height: 100%; object-fit: contain;">
-        </div>
-        <h1 class="logo-text">LinkSnip</h1>
-      </a>
+      <%- include('brand', { large: false }) %>
       <% if (user && user.isAdmin) { %>
         <div class="badge admin-badge" style="margin-left: 0.5rem;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -65,6 +60,7 @@
               <% if (features.teams) { %><a href="/admin/teams" class="<%= currentPage === 'admin-teams' ? 'active' : '' %>">Teams</a><% } %>
               <a href="/admin/audit-logs" class="<%= currentPage === 'admin-audit-logs' ? 'active' : '' %>">Audit Logs</a>
               <a href="/admin/settings" class="<%= currentPage === 'admin-settings' ? 'active' : '' %>">Settings</a>
+              <a href="/admin/appearance" class="<%= currentPage === 'admin-appearance' ? 'active' : '' %>">Appearance</a>
             </div>
           </div>
         <% } %>

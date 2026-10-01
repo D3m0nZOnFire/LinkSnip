@@ -1,17 +1,30 @@
 <%#
   Shared <head> contents. Pages: include('partials/head', { title, styles: ['tables', ...], noindex })
-  and put page-only <style>/<script> tags after it.
+  and put page-only <style>/<script> tags after it. `branding` comes from middleware/viewLocals.js.
 %>
-<% const siteName = 'LinkSnip'; %>
+<%
+  const brand = locals.branding || {};
+  const siteName = brand.name || 'LinkSnip';
+  const fullTitle = locals.title ? `${locals.title} · ${siteName}` : siteName;
+-%>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <% if (locals.noindex) { %>
   <meta name="robots" content="noindex, nofollow">
 <% } %>
-  <title><%= locals.title ? `${locals.title} · ${siteName}` : siteName %></title>
-  <link rel="icon" type="image/png" href="/logo.png">
+  <title><%= fullTitle %></title>
+<% if (brand.tagline) { %>
+  <meta name="description" content="<%= brand.tagline %>">
+<% } %>
+  <meta property="og:site_name" content="<%= siteName %>">
+  <meta property="og:title" content="<%= fullTitle %>">
+<% if (brand.tagline) { %>
+  <meta property="og:description" content="<%= brand.tagline %>">
+<% } %>
+  <link rel="icon" href="<%= brand.faviconUrl || '/logo.png' %>">
   <link rel="preload" href="/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="<%= brand.themeUrl || '/theme.css' %>">
   <link rel="stylesheet" href="/css/main.css">
 <% (locals.styles || []).forEach(name => { %>
   <link rel="stylesheet" href="/css/<%= name %>.css">
