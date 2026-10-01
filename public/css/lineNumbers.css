@@ -18,7 +18,7 @@
   padding: 0.75rem 0.5rem 0 0;
   overflow: hidden;
   text-align: right;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   line-height: 1.55;
   color: var(--muted-foreground);
@@ -43,7 +43,7 @@ textarea.ln-input {
   color: var(--foreground);
   border: 1px solid var(--border);
   border-radius: var(--radius-md, 0.5rem);
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   line-height: 1.55;
   white-space: pre;
@@ -56,5 +56,5 @@ textarea.ln-input {
 textarea.ln-input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.1);
+  box-shadow: var(--focus-ring);
 }

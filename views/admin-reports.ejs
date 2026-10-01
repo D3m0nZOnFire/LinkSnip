@@ -1,17 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reports - Admin Panel - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/modals.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Reports · Admin', styles: ['tables', 'modals'] }) %>
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'admin-reports' }) %>
+  <div class="page">
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -270,6 +264,7 @@
         `Ban user "${username}"? This will:\n- Block everything they own (links, bundles, pastes, files)\n- Stop them from logging in\n- Mark the report as blocked\n\nThe ban can be lifted from the Users page; their items stay blocked until unblocked.`);
     }
   </script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

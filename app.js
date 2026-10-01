@@ -45,7 +45,6 @@ const infoRoutes = require('./routes/infoRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const importExportRoutes = require('./routes/importExportRoutes');
 const teamRoutes = require('./routes/teamRoutes');
-const teamService = require('./services/teamService');
 const unlockRoutes = require('./routes/unlockRoutes');
 const bioPageRoutes = require('./routes/bioPageRoutes');
 const bundleRoutes = require('./routes/bundleRoutes');
@@ -58,9 +57,8 @@ const { attachUser } = require('./middleware/auth');
 const requireSetupComplete = require('./middleware/requireSetupComplete');
 const { createUrlLimiter, redirectLimiter, apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 const requirePermission = require('./middleware/requirePermission');
+const { viewLocals, appLocals } = require('./middleware/viewLocals');
 const { featureRoutes } = require('./middleware/requireFeature');
-const RoleService = require('./services/roleService');
-const { PERMISSIONS } = require('./config/schema');
 
 const app = express();
 const PORT = process.env.PORT || 8081;
@@ -103,33 +101,10 @@ app.use('/', setupRoutes);
 
 // Attach user to all requests
 app.use(attachUser);
-// Views get `features.<name>` (settings.json switches) and `can.<permission>` (role),
-// where a permission tied to a switched-off feature is false too.
-const FEATURE_OF_PERMISSION = {
-  createPastes: 'pastes',
-  createBundles: 'bundles',
-  uploadFiles: 'files',
-  bioPage: 'bioPages',
-  importExport: 'importExport',
-  analyticsShareLinks: 'analyticsShareLinks',
-  createTeams: 'teams'
-};
-app.use((req, res, next) => {
-  const features = configService.getSettings().features;
-  res.locals.features = features;
-  res.locals.registrationOpen = configService.get('registration.open');
-  res.locals.can = Object.fromEntries(Object.keys(PERMISSIONS).map(p => {
-    const feature = FEATURE_OF_PERMISSION[p];
-    return [p, (!feature || features[feature]) && RoleService.can(req.user || null, p)];
-  }));
-  res.locals.canUploadFiles = res.locals.can.uploadFiles;
-  // Teams the user can create items in ("Create in" on the create page)
-  res.locals.writableTeams = req.user ? teamService.writableTeams(req.user) : [];
-  next();
-});
-
-// Fixed for every view: the reasons in partials/report-modal
-app.locals.reportReasons = require('./models/Report').REASONS;
+// Views get `features.<name>`, `can.<permission>`, `registrationOpen` and `writableTeams` per request,
+// and the app version and report reasons always (middleware/viewLocals.js)
+app.use(viewLocals);
+Object.assign(app.locals, appLocals());
 
 // View engine
 app.set('view engine', 'ejs');

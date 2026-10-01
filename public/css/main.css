@@ -8,168 +8,68 @@
   box-sizing: border-box;
 }
 
-:root {
-  /* Colors */
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #0a0a0a;
-  --card-foreground: #ffffff;
-  --primary: #34d399;
-  --primary-foreground: #000000;
-  --secondary: #1a1a2e;
-  --secondary-foreground: #ffffff;
-  --muted: #404060;
-  --muted-foreground: #a0a0b0;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #1a1a2e;
-  --input: #1a1a2e;
-  --ring: #34d399;
-
-  /* Status Colors */
-  --status-active-bg: rgba(52, 211, 153, 0.1);
-  --status-active-border: rgba(52, 211, 153, 0.3);
-  --status-active-text: #34d399;
-
-  --status-error-bg: rgba(239, 68, 68, 0.1);
-  --status-error-border: rgba(239, 68, 68, 0.3);
-  --status-error-text: #ef4444;
-
-  --status-warning-bg: rgba(234, 179, 8, 0.1);
-  --status-warning-border: rgba(234, 179, 8, 0.3);
-  --status-warning-text: #eab308;
-
-  /* Chart/Analytics Colors */
-  --chart-background: rgba(52, 211, 153, 0.05);
-  --chart-border: rgba(52, 211, 153, 0.2);
-  --chart-text: #ffffff;
-  --chart-muted-text: #9ca3af;
-  --chart-data-text: #e5e7eb;
-
-  /* Info Box Colors */
-  --info-bg: rgba(52, 211, 153, 0.05);
-  --info-border: rgba(52, 211, 153, 0.2);
-  --info-text: #a0a0b0;
-
-  /* Table Colors */
-  --table-header-bg: rgba(26, 26, 46, 0.5);
-  --table-row-hover: rgba(26, 26, 46, 0.3);
-
-  /* Modal Colors */
-  --modal-overlay-bg: rgba(0, 0, 0, 0.75);
-
-  /* Spacing */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-2xl: 3rem;
-  --spacing-3xl: 4rem;
-  
-  /* Border Radius */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-full: 9999px;
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  
-  /* Transitions */
-  --transition-fast: 0.15s ease;
-  --transition-base: 0.2s ease;
-  --transition-slow: 0.3s ease;
-}
-
-/* ========================================
-   Light Theme
-   ======================================== */
-
-html[data-theme="light"] {
-  /* Base Colors */
-  --background: #ffffff;
-  --foreground: #1a1a1a;
-
-  /* Card Colors */
-  --card: #f9fafb;
-  --card-foreground: #1a1a1a;
-
-  /* Primary */
-  --primary: #10b981;
-  --primary-foreground: #ffffff;
-
-  /* Secondary */
-  --secondary: #f3f4f6;
-  --secondary-foreground: #1a1a1a;
-
-  /* Muted */
-  --muted: #e5e7eb;
-  --muted-foreground: #6b7280;
-
-  /* Destructive */
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-
-  /* Borders & Inputs */
-  --border: #e5e7eb;
-  --input: #f3f4f6;
-  --ring: #10b981;
-
-  /* Status Colors - Light Theme */
-  --status-active-bg: rgba(16, 185, 129, 0.1);
-  --status-active-border: rgba(16, 185, 129, 0.3);
-  --status-active-text: #059669;
-
-  --status-error-bg: rgba(239, 68, 68, 0.1);
-  --status-error-border: rgba(239, 68, 68, 0.3);
-  --status-error-text: #dc2626;
-
-  --status-warning-bg: rgba(234, 179, 8, 0.1);
-  --status-warning-border: rgba(234, 179, 8, 0.3);
-  --status-warning-text: #ca8a04;
-
-  /* Chart/Analytics Colors - Light Theme */
-  --chart-background: rgba(16, 185, 129, 0.05);
-  --chart-border: rgba(16, 185, 129, 0.2);
-  --chart-text: #1a1a1a;
-  --chart-muted-text: #6b7280;
-  --chart-data-text: #374151;
-
-  /* Info Box Colors - Light Theme */
-  --info-bg: rgba(16, 185, 129, 0.05);
-  --info-border: rgba(16, 185, 129, 0.2);
-  --info-text: #6b7280;
-
-  /* Table Colors - Light Theme */
-  --table-header-bg: rgba(243, 244, 246, 0.8);
-  --table-row-hover: rgba(243, 244, 246, 0.6);
-
-  /* Modal Colors - Light Theme */
-  --modal-overlay-bg: rgba(0, 0, 0, 0.5);
-
-  /* Shadows - Light Theme (more subtle) */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
 /* ========================================
    Base Styles
    ======================================== */
 
+/* Page layout: header, .page (grows), footer. The footer stays at the bottom of the
+   window on short pages and follows the content on long ones. */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--background);
   color: var(--foreground);
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.page {
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+/* Centered pages (login, setup, errors): the box sits in the middle of the free space */
+.page-center {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-center > .auth-container,
+.page-center > .error-container {
+  flex: 1 0 auto;
+}
+
+/* Form controls don't inherit the page font by default */
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+code, kbd, pre, samp {
+  font-family: var(--font-mono);
+}
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-xs) var(--spacing-sm);
+  padding: var(--spacing-lg) var(--spacing-md);
+  border-top: 1px solid var(--border);
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+.site-footer a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.site-footer a:hover {
+  color: var(--foreground);
 }
 
 /* ========================================
@@ -468,7 +368,6 @@ body {
 }
 
 .auth-container {
-  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -481,23 +380,10 @@ body {
 }
 
 .error-container {
-  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--spacing-md);
-}
-
-/* Standalone pages (error, scheduled, quarantine): the box fills the screen above
-   the footer, so the footer shows at the bottom without scrolling */
-body.standalone-page {
-  display: flex;
-  flex-direction: column;
-}
-
-body.standalone-page > .error-container {
-  flex: 1;
-  min-height: 0;
 }
 
 .error-box {
@@ -635,7 +521,7 @@ body.standalone-page > .error-container {
   background-color: var(--secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  font-family: 'Courier New', Courier, monospace;
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   word-break: break-all;
 }
@@ -791,7 +677,7 @@ body.standalone-page > .error-container {
 
 .toast.error {
   background-color: var(--destructive);
-  color: var(--foreground);
+  color: var(--destructive-foreground);
 }
 
 @keyframes slideIn {
@@ -956,7 +842,7 @@ body.standalone-page > .error-container {
 .file-drop-zone:hover,
 .file-drop-zone.dragover {
   border-color: var(--primary);
-  background: rgba(52, 211, 153, 0.04);
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
 }
 
 .file-drop-zone input[type="file"] {
@@ -1075,9 +961,9 @@ body.standalone-page > .error-container {
   align-items: center;
   gap: 0.3rem;
   padding: 0.2rem 0.5rem 0.2rem 0.625rem;
-  background: rgba(52, 211, 153, 0.15);
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
   color: var(--primary);
-  border: 1px solid rgba(52, 211, 153, 0.3);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
   border-radius: 9999px;
   font-size: 0.8rem;
   font-weight: 500;
@@ -1224,7 +1110,7 @@ body.standalone-page > .error-container {
 }
 
 /* File type color accents */
-.file-ext-img  { background: #10b981; }
+.file-ext-img  { background: #16a34a; }
 .file-ext-pdf  { background: #ef4444; }
 .file-ext-zip  { background: #f59e0b; }
 .file-ext-doc  { background: #3b82f6; }
@@ -1321,6 +1207,10 @@ body.standalone-page > .error-container {
   /* Room for logo, admin badge, theme and menu buttons on the narrowest phones */
   #theme-toggle {
     margin-right: 0.25rem !important;
+  }
+
+  .header-content {
+    padding-inline: 0.75rem;
   }
 }
 

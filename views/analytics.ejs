@@ -1,14 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analytics - <%= path %> - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/modals.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: `Analytics · ${path}`, styles: ['tables', 'modals'] }) %>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     .url-info { background: var(--chart-background); border: 1px solid var(--chart-border); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
@@ -19,6 +12,7 @@
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'analytics' }) %>
+  <div class="page">
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -280,6 +274,7 @@
     });
     <% } %>
   </script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

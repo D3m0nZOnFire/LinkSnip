@@ -1,19 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Page Settings - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/tables.css">
+  <%- include('partials/head', { title: 'Bio page settings', styles: ['forms', 'tables'] }) %>
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-  <script src="/js/theme.js"></script>
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'bio-settings' }) %>
+  <div class="page">
 
   <main class="main-content">
     <div class="header-section">
@@ -269,6 +263,7 @@
   </div>
 
   <script src="/js/bio-settings.js"></script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

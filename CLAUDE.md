@@ -65,7 +65,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `featureRoutes(feature, router)` (wraps a whole router in `app.js`) and `requireFeature(feature)` (single routes;
   falls through with `next('route')`). A switched-off feature 404s for everyone, admins included.
 - Views get `can.<permission>` (false when its feature is off), `features.<name>`, `canUploadFiles` and
-  `registrationOpen` from a middleware in `app.js`. Use `locals.can` in partials that may render without it.
+  `registrationOpen` from `middleware/viewLocals.js`. Use `locals.can` in partials that may render without it.
 - Users table: `role` (NULL = default). The legacy `tier` column is left in old databases but never read.
 
 ## Request flow
@@ -73,7 +73,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 1. `express.static`, then `GET /healthz` (`SELECT 1`, before sessions)
 2. Sessions (SQLite store, 7 days, cookie `secure: 'auto'`)
 3. `requireSetupComplete`: while no admin exists every page redirects to `/setup` (API: 503 `setup_required`)
-4. `attachUser` (sets `req.user`, updates `lastActive`), then the view-locals middleware (`can`, `features`)
+4. `attachUser` (sets `req.user`, updates `lastActive`), then `middleware/viewLocals.js` (`can`, `features`,
+   `registrationOpen`, `writableTeams`; `appLocals()` sets `appVersion` and `reportReasons` on `app.locals`)
 5. Routers (feature routers wrapped in `featureRoutes`), then the home routes, 404 and error handlers
 
 ## First admin and the admin CLI
@@ -326,6 +327,18 @@ share links · 5:30 expired files · 5:45 country database check.
 
 ## UI patterns
 
+- **Page skeleton** (every view): `<head>` starts with `<%- include('partials/head', { title, styles: ['tables', …],
+  noindex }) %>` (charset, viewport, `<title>` "title · LinkSnip", favicon, Geist preload, `tokens.css`, `main.css`,
+  the listed stylesheets, `theme.js`); page-only `<style>`/scripts follow it. `<body>` holds the header (if any),
+  then `<div class="page">` with everything else (modals and scripts included), then `partials/footer`. `body` is a
+  flex column and `.page` grows, so the footer sits at the bottom of short pages. Centered pages (login, setup,
+  errors) use `page page-center`. Always pass `title` (also `null`): includes inherit the page's locals.
+- **Design tokens** live only in `public/css/tokens.css` (Geist fonts, dark `:root` + `html[data-theme="light"]`
+  colors, type/spacing/radius scales). Use the variables; accent tints are `color-mix()` of `var(--primary)`
+  (`--status-active-bg`, `--focus-ring`, …). Never write the accent as a hex/rgba elsewhere, and canvas code (Chart.js)
+  reads the variables with `getComputedStyle`. `tests/unit/views/tokens.test.js` enforces this.
+- `tests/unit/views/renderPages.test.js` renders every view for real (controller data from a seeded DB + view
+  locals) and checks the skeleton; a new view needs a case there.
 - Below 1024px the header nav folds into a menu button (`public/js/nav.js`, loaded by the header partial); the
   admin dropdown is listed in place there. Pages must not scroll sideways at 320px.
 - Every page includes `partials/header` (`<%- include('partials/header', { currentPage: '...' }) %>`, except
@@ -337,8 +350,8 @@ share links · 5:30 expired files · 5:45 country database check.
 - `views/error.ejs` takes `{ title, message, code }` (it also tolerates `statusCode` / `error.status`).
 - Modals: `public/css/modals.css`, `openModal(id)` / `closeModal(id)` in `public/js/main.js`; `showToast`,
   `apiRequest`, `setButtonLoading` there too.
-- Password inputs with `data-toggle-password` get an eye toggle. Dark theme variables in `public/css/main.css`
-  (`--primary: #34d399`). Dark buttons need light text (`var(--foreground)`), light buttons dark text
+- Password inputs with `data-toggle-password` get an eye toggle. Theme variables in `public/css/tokens.css`
+  (`--primary: #34d399` dark, `#047857` light). Dark buttons need light text (`var(--foreground)`), light buttons dark text
   (`var(--primary-foreground)`).
 - Permission handling redirects rather than showing error pages (non-admin on admin routes → `/`).
 
@@ -358,8 +371,8 @@ share links · 5:30 expired files · 5:45 country database check.
    `migrateIpHashes` rewrapped the old plain SHA-256 hashes into the same values once (`app_meta.ipHashScheme`), and
    warns at startup when the secret's fingerprint (`app_meta.ipHashKeyFingerprint`) changed.
 8. CSV import uses `;` between tags, since `,` separates columns.
-9. Tests stub `res.render`, so a template that crashes at render time only shows up in a real run. Smoke-test pages
-   you change.
+9. Controller tests stub `res.render`; `renderPages.test.js` renders every page once, but only with its seeded data.
+   Smoke-test pages you change in a browser.
 10. Use Node 22: better-sqlite3 is a native module and may not build on newer Node versions.
 11. Don't check blocked/expiry/limits by hand, in JS, SQL or a template: use `accessService` (`checkAccess`,
     `recordStatus`, `statusSql`, `withAccessStatus`). Owners and admins get no bypass on public routes.

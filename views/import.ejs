@@ -1,17 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bulk Import - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Import / export', styles: ['tables', 'forms'] }) %>
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'import' }) %>
+  <div class="page">
 
   <main class="container">
     <div style="max-width: 900px; margin: 0 auto;">
@@ -327,6 +321,7 @@ https://example.com/page3</code></pre>
       }
     });
   </script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

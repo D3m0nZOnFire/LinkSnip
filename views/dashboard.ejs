@@ -1,19 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/modals.css">
-  <link rel="stylesheet" href="/css/tagSelector.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Dashboard', styles: ['tables', 'forms', 'modals', 'tagSelector'] }) %>
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'dashboard' }) %>
+  <div class="page">
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -1576,6 +1568,7 @@
         <button id="confirmModalConfirmBtn" class="btn btn-danger">Confirm</button>
       </div>
     </div>
+  </div>
   </div>
   <%- include('partials/footer') %>
 </body>

@@ -1,15 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — Settings - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/modals.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Settings · Admin', styles: ['tables', 'forms', 'modals'] }) %>
   <style>
     .settings-section { margin-bottom: 2rem; }
     .settings-section h3 { margin-bottom: 0.75rem; }
@@ -89,6 +81,7 @@
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'admin-settings' }) %>
+  <div class="page">
 
   <%
     const SECTION_TITLES = {
@@ -299,6 +292,7 @@
       }
     }
   </script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

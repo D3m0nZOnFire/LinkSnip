@@ -1,16 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Settings - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Settings', styles: ['forms'] }) %>
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'settings' }) %>
+  <div class="page">
 
   <!-- Main Content -->
   <main class="main-content">
@@ -107,6 +102,7 @@
 
   <script src="/js/main.js"></script>
   <script src="/js/settings.js"></script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

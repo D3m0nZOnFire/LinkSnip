@@ -1,13 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= file.originalName %> - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/modals.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: file.originalName, styles: ['modals'] }) %>
   <style>
     .file-preview-container {
       max-width: 680px;
@@ -146,14 +140,15 @@
       border-radius: 9999px;
       font-size: 0.75rem;
       font-weight: 500;
-      background: rgba(52, 211, 153, 0.15);
+      background: color-mix(in srgb, var(--primary) 15%, transparent);
       color: var(--primary);
-      border: 1px solid rgba(52, 211, 153, 0.3);
+      border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
     }
   </style>
 </head>
 <body>
   <%- include('partials/header', { currentPage: '' }) %>
+  <div class="page">
 
   <div class="file-preview-container">
     <div class="file-card">
@@ -239,6 +234,7 @@
   <% if (features.reports) { %>
     <%- include('partials/report-modal', { type: 'file', id: file.id, noun: 'file' }) %>
   <% } %>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

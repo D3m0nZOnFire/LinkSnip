@@ -1,14 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: title }) %>
 </head>
-<body class="standalone-page">
+<body>
+  <div class="page page-center">
   <div class="error-container">
     <div class="error-box">
       <!-- Status Icon -->
@@ -45,7 +41,7 @@
       <% if (locals.path) { %>
         <div style="margin: 1.5rem 0; padding: 0.75rem; background: var(--muted); border-radius: 0.5rem;">
           <p style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">Short link:</p>
-          <p style="margin: 0.25rem 0 0 0; font-family: monospace; font-weight: bold; color: var(--foreground); word-break: break-all;">
+          <p style="margin: 0.25rem 0 0 0; font-family: var(--font-mono); font-weight: bold; color: var(--foreground); word-break: break-all;">
             <%= path %>
           </p>
         </div>
@@ -56,6 +52,7 @@
         <a href="/" class="btn" style="color: var(--primary-foreground);">Go Back Home</a>
       </div>
     </div>
+  </div>
   </div>
   <%- include('partials/footer') %>
 </body>

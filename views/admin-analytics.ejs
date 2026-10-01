@@ -1,13 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analytics Overview - Admin - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Analytics · Admin', styles: ['tables'] }) %>
   <style>
     .stats-grid {
       display: grid;
@@ -47,6 +41,7 @@
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'admin-analytics' }) %>
+  <div class="page">
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -134,6 +129,7 @@
   </main>
 
   <script src="/js/main.js"></script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

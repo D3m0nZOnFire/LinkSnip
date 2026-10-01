@@ -1,17 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= bioPage.displayName %> - LinkSnip Bio</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/bio-page.css">
+  <%- include('partials/head', { title: bioPage.displayName, styles: ['bio-page'] }) %>
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-  <script src="/js/theme.js"></script>
 </head>
 <body class="bio-theme-<%= bioPage.theme %>" <% if (bioPage.theme === 'gradient') { %>style="background: linear-gradient(135deg, <%= bioPage.gradientStart || '#667eea' %> 0%, <%= bioPage.gradientEnd || '#764ba2' %> 100%);"<% } %>>
+  <div class="page">
   <!-- Optional minimal header for navigation -->
   <div class="bio-header">
     <a href="/" class="bio-home-link">
@@ -123,6 +118,7 @@
       .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   })();
 </script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

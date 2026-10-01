@@ -1,12 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Password Required - LinkSnip</title>
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Password required', styles: ['forms'] }) %>
   <style>
     .unlock-container {
       display: flex;
@@ -55,7 +50,7 @@
       padding: 0.75rem;
       margin-bottom: 1.5rem;
       text-align: center;
-      font-family: 'Courier New', monospace;
+      font-family: var(--font-mono);
       font-size: 1rem;
       color: var(--primary);
       word-break: break-all;
@@ -145,6 +140,7 @@
 </head>
 <body>
   <%- include('partials/header', { currentPage: '' }) %>
+  <div class="page">
 
   <div class="unlock-container">
     <div class="unlock-box">
@@ -228,6 +224,7 @@
       }
     }
   </script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

@@ -1,14 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — Teams - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Teams · Admin', styles: ['tables', 'forms'] }) %>
   <style>
     .data-table td { vertical-align: middle; }
     .data-table td:first-child { overflow-wrap: anywhere; }
@@ -17,6 +10,7 @@
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'admin-teams' }) %>
+  <div class="page">
   <% const NOUNS = { url: 'links', bundle: 'bundles', paste: 'pastes', file: 'files' }; %>
 
   <main class="main-content-wide">
@@ -71,6 +65,7 @@
       });
     });
   </script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

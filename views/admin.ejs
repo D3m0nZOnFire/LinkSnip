@@ -1,18 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/modals.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Links · Admin', styles: ['tables', 'forms', 'modals'] }) %>
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'admin' }) %>
+  <div class="page">
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -683,7 +676,7 @@
         </svg>
         Block Selected
       </button>
-      <button class="btn" style="background:rgba(52,211,153,0.15); color:var(--primary); border:1px solid rgba(52,211,153,0.4);" onclick="bulkUnblock()" id="bulkUnblockBtn" disabled>
+      <button class="btn" style="background:color-mix(in srgb, var(--primary) 15%, transparent); color:var(--primary); border:1px solid color-mix(in srgb, var(--primary) 40%, transparent);" onclick="bulkUnblock()" id="bulkUnblockBtn" disabled>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.375rem;">
           <circle cx="12" cy="12" r="10"></circle><polyline points="9 11 12 14 22 4"></polyline>
         </svg>
@@ -971,6 +964,7 @@
         <button id="confirmModalConfirmBtn" class="btn btn-danger">Confirm</button>
       </div>
     </div>
+  </div>
   </div>
   <%- include('partials/footer') %>
 </body>
