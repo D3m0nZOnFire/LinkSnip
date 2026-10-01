@@ -1,0 +1,28 @@
+<% const pendingInvites = locals.teamInvites || []; %>
+<% if (pendingInvites.length) { %>
+<section class="team-invites" aria-label="Team invites" style="margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+  <% pendingInvites.forEach(invite => { %>
+    <div class="team-invite" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; padding: 0.875rem 1rem; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: var(--radius-md);">
+      <span>
+        <strong><%= invite.invitedBy || 'Someone' %></strong> invited you to the team <strong><%= invite.teamName %></strong> as <%= invite.role %>.
+      </span>
+      <span style="display: flex; gap: 0.5rem;">
+        <button type="button" class="btn btn-small" style="color: var(--primary-foreground);" data-invite-id="<%= invite.id %>" data-action="accept">Accept</button>
+        <button type="button" class="btn btn-small" style="background: var(--secondary); color: var(--foreground); border: 1px solid var(--border);" data-invite-id="<%= invite.id %>" data-action="decline">Decline</button>
+      </span>
+    </div>
+  <% }) %>
+</section>
+<script>
+  document.querySelectorAll('.team-invite [data-invite-id]').forEach(button => {
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      const response = await fetch(`/api/team-invites/${button.dataset.inviteId}/${button.dataset.action}`, { method: 'POST' });
+      const data = await response.json().catch(() => ({}));
+      if (data.success && button.dataset.action === 'accept') window.location.href = `/teams/${data.teamId}`;
+      else if (data.success) window.location.reload();
+      else { alert(data.error || 'Something went wrong.'); button.disabled = false; }
+    });
+  });
+</script>
+<% } %>

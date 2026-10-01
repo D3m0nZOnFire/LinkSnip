@@ -42,6 +42,7 @@ and the last good configuration stays in use.
 | `features.analyticsShareLinks` | `true` | Read-only analytics share links. |
 | `features.reports` | `true` | Visitors can report links for abuse. |
 | `features.qrCodes` | `true` | QR codes for links, pastes, files and bundles. |
+| `features.teams` | `true` | Teams: links, bundles, pastes and files shared by several people. |
 | `moderation.reportThreshold` | `3` | Distinct reporters before a link is quarantined. 0 turns automatic quarantine off. |
 | `anonymous.urlExpirationDays` | `30` | Longest lifetime, in days, of a link created without an account. Seeded once from `ANONYMOUS_URL_EXPIRATION_DAYS` if set when the file is first created. |
 | `anonymous.pasteExpirationDays` | `30` | Longest lifetime, in days, of a paste created without an account. Seeded once from `ANONYMOUS_PASTE_EXPIRATION_DAYS` if set when the file is first created. |
@@ -92,6 +93,7 @@ A role is a named set of permissions and limits. Every account has one; visitors
 | `importExport` | Bulk import and export links. | ✗ | ✓ | ✓ | ✓ |
 | `bioPage` | Publish a bio page. | ✗ | ✓ | ✓ | ✓ |
 | `skipAutoModeration` | Their links are never quarantined automatically by reports. | ✗ | ✗ | ✓ | ✓ |
+| `createTeams` | Create teams. Anyone can be invited to a team; this only limits who can start one. | ✗ | ✗ | ✓ | ✓ |
 
 ### Limits
 

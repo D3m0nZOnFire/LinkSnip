@@ -362,7 +362,8 @@ describe('ConfigService', () => {
 
       const settings = readJson('settings.json');
       expect(settings.registration).toEqual({ open: true });
-      expect(Object.keys(settings.features)).toHaveLength(8);
+      const featureKeys = Object.keys(require('../../../config/schema').SETTINGS).filter(k => k.startsWith('features.'));
+      expect(Object.keys(settings.features)).toHaveLength(featureKeys.length);
       expect(readJson('roles.json')).toEqual(defaultRoles);
     });
 

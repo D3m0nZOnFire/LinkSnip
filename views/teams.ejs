@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teams - LinkSnip</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <script src="/js/theme.js"></script>
+  <style>
+    .team-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
+    .team-card { display: block; padding: 1.25rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--foreground); text-decoration: none; transition: border-color 0.15s; }
+    .team-card:hover { border-color: var(--primary); }
+    .team-card h3 { margin: 0 0 0.35rem; overflow-wrap: anywhere; }
+    .team-card p { margin: 0; color: var(--muted-foreground); font-size: 0.875rem; }
+    .create-team { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; max-width: 32rem; }
+    .create-team .form-group { flex: 1 1 14rem; margin: 0; }
+    .empty-note { color: var(--muted-foreground); margin-bottom: 2.5rem; }
+    .form-errors { color: var(--destructive); margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'teams' }) %>
+
+  <main class="main-content-wide">
+    <div class="header-section">
+      <div>
+        <h2>Teams</h2>
+        <p>Links, bundles, pastes and files that several people manage together.</p>
+      </div>
+    </div>
+
+    <%- include('partials/team-invites', { teamInvites: invites }) %>
+
+    <% if (teams.length) { %>
+      <div class="team-list">
+        <% teams.forEach(team => { %>
+          <a class="team-card" href="/teams/<%= team.id %>">
+            <h3><%= team.name %></h3>
+            <p><%= team.role.charAt(0).toUpperCase() + team.role.slice(1) %> · <%= team.members %> member<%= team.members === 1 ? '' : 's' %></p>
+          </a>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <p class="empty-note">You're not in any team yet.<%= canCreate ? ' Create one below, or ask a team owner to invite you.' : ' Ask a team owner to invite you.' %></p>
+    <% } %>
+
+    <% if (canCreate) { %>
+      <section>
+        <h3 style="margin-bottom: 0.75rem;">New team</h3>
+        <form id="createTeamForm" class="create-team">
+          <div class="form-group">
+            <label for="teamName" class="form-label">Name</label>
+            <input type="text" id="teamName" class="form-input" maxlength="60" required>
+          </div>
+          <button type="submit" class="btn" style="color: var(--primary-foreground);">Create team</button>
+        </form>
+        <p id="createTeamError" class="form-errors" role="alert"></p>
+      </section>
+    <% } %>
+  </main>
+
+  <% if (canCreate) { %>
+  <script>
+    document.getElementById('createTeamForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = event.target.querySelector('button');
+      const error = document.getElementById('createTeamError');
+      error.textContent = '';
+      button.disabled = true;
+      try {
+        const response = await fetch('/api/teams', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: document.getElementById('teamName').value })
+        });
+        const data = await response.json();
+        if (data.success) window.location.href = `/teams/${data.team.id}`;
+        else error.textContent = data.error || 'Could not create the team.';
+      } catch (e) {
+        error.textContent = 'Request failed. Please try again.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+  <% } %>
+  <%- include('partials/footer') %>
+</body>
+</html>

@@ -35,6 +35,8 @@
       </div>
     </div>
 
+    <%- include('partials/team-invites', { teamInvites: locals.teamInvites || [] }) %>
+
     <!-- Type Filter Pills -->
     <div style="display:flex; flex-wrap:wrap; gap:0.375rem; margin-bottom:1.25rem;">
       <button type="button" class="dash-filter-pill active" id="pill-all" onclick="setDashFilter('all')">All</button>

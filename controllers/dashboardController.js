@@ -7,6 +7,7 @@ const RoleService = require('../services/roleService');
 const configService = require('../services/configService');
 const { withAccessStatus } = require('../services/accessService');
 const { deletesInDays } = require('../services/retentionService');
+const teamService = require('../services/teamService');
 
 class DashboardController {
   /**
@@ -58,6 +59,7 @@ class DashboardController {
 
     res.render('dashboard', {
       user: req.user,
+      teamInvites: features.teams ? teamService.invitesForUser(req.user) : [],
       urls: urlsWithShares,
       bundles,
       baseUrl: `${req.protocol}://${req.get('host')}`,

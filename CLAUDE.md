@@ -90,7 +90,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - `config/database.js` opens `DB_PATH`, applies `config/dbSetup.js` (WAL, `busy_timeout = 5000`, foreign keys), and
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
   `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
-  `migrateAnalytics`, `migrateTags`, `migrateIpHashes`); they're idempotent
+  `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`); they're idempotent
   and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
 - Migration pattern: `CREATE TABLE IF NOT EXISTS`, check `PRAGMA table_info` before `ALTER TABLE`,
@@ -233,6 +233,21 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Always by slug, never by ID: the old `/qrcode/:id` and `/qrcode/bundle/:id` let anyone read every slug by counting
   IDs, so they were removed (not redirected: a redirect would reveal the slug too).
 
+### Teams
+- Tables (`migrateTeams`): `teams`, `team_members` (`owner` / `admin` / `member` / `viewer`), `team_invites` (one pending
+  per person and team); `teamId` (NULL = personal, ON DELETE CASCADE) on urls, bundles, pastes, files and tags. A
+  trigger promotes the longest-standing admin (else member, else viewer) when a team loses its last owner.
+- `services/teamService.js` holds the rules (throws `TeamError` with an HTTP status): owners manage anyone and give any
+  role; admins manage members and viewers, up to admin; the last owner can't be demoted, removed or leave; site admins
+  act as owners; outsiders get 404. Creating a team needs `createTeams` (role permission); `features.teams` switches
+  it all off. Deleting a team needs its exact name and removes its items and uploads.
+- `models/Team.js` (SQL), `controllers/teamController.js` + `routes/teamRoutes.js`: `/teams`, `/teams/:id`,
+  `/admin/teams`, `/api/teams…`, `/api/team-invites/:id/accept|decline` (DELETE = revoke). Audit: `CREATE_TEAM`,
+  `RENAME_TEAM`, `DELETE_TEAM`, `INVITE_TEAM_MEMBER`, `REVOKE_TEAM_INVITE`, `ACCEPT_TEAM_INVITE`,
+  `DECLINE_TEAM_INVITE`, `CHANGE_TEAM_ROLE`, `REMOVE_TEAM_MEMBER`, `LEAVE_TEAM` (a site admin outside the team:
+  `ADMIN_ACTION`, else `ACCOUNT_CHANGE`).
+- Invites show on the dashboard (`partials/team-invites.ejs`).
+
 ### Reports and quarantine
 - Every type is reportable: `POST /api/reports` `{ type, id, reason, description }` (`controllers/reportController.js`,
   model `models/Report.js`). Only live items (`isLive`), the type's feature must be on, one report per IP. Owners may
@@ -307,6 +322,7 @@ share links · 5:30 expired files · 5:45 country database check.
   standalone pages like login/setup/error) and **every** page includes `partials/footer` (a test checks this).
 - `currentPage` values: 'home', 'dashboard', 'tags', 'settings', 'admin', 'admin-users', 'admin-analytics',
   'admin-reports', 'admin-audit-logs', 'admin-files', 'admin-pastes', 'admin-analytics-shares', 'admin-settings',
+  'teams', 'admin-teams',
   'analytics', 'info'.
 - `views/error.ejs` takes `{ title, message, code }` (it also tolerates `statusCode` / `error.status`).
 - Modals: `public/css/modals.css`, `openModal(id)` / `closeModal(id)` in `public/js/main.js`; `showToast`,

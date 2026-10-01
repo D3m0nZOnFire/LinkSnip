@@ -26,6 +26,7 @@ const SETTINGS = {
   'features.analyticsShareLinks': { type: 'boolean', default: true, description: 'Read-only analytics share links.' },
   'features.reports': { type: 'boolean', default: true, description: 'Visitors can report links for abuse.' },
   'features.qrCodes': { type: 'boolean', default: true, description: 'QR codes for links, pastes, files and bundles.' },
+  'features.teams': { type: 'boolean', default: true, description: 'Teams: links, bundles, pastes and files shared by several people.' },
   'moderation.reportThreshold': {
     type: 'integer', min: 0, default: 3,
     description: 'Distinct reporters before a link is quarantined. 0 turns automatic quarantine off.'
@@ -73,7 +74,8 @@ const PERMISSIONS = {
   analyticsShareLinks: 'Create read-only analytics share links.',
   importExport: 'Bulk import and export links.',
   bioPage: 'Publish a bio page.',
-  skipAutoModeration: 'Their links are never quarantined automatically by reports.'
+  skipAutoModeration: 'Their links are never quarantined automatically by reports.',
+  createTeams: 'Create teams. Anyone can be invited to a team; this only limits who can start one.'
 };
 
 // Every limit is a whole number >= 0, or null for unlimited. 0 means none allowed.
