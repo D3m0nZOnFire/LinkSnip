@@ -314,10 +314,15 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   only; also used for `/setup`), `apiLimiter` (200/15 min, admins skip), `createUnlockLimiter()` (see Password unlock).
 
 ### Admin
-- `/admin` (links), `/admin/users` (role filter/select, **Create user** → `POST /api/admin/users`), `/admin/files`,
+- `/admin` is the Overview (`controllers/adminOverviewController.js`, `services/adminOverview.js` `summary()`: counts
+  per enabled type with live / new this week, users, teams, storage, visits this week vs the week before, pending
+  reports and quarantined items, the 8 newest audit entries, version and the newest nightly backup).
+- `/admin/links` (links and bundles, `views/admin-links.ejs`), `/admin/users` (role filter/select, **Create user** → `POST /api/admin/users`), `/admin/files`,
   `/admin/pastes`, `/admin/reports`, `/admin/analytics`, `/admin/analytics-shares`, `/admin/audit-logs` (also manual
-  backup/cleanup), `/admin/settings` (form from the schema; `PUT /api/admin/settings` validates, writes and logs
-  `UPDATE_SETTINGS` with the diff), plus the roles editor (`public/js/rolesEditor.js`: a column per role, one card per
+  backup/cleanup), `/admin/settings[/:tab]` (tabs General, Features, Content, Moderation, Retention, Roles & limits: `TABS` in
+  `controllers/adminSettingsController.js` maps settings.json sections to tabs, a test keeps every section on one; form
+  from the schema; `PUT /api/admin/settings` validates, writes and logs `UPDATE_SETTINGS` with the diff), plus the
+  roles editor on the Roles tab (`public/js/rolesEditor.js`: a column per role, one card per
   role on phones). `PUT /api/admin/roles` (edit/create), `POST /api/admin/roles/:name/reset` (built-in only),
   `DELETE /api/admin/roles/:name` with `moveTo` (a role, or `null` = clear `users.role`; users and file in one
   transaction). Each request carries `configService.rolesVersion()` (hash of roles.json): a hand edit in between
@@ -365,10 +370,11 @@ share links · 5:30 expired files · 5:45 country database check.
   After `</head>`: `<%- include('partials/layout-start', { shell, currentPage }) %>` … page content (modals and
   scripts included) … `<%- include('partials/layout-end', { shell }) %>` then `</html>` (no `<body>` tag in pages; a
   test checks this). `shell`:
-  - `'app'` (logged-in work: dashboard, create, tags, teams, settings, admin pages): `body.app` grid with
-    `partials/sidebar` (+ Create, Dashboard, Tags, Teams, Bio page, Import/export by permission/feature, an Admin
-    `<details>` group for admins, `partials/user-menu` at the bottom) and `.app-main` (`partials/topbar` on small
-    screens, `.page`, footer).
+  - `'app'` (logged-in work: dashboard, create, tags, teams, settings): `body.app` grid with `partials/sidebar`
+    (+ Create, Dashboard, Tags, Teams, Bio page, Import/export by permission/feature, Admin for admins,
+    `partials/user-menu` at the bottom) and `.app-main` (`partials/topbar` on small screens, `.page`, footer).
+  - `'admin'` (every `admin-*` page, "admin mode"): the same frame with `partials/admin-sidebar`: Back to app,
+    Overview, then Content / People / Insights / System groups (feature pages hidden when switched off).
   - `'public'` (item pages: info, paste, file, bundle, unlock, `/stats`; the home page of a visitor):
     `partials/header` (brand, theme button, Log in/Register or Dashboard + user menu), `.page`, footer.
   - `'standalone'` (login, register, setup, error, scheduled, quarantine, bio page): `.page` and footer; centered ones
@@ -385,7 +391,7 @@ share links · 5:30 expired files · 5:45 country database check.
   on Escape and outside clicks). Theme buttons are `[data-theme-toggle]` (with `[data-theme-icon]` /
   `[data-theme-label]` slots), wired by `public/js/theme.js`. Icons: `partials/icon` (`{ icon: 'tag' }`).
   Pages must not scroll sideways at 320px.
-- `currentPage` values (marks the sidebar entry): 'home', 'dashboard', 'tags', 'settings', 'admin', 'admin-users', 'admin-analytics',
+- `currentPage` values (marks the sidebar entry): 'home', 'dashboard', 'tags', 'settings', 'admin' (Overview), 'admin-links', 'admin-users', 'admin-analytics',
   'admin-reports', 'admin-audit-logs', 'admin-files', 'admin-pastes', 'admin-analytics-shares', 'admin-settings',
   'teams', 'admin-teams', 'admin-appearance', 'bio-settings', 'import',
   'analytics', 'info'.

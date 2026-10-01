@@ -17,7 +17,7 @@
     }
     .filter-section {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
       gap: 1rem;
       margin-bottom: 1.5rem;
       padding: 1rem;
@@ -45,12 +45,13 @@
     }
     .filter-actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.5rem;
       align-items: flex-end;
     }
   </style>
 </head>
-<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin-audit-logs' }) %>
+<%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-audit-logs' }) %>
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -60,19 +61,19 @@
         <h2>Audit Logs</h2>
         <p>Total logs: <span class="count"><%= pagination.totalLogs %></span></p>
       </div>
-      <div style="display: flex; gap: 0.5rem;">
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
         <a href="/api/admin/audit-logs/export?format=csv<%= filters.category ? '&category=' + filters.category : '' %><%= filters.action ? '&action=' + filters.action : '' %><%= filters.userId ? '&userId=' + filters.userId : '' %><%= filters.search ? '&search=' + encodeURIComponent(filters.search) : '' %>" class="btn" style="color: var(--primary-foreground);">Export CSV</a>
         <a href="/api/admin/audit-logs/export?format=json<%= filters.category ? '&category=' + filters.category : '' %><%= filters.action ? '&action=' + filters.action : '' %><%= filters.userId ? '&userId=' + filters.userId : '' %><%= filters.search ? '&search=' + encodeURIComponent(filters.search) : '' %>" class="btn" style="color: var(--primary-foreground);">Export JSON</a>
       </div>
     </div>
 
     <!-- System Maintenance Actions -->
-    <div style="display: flex; gap: 1rem; margin-bottom: 2rem; padding: 1rem; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 8px;">
-      <div style="flex: 1;">
+    <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding: 1rem; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 8px;">
+      <div style="flex: 1 1 14rem;">
         <h3 style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: var(--muted-foreground);">⚙️ SYSTEM MAINTENANCE</h3>
         <p style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">Manual triggers for scheduled maintenance tasks</p>
       </div>
-      <div style="display: flex; gap: 0.75rem; align-items: center;">
+      <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
         <button onclick="triggerBackup()" class="btn" style="background: var(--primary); color: var(--primary-foreground);">
           💾 Backup Database
         </button>
@@ -83,7 +84,7 @@
     </div>
 
     <!-- Stats Overview -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 1rem; margin-bottom: 2rem;">
       <div style="background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 8px; padding: 1rem;">
         <h3 style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">AUTHENTICATION</h3>
         <p style="margin: 0.5rem 0 0 0; font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= stats.AUTH || 0 %></p>
@@ -313,5 +314,5 @@
       }
     });
   </script>
-<%- include('partials/layout-end', { shell: 'app' }) %>
+<%- include('partials/layout-end', { shell: 'admin' }) %>
 </html>

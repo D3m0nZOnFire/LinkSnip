@@ -3,7 +3,7 @@
 <head>
   <%- include('partials/head', { title: 'Analytics shares · Admin', styles: ['tables', 'forms'] }) %>
 </head>
-<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin-analytics-shares' }) %>
+<%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-analytics-shares' }) %>
 
   <%
     const fmt = (v) => v ? new Date(v).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '';
@@ -79,5 +79,5 @@
       }
     }
   </script>
-<%- include('partials/layout-end', { shell: 'app' }) %>
+<%- include('partials/layout-end', { shell: 'admin' }) %>
 </html>

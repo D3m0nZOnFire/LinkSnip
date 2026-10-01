@@ -11,6 +11,7 @@ const user = { id: 1, username: 'alice', isAdmin: 0 };
 const admin = { id: 2, username: 'boss', isAdmin: 1 };
 
 const sidebar = (locals) => renderPartial('sidebar', { currentPage: 'dashboard', can: ALL, features: ALL, branding: BRAND, ...locals });
+const adminSidebar = (locals) => renderPartial('admin-sidebar', { currentPage: 'admin', can: ALL, features: ALL, branding: BRAND, user: admin, ...locals });
 const header = (locals) => renderPartial('header', { currentPage: 'info', registrationOpen: true, branding: BRAND, ...locals });
 const linkTo = (html, href) => new RegExp(`<a[^>]*href="${href.replace(/[/?]/g, '\\$&')}"`).test(html);
 
@@ -45,24 +46,9 @@ describe('partials/sidebar (logged-in pages)', () => {
     expect(await sidebar({ user, currentPage: 'home' })).toMatch(/<a href="\/" class="sidebar-create[^"]*" aria-current="page">/);
   });
 
-  it('shows the admin pages to admins only, opened on an admin page', async () => {
+  it('links to the admin area for admins only', async () => {
     expect(await sidebar({ user })).not.toContain('/admin');
-
-    const closed = await sidebar({ user: admin });
-    expect(closed).toMatch(/<details class="sidebar-group">/);
-    for (const href of ['/admin', '/admin/users', '/admin/settings', '/admin/appearance', '/admin/audit-logs']) {
-      expect(linkTo(closed, href)).toBe(true);
-    }
-    const open = await sidebar({ user: admin, currentPage: 'admin-users' });
-    expect(open).toMatch(/<details class="sidebar-group" open>/);
-    expect(open).toMatch(/<a href="\/admin\/users" class="sidebar-link" aria-current="page">/);
-  });
-
-  it('hides admin pages of switched-off features', async () => {
-    const html = await sidebar({ user: admin, features: NONE });
-    for (const href of ['/admin/files', '/admin/pastes', '/admin/reports', '/admin/teams', '/admin/analytics-shares']) {
-      expect(linkTo(html, href)).toBe(false);
-    }
+    expect(await sidebar({ user: admin })).toMatch(/<a href="\/admin" class="sidebar-link">[\s\S]*?Admin<\/a>/);
   });
 
   it('has the user menu at the bottom: Settings, theme, Log out', async () => {
@@ -123,5 +109,41 @@ describe('partials/header (public pages)', () => {
   it('loads the shell script', async () => {
     expect(await header({ user: null })).toContain('<script src="/js/shell.js" defer></script>');
     expect(await sidebar({ user })).toContain('<script src="/js/shell.js" defer></script>');
+  });
+});
+
+describe('partials/admin-sidebar (admin mode)', () => {
+  it('leads back to the app', async () => {
+    expect(await adminSidebar()).toMatch(/<a href="\/dashboard" class="sidebar-back">[\s\S]*?Back to app<\/a>/);
+  });
+
+  it('groups the admin pages: Overview, then Content, People, Insights, System', async () => {
+    const html = await adminSidebar();
+    const headings = [...html.matchAll(/<p class="sidebar-heading">([^<]+)<\/p>/g)].map(m => m[1]);
+    expect(headings).toEqual(['Content', 'People', 'Insights', 'System']);
+    const hrefs = [...html.matchAll(/<a href="(\/admin[^"]*)" class="sidebar-link"/g)].map(m => m[1]);
+    expect(hrefs).toEqual(['/admin', '/admin/links', '/admin/files', '/admin/pastes', '/admin/reports',
+      '/admin/users', '/admin/teams', '/admin/analytics', '/admin/analytics-shares',
+      '/admin/settings', '/admin/appearance', '/admin/audit-logs']);
+  });
+
+  it('leaves out the pages of switched-off features', async () => {
+    const html = await adminSidebar({ features: NONE });
+    for (const href of ['/admin/files', '/admin/pastes', '/admin/reports', '/admin/teams', '/admin/analytics-shares']) {
+      expect(linkTo(html, href)).toBe(false);
+    }
+    expect(linkTo(html, '/admin/links')).toBe(true);
+  });
+
+  it('marks the current page', async () => {
+    expect(await adminSidebar({ currentPage: 'admin-users' })).toMatch(/<a href="\/admin\/users" class="sidebar-link" aria-current="page">/);
+    expect(await adminSidebar({ currentPage: 'admin' })).toMatch(/<a href="\/admin" class="sidebar-link" aria-current="page">/);
+  });
+
+  it('is the drawer on small screens, with the user menu at the bottom', async () => {
+    const html = await adminSidebar();
+    expect(html).toMatch(/<aside class="sidebar sidebar-admin" id="sidebar"/);
+    expect(html).toMatch(/class="user-button"/);
+    expect(html).toContain('<script src="/js/shell.js" defer></script>');
   });
 });

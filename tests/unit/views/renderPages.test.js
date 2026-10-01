@@ -104,7 +104,8 @@ const PAGES = {
   'error': async () => ({ req: request(null), view: 'error', data: { title: 'Page Not Found', message: 'Nope.', code: 404 } }),
   'bio-page': async () => ({ req: request(null), view: 'bio-page', data: bioPageData() }),
   'bio-settings': async () => ({ req: request(s.user), view: 'bio-settings', data: bioSettingsData() }),
-  'admin': () => rendered(c('dashboardController').getAdminDashboard, request(s.admin)),
+  'admin-overview': () => rendered(c('adminOverviewController').overviewPage, request(s.admin)),
+  'admin-links': () => rendered(c('dashboardController').getAdminDashboard, request(s.admin)),
   'admin-users': () => rendered(c('adminController').getUsersPage, request(s.admin)),
   'admin-files': () => rendered(c('fileController').adminList, request(s.admin)),
   'admin-pastes': () => rendered(c('pasteController').adminList, request(s.admin)),
@@ -161,12 +162,14 @@ const pages = fs.readdirSync(VIEWS).filter(f => f.endsWith('.ejs')).map(f => f.r
 
 // Which frame each page has, as the seeded case renders it:
 //   app: sidebar + main column (top bar on small screens, page, footer) for logged-in work
+//   admin: the same with the admin sidebar (admin mode)
 //   public: slim header, page, footer, for anyone (the item pages, the home page of a visitor)
 //   standalone: page and footer only (login, errors, bio pages)
 const SHELL = Object.fromEntries(pages.map(name => [name,
   ['url-info', 'paste-view', 'paste-info', 'file-download', 'bundle-launcher', 'unlock'].includes(name) ? 'public'
     : ['login', 'register', 'setup', 'error', 'scheduled', 'quarantine', 'bio-page'].includes(name) ? 'standalone'
-      : 'app']));
+      : name.startsWith('admin') ? 'admin'
+        : 'app']));
 
 const visible = (nodes) => nodes.filter(el => !['script', 'noscript', 'template'].includes(el.name));
 const describeNode = (el) => `${el.name}${el.classes.map(c => `.${c}`).join('')}`;
@@ -175,9 +178,9 @@ const describeNode = (el) => `${el.name}${el.classes.map(c => `.${c}`).join('')}
 function expectLayout(html, shell) {
   const body = bodyTree(html);
   const top = visible(body.children).map(describeNode);
-  if (shell === 'app') {
+  if (shell === 'app' || shell === 'admin') {
     expect(body.classes).toContain('app');
-    expect(top).toEqual(['aside.sidebar', 'div.sidebar-backdrop', 'div.app-main']);
+    expect(top).toEqual([shell === 'admin' ? 'aside.sidebar.sidebar-admin' : 'aside.sidebar', 'div.sidebar-backdrop', 'div.app-main']);
     const main = body.children.find(el => el.classes.includes('app-main'));
     expect(visible(main.children).map(describeNode)).toEqual(['header.topbar', 'div.page', 'footer.site-footer']);
   } else if (shell === 'public') {

@@ -3,7 +3,7 @@
 <head>
   <%- include('partials/head', { title: 'Users · Admin', styles: ['tables', 'forms', 'modals'] }) %>
 </head>
-<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin-users' }) %>
+<%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-users' }) %>
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -462,5 +462,5 @@
       });
     });
   </script>
-<%- include('partials/layout-end', { shell: 'app' }) %>
+<%- include('partials/layout-end', { shell: 'admin' }) %>
 </html>

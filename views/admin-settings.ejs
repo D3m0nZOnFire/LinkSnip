@@ -79,7 +79,7 @@
     }
   </style>
 </head>
-<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin-settings' }) %>
+<%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-settings' }) %>
 
   <%
     const SECTION_TITLES = {
@@ -101,17 +101,27 @@
   %>
 
   <main class="main-content-wide">
+    <% const currentTab = tabs.find(t => t.id === tab); %>
     <div class="header-section">
       <div>
         <h2>Settings</h2>
+        <% if (tab !== 'roles') { %>
         <p class="file-note">
           Saved to <code><%= files.settings %></code>. Editing that file by hand works too; changes apply within a few seconds.
         </p>
+        <% } %>
       </div>
     </div>
 
+    <nav class="tabs" aria-label="Settings sections">
+      <% tabs.forEach(t => { %>
+      <a href="<%= t.href %>" class="tab"<%- t.id === tab ? ' aria-current="page"' : '' %>><%= t.label %></a>
+      <% }) %>
+    </nav>
+
+    <% if (tab !== 'roles') { %>
     <form id="settingsForm" onsubmit="saveSettings(event)">
-      <% sections.forEach(section => { %>
+      <% sections.filter(section => currentTab.sections.includes(section.name)).forEach(section => { %>
         <section class="settings-section">
           <h3><%= SECTION_TITLES[section.name] || section.name %></h3>
           <% if (section.fields.every(f => f.editor === 'appearance')) { %>
@@ -146,7 +156,9 @@
       </div>
       <ul id="settingsErrors" class="settings-errors" role="alert"></ul>
     </form>
+    <% } %>
 
+    <% if (tab === 'roles') { %>
     <section class="settings-section" id="roles">
       <h3>Roles</h3>
       <p class="file-note">
@@ -171,8 +183,10 @@
       </div>
       <ul id="rolesErrors" class="settings-errors" role="alert"></ul>
     </section>
+    <% } %>
   </main>
 
+  <% if (tab === 'roles') { %>
   <div id="addRoleModal" class="modal-overlay">
     <div class="modal">
       <div class="modal-header">
@@ -243,6 +257,9 @@
   <script type="application/json" id="rolesData"><%- JSON.stringify(rolesData).replace(/</g, '\\u003c') %></script>
   <script src="/js/main.js"></script>
   <script src="/js/rolesEditor.js"></script>
+  <% } else { %>
+  <script src="/js/main.js"></script>
+  <% } %>
   <script>
     function readForm() {
       const values = {};
@@ -295,5 +312,5 @@
       }
     }
   </script>
-<%- include('partials/layout-end', { shell: 'app' }) %>
+<%- include('partials/layout-end', { shell: 'admin' }) %>
 </html>

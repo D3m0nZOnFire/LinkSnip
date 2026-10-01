@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title: 'Overview · Admin', styles: ['overview'] }) %>
+</head>
+<%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin' }) %>
+<%
+  const ITEM_PAGES = { url: '/admin/links', bundle: '/admin/links', paste: '/admin/pastes', file: '/admin/files' };
+  const number = (n) => Number(n || 0).toLocaleString('en-US');
+  const bytes = (n) => {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let value = Number(n || 0);
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+    return `${value.toFixed(unit && value < 10 ? 1 : 0)} ${units[unit]}`;
+  };
+  const when = (iso) => {
+    const date = new Date(String(iso).includes('T') ? iso : `${String(iso).replace(' ', 'T')}Z`);
+    const minutes = Math.round((Date.now() - date.getTime()) / 60000);
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    if (minutes < 60 * 24) return `${Math.round(minutes / 60)} h ago`;
+    return `${Math.round(minutes / 1440)} d ago`;
+  };
+  const words = (action) => action.charAt(0) + action.slice(1).toLowerCase().replace(/_/g, ' ');
+  const { visits, system, moderation } = summary;
+  const trend = visits.weekBefore ? Math.round(((visits.lastWeek - visits.weekBefore) / visits.weekBefore) * 100) : null;
+  const backupHours = system.lastBackup ? (Date.now() - new Date(system.lastBackup.at).getTime()) / 3600000 : null;
+-%>
+
+  <main class="main-content-wide overview">
+    <div class="header-section">
+      <div>
+        <h2>Overview</h2>
+        <p><%= branding.name %> at a glance.</p>
+      </div>
+    </div>
+
+    <section class="stat-grid" aria-label="Counts">
+      <% summary.items.forEach(item => { %>
+        <a class="stat-card" href="<%= ITEM_PAGES[item.type] %>">
+          <span class="stat-label"><%= item.label %></span>
+          <span class="stat-value"><%= number(item.total) %></span>
+          <span class="stat-detail"><%= number(item.live) %> live · +<%= number(item.newThisWeek) %> this week</span>
+        </a>
+      <% }) %>
+      <a class="stat-card" href="/admin/users">
+        <span class="stat-label">Users</span>
+        <span class="stat-value"><%= number(summary.users.total) %></span>
+        <span class="stat-detail"><%= number(summary.users.activeThisWeek) %> active · +<%= number(summary.users.newThisWeek) %> this week</span>
+      </a>
+      <% if (summary.teams !== null) { %>
+        <a class="stat-card" href="/admin/teams">
+          <span class="stat-label">Teams</span>
+          <span class="stat-value"><%= number(summary.teams) %></span>
+          <span class="stat-detail">&nbsp;</span>
+        </a>
+      <% } %>
+      <a class="stat-card" href="/admin/analytics">
+        <span class="stat-label">Visits, last 7 days</span>
+        <span class="stat-value"><%= number(visits.lastWeek) %></span>
+        <span class="stat-detail">
+          <% if (trend === null) { %>No visits the week before
+          <% } else { %><span class="<%= trend >= 0 ? 'trend-up' : 'trend-down' %>"><%= trend >= 0 ? '+' : '' %><%= trend %>%</span> on the week before<% } %>
+        </span>
+      </a>
+      <% if (features.files) { %>
+        <a class="stat-card" href="/admin/files">
+          <span class="stat-label">Storage</span>
+          <span class="stat-value"><%= bytes(summary.storage.bytes) %></span>
+          <span class="stat-detail"><%= number(summary.storage.files) %> file<%= summary.storage.files === 1 ? '' : 's' %></span>
+        </a>
+      <% } %>
+    </section>
+
+    <div class="overview-columns">
+      <% if (moderation) { %>
+      <section class="card overview-panel">
+        <div class="panel-head">
+          <h3>Needs attention</h3>
+          <a href="/admin/reports">Reports</a>
+        </div>
+        <% if (!moderation.pendingReports && !moderation.quarantinedTotal) { %>
+          <p class="panel-empty">Nothing to review.</p>
+        <% } else { %>
+          <p class="attention-line">
+            <strong><%= number(moderation.pendingReports) %></strong> pending report<%= moderation.pendingReports === 1 ? '' : 's' %>,
+            <strong><%= number(moderation.quarantinedTotal) %></strong> item<%= moderation.quarantinedTotal === 1 ? '' : 's' %> under review
+          </p>
+          <ul class="panel-list">
+            <% moderation.quarantined.forEach(item => { %>
+              <li>
+                <span class="type-chip"><%= item.type %></span>
+                <a href="<%= item.path %>" class="panel-main" target="_blank" rel="noopener"><%= item.path %></a>
+                <span class="panel-meta"><%= item.pendingReports %> report<%= item.pendingReports === 1 ? '' : 's' %></span>
+              </li>
+            <% }) %>
+          </ul>
+          <% if (moderation.quarantinedTotal > moderation.quarantined.length) { %>
+            <a href="/admin/reports" class="panel-more"><%= moderation.quarantinedTotal - moderation.quarantined.length %> more under review</a>
+          <% } %>
+        <% } %>
+      </section>
+      <% } %>
+
+      <section class="card overview-panel">
+        <div class="panel-head">
+          <h3>Recent activity</h3>
+          <a href="/admin/audit-logs">Audit log</a>
+        </div>
+        <% if (!summary.recentActivity.length) { %>
+          <p class="panel-empty">No activity yet.</p>
+        <% } else { %>
+          <ul class="panel-list">
+            <% summary.recentActivity.forEach(entry => { %>
+              <li>
+                <span class="panel-main">
+                  <%= words(entry.action) %><% if (entry.targetDescription) { %>: <span class="panel-target"><%= entry.targetDescription %></span><% } %>
+                </span>
+                <span class="panel-meta"><%= entry.username || 'system' %> · <%= when(entry.createdAt) %></span>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </section>
+
+      <section class="card overview-panel">
+        <div class="panel-head">
+          <h3>System</h3>
+          <a href="/admin/settings">Settings</a>
+        </div>
+        <dl class="system-list">
+          <div><dt>Version</dt><dd>LinkSnip v<%= system.version %></dd></div>
+          <div>
+            <dt>Last backup</dt>
+            <dd class="<%= backupHours === null || backupHours > 26 ? 'status-warn' : '' %>">
+              <% if (!system.lastBackup) { %>None yet (the app writes one every night at 3:00)
+              <% } else { %><%= when(system.lastBackup.at) %>, <%= bytes(system.lastBackup.bytes) %><% } %>
+            </dd>
+          </div>
+          <div><dt>Backups kept</dt><dd><%= number(system.backups) %></dd></div>
+          <div><dt>Registration</dt><dd><%= registrationOpen ? 'Open' : 'Closed' %></dd></div>
+        </dl>
+      </section>
+    </div>
+  </main>
+<%- include('partials/layout-end', { shell: 'admin' }) %>
+</html>

@@ -14,11 +14,24 @@ const { logAdminAction, ACTIONS } = require('../services/auditService');
  * and the admin reloads the page.
  * Everything shown comes from config/schema.js, so help text can't drift from validation.
  */
+// Admin → Settings tabs: settings.json sections (the key's first part) per tab; Roles is the roles editor
+const TABS = [
+  { id: 'general', label: 'General', sections: ['registration', 'geo', 'branding'] },
+  { id: 'features', label: 'Features', sections: ['features'] },
+  { id: 'content', label: 'Content', sections: ['anonymous', 'pastes', 'files'] },
+  { id: 'moderation', label: 'Moderation', sections: ['moderation'] },
+  { id: 'retention', label: 'Retention', sections: ['retention'] },
+  { id: 'roles', label: 'Roles & limits', sections: [] }
+].map(tab => ({ ...tab, href: tab.id === 'general' ? '/admin/settings' : `/admin/settings/${tab.id}` }));
+
 class AdminSettingsController {
   /**
-   * GET /admin/settings
+   * GET /admin/settings[/:tab]
    */
-  static getSettingsPage(req, res) {
+  static getSettingsPage(req, res, next) {
+    const tab = (req.params && req.params.tab) || 'general';
+    if (!TABS.some(t => t.id === tab)) return next();
+
     const sections = [];
     for (const [key, spec] of Object.entries(SETTINGS)) {
       const name = key.split('.')[0];
@@ -54,6 +67,8 @@ class AdminSettingsController {
 
     res.render('admin-settings', {
       user: req.user,
+      tab,
+      tabs: TABS,
       sections,
       roleGrid,
       files: { settings: paths.SETTINGS_PATH, roles: paths.ROLES_PATH }
