@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const AnalyticsEvent = require('../models/AnalyticsEvent');
 const { CONTENT_TYPES, isTypeEnabled } = require('../services/contentTypes');
+const { canView } = require('../services/itemPermissions');
 
 /**
  * Analytics pages for every content type: /analytics/:type/:id (owner or admin) and
@@ -12,11 +13,10 @@ function findItem(type, id) {
   if (!isTypeEnabled(type)) return null;
   const info = CONTENT_TYPES[type];
   const item = db.prepare(`SELECT * FROM ${info.table} WHERE id = ?`).get(parseInt(id));
-  return item ? { info, item } : null;
+  return item ? { type, info, item } : null;
 }
 
-// Analytics are private to the item's owner and admins; others use share links.
-const canView = (user, info, item) => !!user && (user.isAdmin || item[info.ownerColumn] === user.id);
+// Analytics are private to those who may view the item (itemPermissions); others use share links.
 
 /** What the analytics page shows for one item (also used by /stats/:token). */
 function pageData(req, type, found, readOnly) {
@@ -47,7 +47,7 @@ class AnalyticsController {
     const { type, id } = req.params;
     const found = findItem(type, id);
     if (!found) return notFound(res);
-    if (!canView(req.user, found.info, found.item)) return res.redirect('/dashboard');
+    if (!canView(req.user, type, found.item)) return res.redirect('/dashboard');
 
     res.render('analytics', pageData(req, type, found, false));
   }
@@ -59,7 +59,7 @@ class AnalyticsController {
     const { type, id } = req.params;
     const found = findItem(type, id);
     if (!found) return res.status(404).json({ error: 'Not found' });
-    if (!canView(req.user, found.info, found.item)) return res.status(403).json({ error: 'Access denied' });
+    if (!canView(req.user, type, found.item)) return res.status(403).json({ error: 'Access denied' });
 
     const summary = AnalyticsEvent.getSummary(type, found.item.id);
     const days = parseInt(req.query.days);

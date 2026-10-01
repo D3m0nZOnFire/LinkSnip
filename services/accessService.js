@@ -1,4 +1,5 @@
 const { contentType } = require('./contentTypes');
+const { canView } = require('./itemPermissions');
 const unlocks = require('./unlockService');
 
 /**
@@ -68,10 +69,10 @@ function allowedUserIds(record) {
 }
 
 /** For restricted files: null when the user may open it, otherwise the status. */
-function restrictedStatus(info, record, user) {
+function restrictedStatus(type, info, record, user) {
   if (!info.restricted || record.sharingMode !== 'restricted') return null;
   if (!user) return 'login_required';
-  if (user.isAdmin || user.id === record[info.ownerColumn] || allowedUserIds(record).includes(user.id)) return null;
+  if (canView(user, type, record) || allowedUserIds(record).includes(user.id)) return null;
   return 'forbidden';
 }
 
@@ -88,7 +89,7 @@ function evaluate(type, record, ctx = {}) {
   if (UNAVAILABLE.includes(status)) return result(status);
   if (status === 'quarantined' && !ctx.quarantineAck) return result(status);
 
-  const restricted = restrictedStatus(info, record, ctx.user || null);
+  const restricted = restrictedStatus(type, info, record, ctx.user || null);
   if (restricted) return result(restricted);
 
   if (record.password && !ctx.unlocked) return result('password_required');

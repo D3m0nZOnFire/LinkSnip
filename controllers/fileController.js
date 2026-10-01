@@ -1,3 +1,4 @@
+const { canEdit } = require('../services/itemPermissions');
 const path = require('path');
 const fs = require('fs');
 const File = require('../models/File');
@@ -116,7 +117,7 @@ exports.delete = (req, res) => {
   const file = File.findById(parseInt(id));
 
   if (!file) return res.status(404).json({ error: 'File not found' });
-  if (file.userId !== req.user.id && !req.user.isAdmin) {
+  if (!canEdit(req.user, 'file', file)) {
     return res.status(403).json({ error: 'Access denied' });
   }
 
@@ -140,7 +141,7 @@ exports.updateSettings = async (req, res) => {
   const file = File.findById(parseInt(id));
 
   if (!file) return res.status(404).json({ error: 'File not found' });
-  if (file.userId !== req.user.id && !req.user.isAdmin) {
+  if (!canEdit(req.user, 'file', file)) {
     return res.status(403).json({ error: 'Access denied' });
   }
 

@@ -2,6 +2,7 @@ const AnalyticsShare = require('../models/AnalyticsShare');
 const RoleService = require('../services/roleService');
 const { logAccountChange, logAdminAction, ACTIONS } = require('../services/auditService');
 const { findItem, pageData } = require('./analyticsController');
+const { canEdit } = require('../services/itemPermissions');
 
 /**
  * Analytics share links for any content type: the owner (or an admin) creates a
@@ -12,7 +13,7 @@ const { findItem, pageData } = require('./analyticsController');
 const MAX_LABEL = 100;
 const MAX_DAYS = 3650;
 
-const canManage = (user, found) => !!user && (user.isAdmin || found.item[found.info.ownerColumn] === user.id);
+const canManage = (user, found) => canEdit(user, found.type, found.item);
 const pathOf = (found) => `${found.info.publicPrefix}${found.item.slug}`;
 
 /**

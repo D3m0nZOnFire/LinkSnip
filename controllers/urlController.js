@@ -1,3 +1,4 @@
+const { actor, canEdit } = require('../services/itemPermissions');
 const Url = require('../models/Url');
 const SlugGenerator = require('../services/slugGenerator');
 const AnalyticsService = require('../services/analyticsService');
@@ -177,7 +178,7 @@ class UrlController {
       }
 
       // Check permissions
-      if (!req.session.isAdmin && url.creatorId !== req.session.userId) {
+      if (!canEdit(actor(req), 'url', url)) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
@@ -259,7 +260,7 @@ class UrlController {
       }
 
       // Check permissions
-      if (!req.session.isAdmin && url.creatorId !== req.session.userId) {
+      if (!canEdit(actor(req), 'url', url)) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
@@ -284,7 +285,7 @@ class UrlController {
       }
 
       // Check permissions
-      if (!req.session.isAdmin && url.creatorId !== req.session.userId) {
+      if (!canEdit(actor(req), 'url', url)) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
@@ -325,7 +326,7 @@ class UrlController {
       try {
         const url = Url.findById(id);
         if (!url) { errors.push(`${id}: not found`); continue; }
-        if (!req.session.isAdmin && url.creatorId !== req.session.userId) {
+        if (!canEdit(actor(req), 'url', url)) {
           errors.push(`${id}: access denied`); continue;
         }
         Url.delete(id);

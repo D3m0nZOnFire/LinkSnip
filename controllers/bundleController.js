@@ -1,3 +1,4 @@
+const { canEdit } = require('../services/itemPermissions');
 const Bundle = require('../models/Bundle');
 const Tag = require('../models/Tag');
 const AnalyticsService = require('../services/analyticsService');
@@ -128,7 +129,7 @@ function getBundleById(req, res) {
   if (!bundle) {
     return res.status(404).json({ error: 'Bundle not found' });
   }
-  if (bundle.creatorId !== req.user.id && !req.user.isAdmin) {
+  if (!canEdit(req.user, 'bundle', bundle)) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
 
@@ -146,7 +147,7 @@ async function updateBundle(req, res) {
   if (!bundle) {
     return res.status(404).json({ error: 'Bundle not found' });
   }
-  if (bundle.creatorId !== req.user.id && !req.user.isAdmin) {
+  if (!canEdit(req.user, 'bundle', bundle)) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
 
@@ -233,7 +234,7 @@ function deleteBundle(req, res) {
   if (!bundle) {
     return res.status(404).json({ error: 'Bundle not found' });
   }
-  if (bundle.creatorId !== req.user.id && !req.user.isAdmin) {
+  if (!canEdit(req.user, 'bundle', bundle)) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
 
@@ -323,7 +324,7 @@ function bulkDeleteBundles(req, res) {
     try {
       const bundle = Bundle.findById(id);
       if (!bundle) { errors.push(`${id}: not found`); continue; }
-      if (bundle.creatorId !== req.user.id && !req.user.isAdmin) {
+      if (!canEdit(req.user, 'bundle', bundle)) {
         errors.push(`${id}: access denied`); continue;
       }
       Bundle.delete(id);
