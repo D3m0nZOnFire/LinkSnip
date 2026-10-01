@@ -1,18 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tag Management - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/modals.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Tags', styles: ['tables', 'forms', 'modals'] }) %>
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'tags' }) %>
+  <div class="page">
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -36,7 +29,7 @@
         <div style="font-size: 0.875rem;">
           <p style="margin: 0 0 0.5rem 0; font-weight: 500; color: var(--foreground);">How to use tags:</p>
           <ul style="margin: 0; padding-left: 1.25rem; color: var(--muted-foreground);">
-            <li style="margin-bottom: 0.25rem;">Add tags when creating or editing an item (e.g., <code style="background: rgba(52,211,153,0.15); padding: 2px 6px; border-radius: 3px;">email-campaign</code>, <code style="background: rgba(52,211,153,0.15); padding: 2px 6px; border-radius: 3px;">twitter</code>)</li>
+            <li style="margin-bottom: 0.25rem;">Add tags when creating or editing an item (e.g., <code style="background: color-mix(in srgb, var(--primary) 15%, transparent); padding: 2px 6px; border-radius: 3px;">email-campaign</code>, <code style="background: color-mix(in srgb, var(--primary) 15%, transparent); padding: 2px 6px; border-radius: 3px;">twitter</code>)</li>
             <li style="margin-bottom: 0.25rem;">Filter your dashboard by tag</li>
             <li style="margin-bottom: 0.25rem;">View analytics for everything with a specific tag</li>
             <li>Track performance across campaigns and platforms</li>
@@ -276,6 +269,7 @@
       }
     }
   </script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

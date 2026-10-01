@@ -1,13 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>URL Preview - <%= url.slug %> - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/modals.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: `Link preview · ${url.slug}`, styles: ['modals'] }) %>
   <style>
     .info-container {
       max-width: 800px;
@@ -128,6 +122,7 @@
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'info' }) %>
+  <div class="page">
 
   <!-- Main Content -->
   <main class="info-container">
@@ -301,6 +296,7 @@
   <% } %>
 
   <script src="/js/main.js"></script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

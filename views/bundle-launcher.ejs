@@ -1,12 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= bundle.title %> - LinkSnip Bundle</title>
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/modals.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: bundle.title, styles: ['modals'] }) %>
   <style>
     .bundle-launcher-container {
       display: flex;
@@ -136,6 +131,7 @@
 </head>
 <body>
   <%- include('partials/header', { currentPage: null }) %>
+  <div class="page">
 
   <div class="bundle-launcher-container">
     <div class="bundle-card">
@@ -206,6 +202,7 @@
   <% if (features.reports) { %>
     <%- include('partials/report-modal', { type: 'bundle', id: bundle.id, noun: 'bundle' }) %>
   <% } %>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

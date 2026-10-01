@@ -1,13 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= paste.title ? paste.title : 'Paste' %> - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/modals.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: paste.title || 'Paste', styles: ['modals'] }) %>
   <style>
     .paste-container {
       max-width: 900px;
@@ -45,9 +39,9 @@
       border-radius: 9999px;
       font-size: 0.75rem;
       font-weight: 500;
-      background: rgba(52, 211, 153, 0.15);
+      background: color-mix(in srgb, var(--primary) 15%, transparent);
       color: var(--primary);
-      border: 1px solid rgba(52, 211, 153, 0.3);
+      border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
       text-transform: lowercase;
     }
 
@@ -80,9 +74,9 @@
       border-radius: 9999px;
       font-size: 0.75rem;
       font-weight: 500;
-      background: rgba(52, 211, 153, 0.15);
+      background: color-mix(in srgb, var(--primary) 15%, transparent);
       color: var(--primary);
-      border: 1px solid rgba(52, 211, 153, 0.3);
+      border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
     }
 
     .paste-actions {
@@ -125,7 +119,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       overflow: hidden;
-      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-family: var(--font-mono);
       font-size: 0.875rem;
       line-height: 1.55;
     }
@@ -161,6 +155,7 @@
 </head>
 <body>
   <%- include('partials/header', { currentPage: '' }) %>
+  <div class="page">
 
   <div class="paste-container">
     <div class="paste-card">
@@ -244,6 +239,7 @@
     <%- include('partials/report-modal', { type: 'paste', id: paste.id, noun: 'paste' }) %>
   <% } %>
   <script src="/js/main.js"></script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

@@ -1,14 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teams - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Teams', styles: ['tables', 'forms'] }) %>
   <style>
     .team-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
     .team-card { display: block; padding: 1.25rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--foreground); text-decoration: none; transition: border-color 0.15s; }
@@ -23,6 +16,7 @@
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'teams' }) %>
+  <div class="page">
 
   <main class="main-content-wide">
     <div class="header-section">
@@ -87,6 +81,7 @@
     });
   </script>
   <% } %>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

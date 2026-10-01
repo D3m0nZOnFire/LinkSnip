@@ -1,17 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Audit Logs - Admin Panel - LinkSnip</title>
-  <link rel="icon" type="image/png" href="/logo.png">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/modals.css">
-  <script src="/js/theme.js"></script>
+  <%- include('partials/head', { title: 'Audit logs · Admin', styles: ['tables', 'modals'] }) %>
   <style>
     .log-details {
-      font-family: monospace;
+      font-family: var(--font-mono);
       font-size: 0.875rem;
       max-width: 300px;
       white-space: nowrap;
@@ -59,6 +52,7 @@
 </head>
 <body>
   <%- include('partials/header', { currentPage: 'admin-audit-logs' }) %>
+  <div class="page">
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -204,7 +198,7 @@
                     <% } %>
                   </td>
                   <td>
-                    <small style="color: var(--muted-foreground); font-family: monospace;">
+                    <small style="color: var(--muted-foreground); font-family: var(--font-mono);">
                       <%= log.ipAddress ? log.ipAddress.substring(0, 15) : '-' %>
                     </small>
                   </td>
@@ -321,6 +315,7 @@
       }
     });
   </script>
+  </div>
   <%- include('partials/footer') %>
 </body>
 </html>

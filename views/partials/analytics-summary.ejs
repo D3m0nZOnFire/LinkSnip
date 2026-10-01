@@ -141,7 +141,18 @@
 
 <script>
   (function () {
-    const colors = ['#34d399', '#60a5fa', '#f472b6', '#fbbf24', '#a78bfa', '#fb923c', '#34d3c5', '#e879f9'];
+    // Canvas can't read CSS variables: take the theme's colors once
+    const css = getComputedStyle(document.documentElement);
+    const token = (name) => css.getPropertyValue(name).trim();
+    const primary = token('--primary');
+    const muted = token('--muted-foreground');
+    const grid = token('--border');
+    const tint = (hex, alpha) => {
+      const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+      return m ? `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})` : hex;
+    };
+    Chart.defaults.font.family = token('--font-sans');
+    const colors = [primary, '#60a5fa', '#f472b6', '#fbbf24', '#a78bfa', '#fb923c', '#2dd4bf', '#e879f9'];
     const byDate = <%- json(summary.byDate) %>;
 
     new Chart(document.getElementById('eventsChart'), {
@@ -151,8 +162,8 @@
         datasets: [{
           label: <%- json(eventLabel) %>,
           data: byDate.map(d => d.count),
-          borderColor: '#34d399',
-          backgroundColor: 'rgba(52, 211, 153, 0.1)',
+          borderColor: primary,
+          backgroundColor: tint(primary, 0.1),
           fill: true,
           tension: 0.3,
           pointRadius: byDate.length > 60 ? 0 : 3
@@ -162,8 +173,8 @@
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: { ticks: { color: '#9ca3af', maxTicksLimit: 10 }, grid: { color: 'rgba(156,163,175,0.1)' } },
-          y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(156,163,175,0.1)' }, beginAtZero: true }
+          x: { ticks: { color: muted, maxTicksLimit: 10 }, grid: { color: grid } },
+          y: { ticks: { color: muted }, grid: { color: grid }, beginAtZero: true }
         },
         plugins: { legend: { display: false } }
       }
@@ -181,7 +192,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af', padding: 16 } } }
+          plugins: { legend: { position: 'bottom', labels: { color: muted, padding: 16 } } }
         }
       });
     }
