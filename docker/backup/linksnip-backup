@@ -1,0 +1,165 @@
+#!/bin/bash
+# Off-site copies of a LinkSnip Docker Compose install, through rclone (any rclone remote: cloud drive, S3, SFTP…).
+#
+#   linksnip-backup                                     back up now (run nightly from cron, as root)
+#   linksnip-backup restore <empty folder> [DAY|MONTH]  rebuild an install folder from a backup (default: newest)
+#
+# Install as root: install -m 755 docker/backup/linksnip-backup /usr/local/bin/
+# Settings come from the environment or /etc/linksnip-backup.conf (KEY=value lines, taken literally):
+#   LINKSNIP_BACKUP_REMOTE         where to put it, e.g. "linksnip-crypt:" (required; use an rclone crypt remote so
+#                                  the provider can't read the database or .env)
+#   LINKSNIP_DIR                   the Compose checkout (default /srv/linksnip; data in $LINKSNIP_DIR/data)
+#   LINKSNIP_BACKUP_KEEP_DAILY     daily copies to keep (default 30); also how long deleted uploads are kept
+#   LINKSNIP_BACKUP_KEEP_MONTHLY   monthly copies to keep (default 12)
+#   LINKSNIP_BACKUP_MAX_AGE_HOURS  fail if the app's newest database backup is older (default 26)
+#   LINKSNIP_BACKUP_LOG, LINKSNIP_BACKUP_STATUS, LINKSNIP_BACKUP_LOCK  log, success timestamp and lock files
+#
+# Each run uploads to the remote:
+#   daily/<YYYY-MM-DD>/   the app's newest nightly database backup (a consistent copy, checked first) as
+#                         database.sqlite, plus settings.json, roles.json and the checkout's .env
+#   monthly/<YYYY-MM>/    the same, from the first run of each month
+#   uploads/current/      a mirror of data/uploads; files deleted or replaced on the server move to
+#                         uploads/deleted/<YYYY-MM-DD>/
+# The daily copy is downloaded again and compared before the run counts as a success. On success the time
+# (Unix seconds) is written to $LINKSNIP_BACKUP_STATUS, so monitoring can alert when it gets old.
+# The app writes its database backup at 3:00 UTC: schedule this afterwards.
+#
+# A restore never touches the live install: it fills an empty folder with .env and data/ (database.db,
+# settings.json, roles.json, uploads/), which can then be started on its own or copied over the live one.
+# Uploads always come from uploads/current. LINKSNIP_BACKUP_DATE (YYYY-MM-DD) overrides today's date, for tests.
+set -euo pipefail
+
+# Config file values apply where the environment has none. They're read as text, never run.
+CONF="${LINKSNIP_BACKUP_CONF:-/etc/linksnip-backup.conf}"
+if [ -r "$CONF" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    [[ $line =~ ^(LINKSNIP_[A-Z_]+)=(.*)$ ]] || continue
+    key="${BASH_REMATCH[1]}" value="${BASH_REMATCH[2]}"
+    value="${value#\"}"; value="${value%\"}"
+    [ -n "${!key:-}" ] || printf -v "$key" '%s' "$value"
+  done < "$CONF"
+fi
+
+DIR="${LINKSNIP_DIR:-/srv/linksnip}"
+REMOTE="${LINKSNIP_BACKUP_REMOTE:-}"
+KEEP_DAILY="${LINKSNIP_BACKUP_KEEP_DAILY:-30}"
+KEEP_MONTHLY="${LINKSNIP_BACKUP_KEEP_MONTHLY:-12}"
+MAX_AGE_HOURS="${LINKSNIP_BACKUP_MAX_AGE_HOURS:-26}"
+LOG="${LINKSNIP_BACKUP_LOG:-/var/log/linksnip-backup.log}"
+STATUS="${LINKSNIP_BACKUP_STATUS:-/var/lib/linksnip-backup/last-success}"
+LOCK="${LINKSNIP_BACKUP_LOCK:-/run/lock/linksnip-backup.lock}"
+TODAY="${LINKSNIP_BACKUP_DATE:-$(date -u +%F)}"
+DATA="$DIR/data"
+
+mkdir -p "$(dirname "$LOG")"
+exec >> "$LOG" 2> >(tee -a "$LOG" >&2)
+log() { echo "$(date -u +%FT%TZ) $*"; }
+fail() { log "FAILED: $*"; echo "linksnip-backup: $*" >&2; exit 1; }
+say() { log "$*"; echo "$*" >&2; }
+
+[ -n "$REMOTE" ] || fail "set LINKSNIP_BACKUP_REMOTE (environment or $CONF)"
+for var in KEEP_DAILY KEEP_MONTHLY MAX_AGE_HOURS; do
+  [[ ${!var} =~ ^[1-9][0-9]*$ ]] || fail "LINKSNIP_BACKUP_$var must be a whole number (1 or more)"
+done
+[[ $TODAY =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || fail "LINKSNIP_BACKUP_DATE must be YYYY-MM-DD"
+
+# A path on the remote ("name:" and "name:folder" both work, as do local paths)
+at() { case "$REMOTE" in *: | */) echo "$REMOTE$1" ;; *) echo "$REMOTE/$1" ;; esac; }
+# Subfolder names of a remote folder (nothing if it doesn't exist yet)
+folders() { local list; list="$(rclone lsf --dirs-only "$(at "$1")" 2>/dev/null)" || true; [ -z "$list" ] || sed 's#/$##' <<< "$list"; }
+
+# Delete the dated subfolders of $1 that sort before $2
+prune() {
+  local name
+  for name in $(folders "$1"); do
+    [[ $name =~ ^[0-9]{4}-[0-9]{2}(-[0-9]{2})?$ ]] || continue
+    if [[ $name < $2 ]]; then
+      rclone purge "$(at "$1/$name")"
+      log "deleted $1/$name"
+    fi
+  done
+}
+
+backup() {
+  exec 9> "$LOCK"
+  flock -n 9 || fail "another backup is running"
+
+  local newest name age month
+  newest="$(shopt -s nullglob; printf '%s\n' "$DATA"/backups/database-backup-*.sqlite | LC_ALL=C sort | tail -n 1)"
+  [ -n "$newest" ] || fail "no database backup in $DATA/backups (the app writes one every night)"
+  name="$(basename "$newest")"
+  age=$(( $(date +%s) - $(stat -c %Y "$newest") ))
+  [ "$age" -le $(( MAX_AGE_HOURS * 3600 )) ] || fail "newest database backup $name is older than ${MAX_AGE_HOURS}h"
+  [ "$(sqlite3 "$newest" 'PRAGMA quick_check' 2>/dev/null)" = ok ] || fail "$name failed the integrity check"
+
+  STAGE="$(mktemp -d)"
+  trap 'rm -rf "$STAGE"' EXIT
+  local stage="$STAGE"
+  chmod 700 "$stage"
+  cp "$newest" "$stage/database.sqlite"
+  for f in settings.json roles.json; do [ ! -f "$DATA/$f" ] || cp "$DATA/$f" "$stage/"; done
+  [ ! -f "$DIR/.env" ] || cp "$DIR/.env" "$stage/.env"
+
+  rclone copy "$stage" "$(at "daily/$TODAY")"
+  rclone check --one-way --download -q "$stage" "$(at "daily/$TODAY")" || fail "daily/$TODAY doesn't match after upload"
+
+  month="${TODAY:0:7}"
+  if ! folders monthly | grep -qx "$month"; then
+    rclone copy "$stage" "$(at "monthly/$month")"
+    log "monthly/$month written"
+  fi
+
+  if [ -d "$DATA/uploads" ]; then
+    rclone sync "$DATA/uploads" "$(at uploads/current)" --backup-dir "$(at "uploads/deleted/$TODAY")"
+  fi
+
+  local first_daily first_month
+  first_daily="$(date -u -d "$TODAY - $(( KEEP_DAILY - 1 )) days" +%F)"
+  first_month="$(date -u -d "$month-01 - $(( KEEP_MONTHLY - 1 )) months" +%Y-%m)"
+  prune daily "$first_daily"
+  prune uploads/deleted "$first_daily"
+  prune monthly "$first_month"
+
+  mkdir -p "$(dirname "$STATUS")"
+  date +%s > "$STATUS.tmp" && mv "$STATUS.tmp" "$STATUS"
+  log "backup $TODAY done (database: $name)"
+}
+
+restore() {
+  local dest="${1:-}" which="${2:-}" src owner
+  [ -n "$dest" ] || fail "usage: linksnip-backup restore <empty folder> [YYYY-MM-DD | YYYY-MM]"
+  if [ -e "$dest" ] && [ -n "$(ls -A "$dest")" ]; then fail "$dest is not empty"; fi
+  if [ -z "$which" ]; then
+    which="$(folders daily | LC_ALL=C sort | tail -n 1)"
+    [ -n "$which" ] || fail "no backup found on $REMOTE"
+  fi
+  case "$which" in
+    [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) src="daily/$which" ;;
+    [0-9][0-9][0-9][0-9]-[0-9][0-9]) src="monthly/$which" ;;
+    *) fail "expected YYYY-MM-DD (a daily copy) or YYYY-MM (a monthly one), got: $which" ;;
+  esac
+  [ -n "$(rclone lsf "$(at "$src")" 2>/dev/null || true)" ] || fail "no backup for $which ($src)"
+
+  install -d -m 700 "$dest" "$dest/data" "$dest/data/backups" "$dest/data/uploads"
+  rclone copy "$(at "$src")" "$dest/.incoming"
+  mv "$dest/.incoming/database.sqlite" "$dest/data/database.db"
+  for f in settings.json roles.json; do [ ! -f "$dest/.incoming/$f" ] || mv "$dest/.incoming/$f" "$dest/data/"; done
+  [ ! -f "$dest/.incoming/.env" ] || { mv "$dest/.incoming/.env" "$dest/.env"; chmod 600 "$dest/.env"; }
+  rm -rf "$dest/.incoming"
+  if [ -n "$(rclone lsf "$(at uploads/current)" 2>/dev/null || true)" ]; then
+    rclone copy "$(at uploads/current)" "$dest/data/uploads"
+  fi
+  [ "$(sqlite3 "$dest/data/database.db" 'PRAGMA quick_check' 2>/dev/null)" = ok ] || fail "restored database failed the integrity check"
+  # Same owner as the live data folder, so the container (non-root) can write to it
+  if [ -d "$DATA" ]; then
+    owner="$(stat -c '%u:%g' "$DATA")"
+    chown -R "$owner" "$dest/data" 2>/dev/null || say "could not chown $dest/data to $owner"
+  fi
+  say "restored $src into $dest (.env and data/)"
+}
+
+case "${1:-}" in
+  "") backup ;;
+  restore) shift; restore "$@" ;;
+  *) fail "usage: linksnip-backup | linksnip-backup restore <empty folder> [YYYY-MM-DD | YYYY-MM]" ;;
+esac

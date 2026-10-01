@@ -91,8 +91,31 @@ The app listens on `http://localhost:8081`. Without `DATA_DIR` in `.env`, data i
 | Update | `git pull && docker compose up -d --build` (check `.env.example` for new required variables first) |
 | Stop | `docker compose down` (data in `data/` is kept) |
 
-**Backups:** the database is backed up online every night at 3:00 to `data/backups/`, keeping 30 days. Uploaded files
-are in `data/uploads/` and are not part of that backup, so copy `data/` elsewhere as well.
+**Backups:** the database is backed up online every night at 3:00 (UTC) to `data/backups/`, keeping 30 days. Those
+copies sit on the same disk as everything else, and uploaded files (`data/uploads/`) aren't in them, so also keep
+copies somewhere else.
+
+**Off-site backups:** [`docker/backup/linksnip-backup`](../docker/backup/linksnip-backup) copies everything needed to
+rebuild the install to any [rclone](https://rclone.org/) remote (a cloud drive, S3, SFTP…): the newest nightly
+database backup (checked first), `settings.json`, `roles.json`, `.env` and the uploads. It keeps 30 daily and 12
+monthly copies; uploads are mirrored, and files deleted on the server are kept for 30 days. Every daily copy is
+downloaded again and compared, and the time of the last success is written to
+`/var/lib/linksnip-backup/last-success` for monitoring. `.env` holds your secrets, so use an rclone
+[crypt](https://rclone.org/crypt/) remote: the provider then only sees encrypted files and names. Keep the crypt
+password and salt somewhere safe; without them nothing can be restored.
+
+```bash
+rclone config                      # as root: a remote for the provider, then a crypt remote on top of it
+install -m 755 docker/backup/linksnip-backup /usr/local/bin/
+echo 'LINKSNIP_BACKUP_REMOTE=linksnip-crypt:' > /etc/linksnip-backup.conf
+linksnip-backup                    # first run by hand; then nightly from cron, after 3:00 UTC:
+echo '30 3 * * * root /usr/local/bin/linksnip-backup' > /etc/cron.d/linksnip-backup   # cron uses the server's time zone
+```
+
+`linksnip-backup restore <empty folder> [YYYY-MM-DD | YYYY-MM]` rebuilds `.env` and `data/` from a backup (the newest
+by default) without touching the running install. To test one, start it on another port:
+`docker run --rm -d --name linksnip-restore-test -p 127.0.0.1:8091:8081 --env-file <folder>/.env -v <folder>/data:/data <image>`.
+The script's header lists its settings (other paths, retention).
 
 **Restoring:** stop LinkSnip, delete `data/database.db-wal` and `data/database.db-shm`, copy the backup over
 `data/database.db`, and start it again. Check a backup first with
