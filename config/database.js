@@ -182,6 +182,8 @@ if (!bioPagesExists) {
       bio TEXT,
       theme TEXT DEFAULT 'dark',
       socialLinks TEXT,
+      gradientStart TEXT DEFAULT '#667eea',
+      gradientEnd TEXT DEFAULT '#764ba2',
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
@@ -189,8 +191,8 @@ if (!bioPagesExists) {
   `);
 }
 
-// Add gradient color columns if missing
-if (bioPagesExists) {
+// Add gradient color columns if missing (tables from before they existed)
+{
   const columns = db.prepare("PRAGMA table_info(bio_pages)").all();
   const columnNames = columns.map(col => col.name);
 

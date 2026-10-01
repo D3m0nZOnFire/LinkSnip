@@ -25,7 +25,8 @@
     "test:coverage": "jest --coverage",
     "test:unit": "jest tests/unit",
     "admin": "node scripts/admin.js",
-    "docs:config": "node scripts/generate-config-docs.js"
+    "docs:config": "node scripts/generate-config-docs.js",
+    "seed:demo": "node scripts/seed-demo.js"
   },
   "keywords": [
     "url-shortener",

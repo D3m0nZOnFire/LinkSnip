@@ -17,6 +17,7 @@ npm start              # production-style start
 npm test               # jest (in-memory DB, temporary DATA_DIR per test file)
 npm run admin          # CLI: create admin / promote user / reset password
 npm run docs:config    # regenerate docs/CONFIGURATION.md from config/schema.js
+npm run seed:demo      # demo instance in ./demo-data (scripts/demoData.js; --reset), then DATA_DIR=./demo-data npm run dev
 docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ```
 
@@ -92,7 +93,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
   `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
   `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`); they're idempotent
-  and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there.
+  and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there
+  (bio pages included). `tests/unit/config/freshDatabase.test.js` opens a brand-new database in its own process.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
 - Migration pattern: `CREATE TABLE IF NOT EXISTS`, check `PRAGMA table_info` before `ALTER TABLE`,
   `CREATE INDEX IF NOT EXISTS`.

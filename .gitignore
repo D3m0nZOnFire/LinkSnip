@@ -16,6 +16,7 @@ backups/
 /settings.json
 /roles.json
 /geo/
+/demo-data/
 
 # Local editor / tool settings
 .claude/settings.local.json

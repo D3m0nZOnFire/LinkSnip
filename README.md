@@ -151,6 +151,14 @@ npm test
 Without `DATA_DIR`, data is stored in the project folder. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a
 pull request.
 
+To try every page with realistic data (accounts of every kind, links, bundles, pastes and files in every status,
+teams, reports, a month of visits), fill a separate demo instance:
+
+```bash
+npm run seed:demo                      # into ./demo-data (--reset to start over)
+DATA_DIR=./demo-data npm run dev       # log in as admin / demo-password
+```
+
 ## Documentation
 
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): Docker with Caddy, behind an existing proxy, or bare Node
