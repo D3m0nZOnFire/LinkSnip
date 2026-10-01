@@ -98,6 +98,41 @@ describe('AdminSettingsController.getSettingsPage', () => {
     expect(roleGrid.version).toBe(configService.rolesVersion());
   });
 
+  // Admin → Settings is split into tabs: /admin/settings/<tab>
+  it('opens on General and knows every tab', () => {
+    const { tab, tabs } = render()._viewData;
+    expect(tab).toBe('general');
+    expect(tabs.map(t => [t.id, t.href])).toEqual([
+      ['general', '/admin/settings'],
+      ['features', '/admin/settings/features'],
+      ['content', '/admin/settings/content'],
+      ['moderation', '/admin/settings/moderation'],
+      ['retention', '/admin/settings/retention'],
+      ['roles', '/admin/settings/roles']
+    ]);
+  });
+
+  it('puts every settings section on exactly one tab', () => {
+    const { sections, tabs } = render()._viewData;
+    for (const section of sections) {
+      expect(tabs.filter(t => t.sections.includes(section.name)).map(t => t.id)).toHaveLength(1);
+    }
+  });
+
+  it('opens the tab named in the address', () => {
+    const res = createMockResponse();
+    AdminSettingsController.getSettingsPage(createMockRequest({ ...adminReq(), params: { tab: 'roles' } }), res);
+    expect(res._viewData.tab).toBe('roles');
+  });
+
+  it('passes an unknown tab on (404)', () => {
+    const res = createMockResponse();
+    const next = jest.fn();
+    AdminSettingsController.getSettingsPage(createMockRequest({ ...adminReq(), params: { tab: 'nope' } }), res, next);
+    expect(next).toHaveBeenCalled();
+    expect(res._view).toBeUndefined();
+  });
+
   it('tells the admin where the files live', () => {
     const { files } = render()._viewData;
     expect(files).toEqual({ settings: paths.SETTINGS_PATH, roles: paths.ROLES_PATH });

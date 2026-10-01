@@ -3,7 +3,7 @@
 <head>
   <%- include('partials/head', { title: 'Links · Admin', styles: ['tables', 'forms', 'modals'] }) %>
 </head>
-<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin' }) %>
+<%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-links' }) %>
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -56,7 +56,7 @@
 
     <!-- Filters Section -->
     <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
-      <form id="filterForm" method="GET" action="/admin">
+      <form id="filterForm" method="GET" action="/admin/links">
         <!-- Row 1: Search and Sort -->
         <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 1rem;">
           <!-- Search Input -->
@@ -183,7 +183,7 @@
             </button>
             <% const hasFilters = filters.search || filters.status || filters.hasReports || filters.sort !== 'newest' || filters.dateFrom || filters.dateTo; %>
             <% if (hasFilters) { %>
-              <a href="/admin" class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); text-decoration: none;">
+              <a href="/admin/links" class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); text-decoration: none;">
                 Clear
               </a>
             <% } %>
@@ -963,5 +963,5 @@
       </div>
     </div>
   </div>
-<%- include('partials/layout-end', { shell: 'app' }) %>
+<%- include('partials/layout-end', { shell: 'admin' }) %>
 </html>

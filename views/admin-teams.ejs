@@ -8,7 +8,7 @@
     .muted { color: var(--muted-foreground); font-size: 0.85rem; }
   </style>
 </head>
-<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin-teams' }) %>
+<%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-teams' }) %>
   <% const NOUNS = { url: 'links', bundle: 'bundles', paste: 'pastes', file: 'files' }; %>
 
   <main class="main-content-wide">
@@ -63,5 +63,5 @@
       });
     });
   </script>
-<%- include('partials/layout-end', { shell: 'app' }) %>
+<%- include('partials/layout-end', { shell: 'admin' }) %>
 </html>

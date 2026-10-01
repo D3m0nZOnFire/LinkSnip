@@ -11,19 +11,6 @@
     { href: '/bio/settings', icon: 'bio', label: 'Bio page', key: 'bio-settings', show: can.bioPage },
     { href: '/import', icon: 'importExport', label: 'Import / export', key: 'import', show: can.importExport }
   ];
-  const adminLinks = [
-    { href: '/admin', label: 'Links', key: 'admin', show: true },
-    { href: '/admin/users', label: 'Users', key: 'admin-users', show: true },
-    { href: '/admin/teams', label: 'Teams', key: 'admin-teams', show: features.teams },
-    { href: '/admin/files', label: 'Files', key: 'admin-files', show: features.files },
-    { href: '/admin/pastes', label: 'Pastes', key: 'admin-pastes', show: features.pastes },
-    { href: '/admin/reports', label: 'Reports', key: 'admin-reports', show: features.reports },
-    { href: '/admin/analytics', label: 'Analytics', key: 'admin-analytics', show: true },
-    { href: '/admin/analytics-shares', label: 'Analytics shares', key: 'admin-analytics-shares', show: features.analyticsShareLinks },
-    { href: '/admin/settings', label: 'Settings', key: 'admin-settings', show: true },
-    { href: '/admin/appearance', label: 'Appearance', key: 'admin-appearance', show: true },
-    { href: '/admin/audit-logs', label: 'Audit logs', key: 'admin-audit-logs', show: true }
-  ];
 -%>
 <aside class="sidebar" id="sidebar" aria-label="Main menu">
   <div class="sidebar-head">
@@ -40,14 +27,9 @@
   </nav>
 
   <% if (user && user.isAdmin) { %>
-  <details class="sidebar-group"<%= page.startsWith('admin') ? ' open' : '' %>>
-    <summary class="sidebar-link"><%- include('icon', { icon: 'admin' }) %> Admin <%- include('icon', { icon: 'chevronRight' }) %></summary>
-    <nav class="sidebar-subnav" aria-label="Admin">
-      <% adminLinks.filter(l => l.show).forEach(l => { %>
-      <a href="<%= l.href %>" class="sidebar-link"<%- current(l.key) %>><%= l.label %></a>
-      <% }) %>
-    </nav>
-  </details>
+  <nav class="sidebar-nav sidebar-nav-admin" aria-label="Admin">
+    <a href="/admin" class="sidebar-link"><%- include('icon', { icon: 'admin' }) %> Admin</a>
+  </nav>
   <% } %>
 
   <div class="sidebar-foot">

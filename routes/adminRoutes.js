@@ -8,6 +8,7 @@ const { isAuthenticated, isAdmin } = require('../middleware/auth');
 
 // Instance settings (settings.json) and roles (roles.json)
 router.get('/admin/settings', isAuthenticated, isAdmin, AdminSettingsController.getSettingsPage);
+router.get('/admin/settings/:tab', isAuthenticated, isAdmin, AdminSettingsController.getSettingsPage);
 router.put('/api/admin/settings', isAuthenticated, isAdmin, AdminSettingsController.updateSettings);
 router.put('/api/admin/roles', isAuthenticated, isAdmin, AdminSettingsController.updateRoles);
 router.post('/api/admin/roles/:name/reset', isAuthenticated, isAdmin, AdminSettingsController.resetRole);

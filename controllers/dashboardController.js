@@ -112,7 +112,7 @@ class DashboardController {
 
   /**
    * Render admin dashboard
-   * GET /admin
+   * GET /admin/links
    */
   static getAdminDashboard(req, res) {
     // Pagination parameters
@@ -208,7 +208,7 @@ class DashboardController {
     // Calculate pagination info
     const totalPages = limit !== null ? Math.ceil(totalUrls / limit) : 1;
 
-    res.render('admin', {
+    res.render('admin-links', {
       user: req.user,
       urls,
       bundles,

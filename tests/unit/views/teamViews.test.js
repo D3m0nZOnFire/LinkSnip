@@ -131,7 +131,8 @@ describe('sidebar', () => {
     expect(await sidebar({ user, features: { teams: false } })).not.toContain('href="/teams"');
   });
 
-  it('lists Admin → Teams for admins', async () => {
-    expect(await sidebar({ user: { ...user, isAdmin: 1 }, features: { teams: true } })).toContain('href="/admin/teams"');
+  it('lists Admin → Teams in admin mode', async () => {
+    const html = await render('partials/admin-sidebar.ejs', { currentPage: 'admin', user: { ...user, isAdmin: 1 }, features: { teams: true } });
+    expect(html).toContain('href="/admin/teams"');
   });
 });

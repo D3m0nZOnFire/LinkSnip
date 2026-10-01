@@ -1,7 +1,7 @@
 <%# Closes what partials/layout-start opened: the page, the footer, the main column. { shell } %>
   </div>
   <%- include('footer') %>
-<% if ((locals.shell || 'app') === 'app') { %>
+<% if (['app', 'admin'].includes(locals.shell || 'app')) { %>
   </div>
 <% } %>
 </body>

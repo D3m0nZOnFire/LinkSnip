@@ -3,7 +3,7 @@
 <head>
   <%- include('partials/head', { title: 'Reports · Admin', styles: ['tables', 'modals'] }) %>
 </head>
-<%- include('partials/layout-start', { shell: 'app', currentPage: 'admin-reports' }) %>
+<%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-reports' }) %>
 
   <!-- Main Content -->
   <main class="main-content-wide">
@@ -262,5 +262,5 @@
         `Ban user "${username}"? This will:\n- Block everything they own (links, bundles, pastes, files)\n- Stop them from logging in\n- Mark the report as blocked\n\nThe ban can be lifted from the Users page; their items stay blocked until unblocked.`);
     }
   </script>
-<%- include('partials/layout-end', { shell: 'app' }) %>
+<%- include('partials/layout-end', { shell: 'admin' }) %>
 </html>
