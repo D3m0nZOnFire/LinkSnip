@@ -39,6 +39,7 @@ describe('config/paths', () => {
     expect(paths.BACKUPS_DIR).toBe('/data/backups');
     expect(paths.SETTINGS_PATH).toBe('/data/settings.json');
     expect(paths.ROLES_PATH).toBe('/data/roles.json');
+    expect(paths.BRANDING_DIR).toBe('/data/branding');
   });
 });
 

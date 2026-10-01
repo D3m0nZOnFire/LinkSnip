@@ -3,6 +3,7 @@ const router = express.Router();
 const AdminController = require('../controllers/adminController');
 const AuditLogController = require('../controllers/auditLogController');
 const AdminSettingsController = require('../controllers/adminSettingsController');
+const BrandingController = require('../controllers/brandingController');
 const { isAuthenticated, isAdmin } = require('../middleware/auth');
 
 // Instance settings (settings.json) and roles (roles.json)
@@ -10,6 +11,12 @@ router.get('/admin/settings', isAuthenticated, isAdmin, AdminSettingsController.
 router.put('/api/admin/settings', isAuthenticated, isAdmin, AdminSettingsController.updateSettings);
 router.put('/api/admin/roles', isAuthenticated, isAdmin, AdminSettingsController.updateRoles);
 router.post('/api/admin/roles/:name/reset', isAuthenticated, isAdmin, AdminSettingsController.resetRole);
+
+// Appearance: name, tagline, palettes (settings.json), logo and favicon (DATA_DIR/branding)
+router.get('/admin/appearance', isAuthenticated, isAdmin, BrandingController.appearancePage);
+router.put('/api/admin/appearance', isAuthenticated, isAdmin, BrandingController.updateAppearance);
+router.post('/api/admin/branding/:asset', isAuthenticated, isAdmin, BrandingController.uploadAsset);
+router.delete('/api/admin/branding/:asset', isAuthenticated, isAdmin, BrandingController.deleteAsset);
 router.delete('/api/admin/roles/:name', isAuthenticated, isAdmin, AdminSettingsController.deleteRole);
 
 // Admin users page

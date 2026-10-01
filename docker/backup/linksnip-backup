@@ -16,7 +16,8 @@
 #
 # Each run uploads to the remote:
 #   daily/<YYYY-MM-DD>/   the app's newest nightly database backup (a consistent copy, checked first) as
-#                         database.sqlite, plus settings.json, roles.json and the checkout's .env
+#                         database.sqlite, plus settings.json, roles.json, branding/ and palettes/ (logo, favicon,
+#                         custom palettes) and the checkout's .env
 #   monthly/<YYYY-MM>/    the same, from the first run of each month
 #   uploads/current/      a mirror of data/uploads; files deleted or replaced on the server move to
 #                         uploads/deleted/<YYYY-MM-DD>/
@@ -25,7 +26,7 @@
 # The app writes its database backup at 3:00 UTC: schedule this afterwards.
 #
 # A restore never touches the live install: it fills an empty folder with .env and data/ (database.db,
-# settings.json, roles.json, uploads/), which can then be started on its own or copied over the live one.
+# settings.json, roles.json, branding/, palettes/, uploads/), which can then be started on its own or copied over the live one.
 # Uploads always come from uploads/current. LINKSNIP_BACKUP_DATE (YYYY-MM-DD) overrides today's date, for tests.
 set -euo pipefail
 
@@ -98,6 +99,7 @@ backup() {
   chmod 700 "$stage"
   cp "$newest" "$stage/database.sqlite"
   for f in settings.json roles.json; do [ ! -f "$DATA/$f" ] || cp "$DATA/$f" "$stage/"; done
+  for d in branding palettes; do [ ! -d "$DATA/$d" ] || cp -r "$DATA/$d" "$stage/"; done
   [ ! -f "$DIR/.env" ] || cp "$DIR/.env" "$stage/.env"
 
   rclone copy "$stage" "$(at "daily/$TODAY")"
@@ -144,6 +146,7 @@ restore() {
   rclone copy "$(at "$src")" "$dest/.incoming"
   mv "$dest/.incoming/database.sqlite" "$dest/data/database.db"
   for f in settings.json roles.json; do [ ! -f "$dest/.incoming/$f" ] || mv "$dest/.incoming/$f" "$dest/data/"; done
+  for d in branding palettes; do [ ! -d "$dest/.incoming/$d" ] || mv "$dest/.incoming/$d" "$dest/data/"; done
   [ ! -f "$dest/.incoming/.env" ] || { mv "$dest/.incoming/.env" "$dest/.env"; chmod 600 "$dest/.env"; }
   rm -rf "$dest/.incoming"
   if [ -n "$(rclone lsf "$(at uploads/current)" 2>/dev/null || true)" ]; then

@@ -65,3 +65,17 @@ describe('views/admin-settings.ejs roles editor', () => {
     expect(html).not.toMatch(/Read-only here/);
   });
 });
+
+describe('views/admin-settings.ejs branding section', () => {
+  it('points to Admin → Appearance instead of editing the branding keys here', async () => {
+    const html = await renderPage();
+    expect(html).toMatch(/<a href="\/admin\/appearance"[^>]*>/);
+    expect(html).not.toMatch(/data-key="branding\./);
+  });
+
+  it('still shows the branding keys and their values, for people editing settings.json by hand', async () => {
+    const html = await renderPage();
+    expect(html).toContain('<code>branding.darkPalette</code>');
+    expect(html).toContain('linksnip-dark');
+  });
+});

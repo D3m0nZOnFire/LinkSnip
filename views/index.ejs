@@ -790,7 +790,9 @@
         Shorten Your Links,<br>
         <span class="highlight">Track Your Impact</span>
       </h2>
-      <p>Create short URLs with expiration dates, usage limits, analytics and more.</p>
+      <% if (locals.branding && branding.tagline) { %>
+      <p><%= branding.tagline %></p>
+      <% } %>
     </div>
 
     <!-- Error block -->

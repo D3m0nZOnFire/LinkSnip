@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title: 'Appearance · Admin', styles: ['forms', 'appearance'] }) %>
+</head>
+<body>
+  <%- include('partials/header', { currentPage: 'admin-appearance' }) %>
+  <div class="page">
+  <main class="main-content-wide appearance">
+    <div class="header-section">
+      <div>
+        <h2>Appearance</h2>
+        <p>How the site looks to everyone. Saved changes apply at once, for every visitor.</p>
+      </div>
+    </div>
+
+    <form id="appearanceForm" novalidate>
+      <section class="card appearance-section">
+        <h3>Identity</h3>
+        <div class="identity-grid">
+          <div class="form-group">
+            <label class="form-label" for="brandName">Name</label>
+            <input class="form-input" id="brandName" name="name" maxlength="40" required value="<%= current.name %>">
+            <p class="field-help">In the header, the page titles and on the login pages.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="brandTagline">Tagline</label>
+            <input class="form-input" id="brandTagline" name="tagline" maxlength="120" value="<%= current.tagline %>" placeholder="Optional">
+            <p class="field-help">On the home page and in link previews (search engines, chat apps).</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card appearance-section">
+        <h3>Logo and favicon</h3>
+        <div class="asset-grid">
+          <% [
+            { name: 'logo', label: 'Logo', help: 'PNG, JPG, WebP or SVG, up to 1 MB. Square works best.', url: branding.logoUrl, custom: current.logo, accept: 'image/png,image/jpeg,image/webp,image/svg+xml' },
+            { name: 'favicon', label: 'Favicon', help: 'The browser tab icon. PNG, JPG, WebP, SVG or ICO, up to 1 MB. Without one, the logo is used.', url: branding.faviconUrl, custom: current.favicon, accept: 'image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,.ico' }
+          ].forEach(asset => { %>
+            <div class="asset-slot" data-asset="<%= asset.name %>">
+              <div class="asset-preview"><img src="<%= asset.url %>" alt="Current <%= asset.label.toLowerCase() %>"></div>
+              <div class="asset-info">
+                <strong><%= asset.label %></strong>
+                <p class="field-help"><%= asset.help %></p>
+                <div class="asset-actions">
+                  <label class="btn btn-small btn-secondary">
+                    Upload
+                    <input type="file" accept="<%= asset.accept %>" class="visually-hidden" data-upload="<%= asset.name %>">
+                  </label>
+                  <button type="button" class="btn btn-small btn-ghost" data-reset="<%= asset.name %>" <%= asset.custom ? '' : 'hidden' %>>Use default</button>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+
+      <% [
+        { mode: 'dark', title: 'Dark palette', help: "Used when a visitor's device is in dark mode, or they switch to dark." },
+        { mode: 'light', title: 'Light palette', help: "Used when a visitor's device is in light mode, or they switch to light." }
+      ].forEach(group => { %>
+        <section class="card appearance-section">
+          <h3><%= group.title %></h3>
+          <p class="field-help"><%= group.help %> Picking one previews it here while this page is in <%= group.mode %> mode.</p>
+          <div class="palette-grid" role="radiogroup" aria-label="<%= group.title %>">
+            <% palettes[group.mode].forEach(p => { const t = p.tokens; %>
+              <label class="palette-card">
+                <input type="radio" name="<%= group.mode %>Palette" value="<%= p.id %>" class="visually-hidden"
+                  data-mode="<%= group.mode %>" data-tokens="<%= JSON.stringify(t) %>"
+                  <%= current[group.mode + 'Palette'] === p.id ? 'checked' : '' %>>
+                <span class="palette-preview" aria-hidden="true"
+                  style="--pp-bg: <%= t['--background'] %>; --pp-card: <%= t['--card'] %>; --pp-fg: <%= t['--foreground'] %>; --pp-muted: <%= t['--muted-foreground'] %>; --pp-border: <%= t['--border'] %>; --pp-primary: <%= t['--primary'] %>; --pp-red: <%= t['--destructive'] %>; --pp-yellow: <%= t['--warning'] %>;">
+                  <span class="pp-card">
+                    <span class="pp-line pp-strong"></span>
+                    <span class="pp-line pp-soft"></span>
+                    <span class="pp-row">
+                      <span class="pp-button"></span>
+                      <span class="pp-dot pp-red"></span>
+                      <span class="pp-dot pp-yellow"></span>
+                    </span>
+                  </span>
+                </span>
+                <span class="palette-name"><%= p.name %></span>
+              </label>
+            <% }) %>
+          </div>
+        </section>
+      <% }) %>
+
+      <p class="palette-credit">
+        Besides LinkSnip's own, the palettes are the color schemes of
+        <a href="https://github.com/omacom/omarchy" target="_blank" rel="noopener">Omarchy</a>'s themes (MIT license).
+        Where a theme's color would be hard to read, its lightness is adjusted a little.
+      </p>
+
+      <div class="appearance-actions">
+        <button type="submit" class="btn" id="saveAppearance">Save</button>
+        <span id="appearanceStatus" class="field-help" role="status"></span>
+      </div>
+      <ul id="appearanceErrors" class="settings-errors" role="alert"></ul>
+    </form>
+  </main>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/appearance.js"></script>
+  </div>
+  <%- include('partials/footer') %>
+</body>
+</html>

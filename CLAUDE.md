@@ -234,6 +234,26 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Always by slug, never by ID: the old `/qrcode/:id` and `/qrcode/bundle/:id` let anyone read every slug by counting
   IDs, so they were removed (not redirected: a redirect would reveal the slug too).
 
+### Appearance (branding and palettes)
+- Admin → Appearance (`/admin/appearance`, `controllers/brandingController.js`, `views/admin-appearance.ejs`,
+  `public/js/appearance.js`): `branding.name`, `branding.tagline`, `branding.darkPalette`, `branding.lightPalette`
+  (settings.json; schema `editor: 'appearance'` keeps them out of the Settings form) via `PUT /api/admin/appearance`
+  (checks the palette exists and has the right mode; logs `UPDATE_SETTINGS`), logo and favicon via
+  `POST|DELETE /api/admin/branding/:asset` (`UPDATE_BRANDING`).
+- `services/paletteService.js`: palettes in Omarchy's `colors.toml` format (`mode`, `accent`, `background`,
+  `foreground`, `red`, `yellow`, optional `name`), built in from `config/palettes/*.toml` (LinkSnip Dark/Light) and
+  `config/palettes/omarchy/` (copied unchanged, commit in `SOURCE.md`, MIT). `tokens(palette)` maps one to the theme
+  colors: surfaces are mixed from background and foreground, text colors are nudged (same hue) to 4.5:1 (7:1 for
+  foreground), a red/yellow that isn't red/warm falls back to LinkSnip's. `themeCss()` serves both as `/theme.css`
+  (`:root` = dark, `html[data-theme="light"]`), linked as `/theme.css?v=<hash>` (cached for good). An unknown or
+  wrong-mode palette id in settings.json falls back to the default with a warning; `services/color.js` does the math.
+- `services/brandingService.js`: logo/favicon in `DATA_DIR/branding/` (`paths.BRANDING_DIR`; PNG/JPG/WebP/SVG, ICO
+  for the favicon, 1 MB, sniffed by content; SVG without scripts, served with a sandbox CSP), `locals()` →
+  `res.locals.branding` `{ name, tagline, logoUrl, faviconUrl, themeUrl }` from `brandingLocals`
+  (`middleware/viewLocals.js`, mounted with `routes/brandingRoutes.js` right after `express.static`, so setup and error
+  pages have it). Show the name with `partials/brand.ejs`; "Powered by LinkSnip" in the footer stays.
+- The off-site backup copies `data/branding/` and `data/palettes/` too.
+
 ### Teams
 - Tables (`migrateTeams`): `teams`, `team_members` (`owner` / `admin` / `member` / `viewer`), `team_invites` (one pending
   per person and team); `teamId` (NULL = personal, ON DELETE CASCADE) on urls, bundles, pastes, files and tags. A
@@ -345,7 +365,7 @@ share links · 5:30 expired files · 5:45 country database check.
   standalone pages like login/setup/error) and **every** page includes `partials/footer` (a test checks this).
 - `currentPage` values: 'home', 'dashboard', 'tags', 'settings', 'admin', 'admin-users', 'admin-analytics',
   'admin-reports', 'admin-audit-logs', 'admin-files', 'admin-pastes', 'admin-analytics-shares', 'admin-settings',
-  'teams', 'admin-teams',
+  'teams', 'admin-teams', 'admin-appearance',
   'analytics', 'info'.
 - `views/error.ejs` takes `{ title, message, code }` (it also tolerates `statusCode` / `error.status`).
 - Modals: `public/css/modals.css`, `openModal(id)` / `closeModal(id)` in `public/js/main.js`; `showToast`,

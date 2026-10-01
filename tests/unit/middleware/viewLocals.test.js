@@ -54,3 +54,14 @@ describe('viewLocals', () => {
     expect(run(null).writableTeams).toEqual([]);
   });
 });
+
+describe('brandingLocals', () => {
+  it('gives every view the branding', () => {
+    const { brandingLocals } = require('../../../middleware/viewLocals');
+    const res = createMockResponse();
+    const next = jest.fn();
+    brandingLocals(createMockRequest(), res, next);
+    expect(res.locals.branding).toEqual(require('../../../services/brandingService').locals());
+    expect(next).toHaveBeenCalled();
+  });
+});

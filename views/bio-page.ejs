@@ -10,7 +10,7 @@
   <!-- Optional minimal header for navigation -->
   <div class="bio-header">
     <a href="/" class="bio-home-link">
-      <img src="/logo.png" alt="LinkSnip" style="height: 24px;">
+      <img src="<%= branding.logoUrl %>" alt="<%= branding.name %>" style="height: 24px;">
     </a>
     <% if (user && user.username === username) { %>
       <a href="/bio/settings" class="btn-small" style="color: var(--primary-foreground);">Edit Bio Page</a>
@@ -98,7 +98,7 @@
 
     <!-- Footer -->
     <footer class="bio-footer">
-      <p>Powered by <a href="/">LinkSnip</a></p>
+      <p>Powered by <a href="/"><%= branding.name %></a></p>
     </footer>
   </main>
 <script>

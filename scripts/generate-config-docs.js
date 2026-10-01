@@ -11,13 +11,14 @@ const fs = require('fs');
 const path = require('path');
 const schema = require('../config/schema');
 const defaultRoles = require('../config/roles.default.json');
+const paletteService = require('../services/paletteService');
 
 const OUTPUT = path.join(__dirname, '..', 'docs', 'CONFIGURATION.md');
 
 const ENV_VARS = [
   ['SESSION_SECRET', 'required', 'Signs login sessions. Generate with `openssl rand -hex 32`. The app refuses to start without it.'],
   ['IP_HASH_SECRET', 'required', 'Key for the stored hashes of visitor IPs (analytics, reports), so a copy of the database can\'t be turned back into IPs. At least 32 characters, different from `SESSION_SECRET`. Generate with `openssl rand -hex 32`, and keep it: a new one restarts unique-visitor counts.'],
-  ['DATA_DIR', 'project folder (`/data` in Docker)', 'Holds `database.db`, `uploads/`, `backups/`, `settings.json` and `roles.json`.'],
+  ['DATA_DIR', 'project folder (`/data` in Docker)', 'Holds `database.db`, `uploads/`, `backups/`, `branding/` (logo, favicon), `settings.json` and `roles.json`.'],
   ['PORT', '`8081`', 'Port the app listens on.'],
   ['NODE_ENV', '`development` (`production` in Docker)', '`development` logs every SQL query.'],
   ['TRUST_PROXY', '`1`', 'Reverse proxies in front of the app: a hop count, `true`/`false`, or an address list (Express `trust proxy`). Use `0` if nothing is in front.'],
@@ -72,6 +73,16 @@ ${table(['Key', 'Default', 'Description'], Object.entries(schema.SETTINGS).map((
 
 Switching off a \`features.*\` key removes that feature for everyone, admins included: its pages and API
 return 404 and its buttons and menus are hidden.
+
+**Appearance:** the \`branding.*\` keys are easiest to set in **Admin → Appearance**, which previews every palette.
+The logo and favicon uploaded there are stored in \`DATA_DIR/branding/\`. Visitors see the dark or the light palette
+depending on their device, and can switch with the theme button. Palettes to choose from (besides LinkSnip's own,
+the color schemes of [Omarchy](https://github.com/omacom/omarchy)'s themes, MIT license):
+
+${table(['Mode', 'Palette ids'], ['dark', 'light'].map(mode => [
+    mode,
+    paletteService.listPalettes(mode).map(p => `\`${p.id}\``).join(', ')
+  ]))}
 
 **Country lookup:** \`geo.enabled\` looks countries up in a local DB-IP Lite database, \`DATA_DIR/geo/dbip-country-lite.mmdb\`
 (CC BY 4.0; analytics pages credit DB-IP). Visitor IPs never leave the server. LinkSnip downloads the file on start
