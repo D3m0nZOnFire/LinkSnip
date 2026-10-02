@@ -48,8 +48,9 @@ async function changePassword() {
     return;
   }
   
-  if (newPassword.length < 6) {
-    showToast('New password must be at least 6 characters', 'error');
+  const minimum = document.getElementById('newPassword').minLength; // minlength from the server's rule
+  if (minimum > 0 && newPassword.length < minimum) {
+    showToast(`New password must be at least ${minimum} characters`, 'error');
     return;
   }
   

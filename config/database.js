@@ -3,7 +3,7 @@ const { DB_PATH, ensureDataDir } = require('./paths');
 const { configureDatabase } = require('./dbSetup');
 const {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams
+  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners
 } = require('./migrations');
 
 // Initialize database (DATA_DIR must exist and be writable)
@@ -280,7 +280,7 @@ if (!filesExists) {
   db.exec(`
     CREATE TABLE files (
       id           INTEGER  PRIMARY KEY AUTOINCREMENT,
-      userId       INTEGER  NOT NULL,
+      userId       INTEGER,
       slug         TEXT     UNIQUE NOT NULL,
       originalName TEXT     NOT NULL,
       storedName   TEXT     NOT NULL,
@@ -296,7 +296,7 @@ if (!filesExists) {
       allowedUsers TEXT     DEFAULT '[]',
       isBlocked    INTEGER  DEFAULT 0,
       createdAt    DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
     )
   `);
 }
@@ -466,6 +466,9 @@ migrateIpHashes(db);
 // ============================================================================
 
 migrateTeams(db);
+
+// Files keep their place in a team when the uploader's account is deleted (userId nullable, ON DELETE SET NULL)
+migrateFileOwners(db);
 
 console.log('\n✅ Database initialized and migrations completed successfully\n');
 

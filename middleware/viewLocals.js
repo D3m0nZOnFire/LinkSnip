@@ -21,6 +21,7 @@ const FEATURE_OF_PERMISSION = {
 function appLocals() {
   return {
     appVersion: require('../package.json').version,
+    minPasswordLength: require('../services/passwordPolicy').MIN_PASSWORD_LENGTH,
     reportReasons: require('../models/Report').REASONS
   };
 }

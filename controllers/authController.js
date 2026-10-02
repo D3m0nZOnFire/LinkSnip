@@ -1,3 +1,4 @@
+const { passwordProblem } = require('../services/passwordPolicy');
 const User = require('../models/User');
 const { logAuth, ACTIONS } = require('../services/auditService');
 
@@ -20,8 +21,9 @@ class AuthController {
       return res.render('register', { error: 'Username and passwords are required', username: username || '', email: email || '' });
     }
 
-    if (password.length < 6) {
-      return res.render('register', { error: 'Password must be at least 6 characters', username, email: email || '' });
+    const weak = passwordProblem(password);
+    if (weak) {
+      return res.render('register', { error: weak, username, email: email || '' });
     }
 
     if (password !== confirmPassword) {

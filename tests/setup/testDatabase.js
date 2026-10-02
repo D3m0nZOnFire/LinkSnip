@@ -107,7 +107,7 @@ function createTestDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS files (
       id           INTEGER  PRIMARY KEY AUTOINCREMENT,
-      userId       INTEGER  NOT NULL,
+      userId       INTEGER,
       slug         TEXT     UNIQUE NOT NULL,
       originalName TEXT     NOT NULL,
       storedName   TEXT     NOT NULL,
@@ -123,7 +123,7 @@ function createTestDatabase() {
       allowedUsers TEXT     DEFAULT '[]',
       isBlocked    INTEGER  DEFAULT 0,
       createdAt    DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
     )
   `);
 

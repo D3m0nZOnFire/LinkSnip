@@ -348,7 +348,7 @@
             id="editUserPassword"
             class="form-input"
             placeholder="Leave empty to keep current password"
-            minlength="6"
+            minlength="<%= minPasswordLength %>"
             data-toggle-password
           >
           <div class="form-hint">Only fill this if you want to change the user's password</div>
@@ -425,7 +425,7 @@
         <div class="form-group">
           <label for="newUserPassword" class="form-label">Password</label>
           <div class="password-input-wrapper">
-            <input type="password" id="newUserPassword" class="form-input" minlength="6" required data-toggle-password>
+            <input type="password" id="newUserPassword" class="form-input" minlength="<%= minPasswordLength %>" required data-toggle-password>
           </div>
           <div class="form-hint">At least 6 characters. Share it with the user so they can change it in Settings.</div>
         </div>

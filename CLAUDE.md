@@ -79,6 +79,15 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
    `registrationOpen`, `writableTeams`; `appLocals()` sets `appVersion` and `reportReasons` on `app.locals`)
 5. Routers (feature routers wrapped in `featureRoutes`), then the home routes, 404 and error handlers
 
+## Accounts
+
+- **`services/passwordPolicy.js`**: `MIN_PASSWORD_LENGTH` (8) and `passwordProblem(password)` for every new password
+  (register, change password, setup, Admin → Users create/edit, the CLI). Forms use `minPasswordLength`
+  (app.locals). Existing shorter passwords keep working.
+- **`services/accountDeletion.js`** `deleteAccount(userId)` (Settings → Delete account, Admin → Users → Delete):
+  deletes the personal links, bundles, pastes and files (uploads too) and the user; tags and the bio page cascade,
+  the items' analytics/share links/reports/tags go through the delete triggers. Team items stay, creator NULL.
+
 ## First admin and the admin CLI
 
 - **`services/setupService.js`**: while no admin exists, `start()` (called after `listen`) logs a one-time code
@@ -93,7 +102,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - `config/database.js` opens `DB_PATH`, applies `config/dbSetup.js` (WAL, `busy_timeout = 5000`, foreign keys), and
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
   `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
-  `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`); they're idempotent
+  `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`, `migrateFileOwners`); they're idempotent
   and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there
   (bio pages included). `tests/unit/config/freshDatabase.test.js` opens a brand-new database in its own process.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
@@ -107,7 +116,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - **users**: `isAdmin`, `isBanned`, `role`, `email`, `lastActive`
 - **urls**: `slug`, `longUrl`, `creatorId` (→ users, SET NULL), `clicks`, `maxUses`, `expiresAt`, `activateAt`,
   `deactivateAt` (datetime-local + `:00.000Z`, no timezone conversion), `password` (bcrypt), `isBlocked`, `isQuarantined`
-- **pastes**, **files**, **bundles** (+ `bundle_items`): same access fields as urls, `isQuarantined` included.
+- **pastes**, **files**, **bundles** (+ `bundle_items`): same access fields as urls, `isQuarantined` included. Every
+  owner column is nullable with ON DELETE SET NULL (`files.userId` since `migrateFileOwners`, a table rebuild).
   Pastes use `userId`/`views`/`maxViews`, files `userId`/`downloads`/`maxDownloads`/`size`/`sharingMode`/
   `allowedUsers`
 - **analytics_events** (every type): one row per visit, `targetType` + `targetId`, `subTargetId` (a bundle item click;

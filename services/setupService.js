@@ -13,7 +13,7 @@ const db = require('../config/database');
 
 // Crockford base32: no I, L, O or U, so the code survives being read aloud or retyped.
 const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-const MIN_PASSWORD = 8;
+const { MIN_PASSWORD_LENGTH: MIN_PASSWORD } = require('./passwordPolicy');
 
 class SetupError extends Error {}
 
