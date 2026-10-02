@@ -327,8 +327,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Reports and quarantine
 - Every type is reportable: `POST /api/reports` `{ type, id, reason, description }` (`controllers/reportController.js`,
   model `models/Report.js`). Only live items (`isLive`), the type's feature must be on, one report per IP. Owners may
-  report their own items. Pages add a button and `partials/report-modal.ejs` (`{ type, id, noun }`; the reasons come
-  from `app.locals.reportReasons`).
+  report their own items. Pages add a `[data-report-button]` (text in `[data-report-label]`) and
+  `partials/report-modal.ejs` (`{ type, id, noun }`, loads `public/js/report.js`; the reasons come from
+  `app.locals.reportReasons`).
 - `services/moderationService.js`: after a report, `afterReport(type, id, req)` quarantines the item once
   its pending reports reach `moderation.reportThreshold` (0 = off). Owners who are admins or whose role has
   `skipAutoModeration` are exempt. `setBlockedFromReport` and `banOwnerFromReport` back the per-report admin
@@ -438,6 +439,11 @@ share links · 5:30 expired files · 5:45 country database check.
   'teams', 'admin-teams', 'admin-appearance', 'bio-settings', 'import',
   'analytics', 'info'.
 - `views/error.ejs` takes `{ title, message, code }` (it also tolerates `statusCode` / `error.status`).
+- Public item and status pages (`public/css/public-pages.css`): `.public-page` column with an `.item-card` (the short
+  link as `h1.short-link` with a `[data-copy]` button, `.destination`, `.item-facts`, `.item-actions`, `.item-footer`)
+  and `.status-card` for error, scheduled, quarantine and unlock. `public/js/public-item.js` handles `[data-copy]` /
+  `[data-copy-from]`. Never put template values into inline handlers (`onclick="f('<%= … %>')"` was a stored XSS
+  on /info): use data attributes and a script file.
 - App pages made of sections (settings, bio settings, a team, import/export, tags): `public/css/sections.css`
   (`.page-narrow` / `.page-medium` column, `.section-card` with `h3` + `.section-help`, `.section-card.danger`,
   `.inline-form`, `.section-table` in a `.table-scroll`, `.save-bar`), plus a small stylesheet per page. No `<style>`,

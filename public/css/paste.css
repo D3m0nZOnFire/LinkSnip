@@ -1,0 +1,75 @@
+/* A paste (views/paste-view.ejs) and its preview on the info page (views/paste-info.ejs) */
+
+.paste-page h1.paste-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.paste-code {
+  display: flex;
+  align-items: stretch;
+  margin-top: var(--spacing-lg);
+  overflow: hidden;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.paste-gutter {
+  flex-shrink: 0;
+  padding: var(--spacing-md) 0.75rem;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  color: var(--muted-foreground);
+  text-align: right;
+  white-space: pre;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.paste-gutter span {
+  display: block;
+}
+
+.paste-source {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: var(--spacing-md);
+  overflow-x: auto;
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.paste-preview {
+  margin-top: var(--spacing-lg);
+  overflow: hidden;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.paste-preview pre {
+  margin: 0;
+  padding: var(--spacing-md);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+.paste-preview-more {
+  padding: 0.5rem var(--spacing-md);
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+}

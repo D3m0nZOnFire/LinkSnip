@@ -36,8 +36,8 @@
     </div>
     <% } else { %>
     <div class="hero">
-      <h2>Shorten Your Links,<br><span class="highlight">Track Your Impact</span></h2>
-      <% if (locals.branding && branding.tagline) { %><p><%= branding.tagline %></p><% } %>
+      <h1 class="hero-title"><%= (locals.branding && branding.name) || 'LinkSnip' %></h1>
+      <% if (locals.branding && branding.tagline) { %><p class="hero-tagline"><%= branding.tagline %></p><% } %>
     </div>
     <% } %>
 
@@ -162,7 +162,7 @@
         <% } %>
 
         <% if (!user) { %>
-        <p class="creator-upsell"><%- include('partials/icon', { icon: 'info' }) %> Password, scheduling and tags need an account. <a href="/register">Register</a> or <a href="/login">log in</a>.</p>
+        <p class="creator-upsell"><%- include('partials/icon', { icon: 'info' }) %> <span>Password, scheduling and tags need an account. <a href="/register">Register</a> or <a href="/login">log in</a>.</span></p>
         <% } %>
       </div>
 

@@ -1,4 +1,4 @@
-const { canEdit } = require('../services/itemPermissions');
+const { canEdit, canView } = require('../services/itemPermissions');
 const Bundle = require('../models/Bundle');
 const Tag = require('../models/Tag');
 const AnalyticsService = require('../services/analyticsService');
@@ -308,6 +308,7 @@ async function launchBundle(req, res) {
 
   res.render('bundle-launcher', {
     user: req.user || null,
+    canSeeAnalytics: !!req.user && canView(req.user, 'bundle', bundle),
     bundle,
     items,
     creatorUsername,

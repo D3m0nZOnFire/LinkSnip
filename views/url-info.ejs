@@ -1,298 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: `Link preview · ${url.slug}`, styles: ['modals'] }) %>
-  <style>
-    .info-container {
-      max-width: 800px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-    }
-
-    .warning-banner {
-      background-color: var(--status-error-bg);
-      border: 1px solid var(--status-error-border);
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-      display: flex;
-      align-items: start;
-      gap: 1rem;
-    }
-
-    .warning-banner.report-warning {
-      background-color: var(--status-warning-bg);
-      border: 1px solid var(--status-warning-border);
-    }
-
-    .warning-banner svg {
-      flex-shrink: 0;
-      width: 24px;
-      height: 24px;
-      color: var(--status-error-text);
-    }
-
-    .warning-banner.report-warning svg {
-      color: var(--status-warning-text);
-    }
-
-    .info-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-    }
-
-    .info-card h1 {
-      margin: 0 0 1.5rem 0;
-      color: var(--foreground);
-      font-size: 1.75rem;
-    }
-
-    .stat-item {
-      background: var(--info-bg);
-      border: 1px solid var(--info-border);
-      border-radius: 8px;
-      padding: 1rem;
-      margin: 1.5rem 0;
-    }
-
-    .stat-item h3 {
-      margin: 0 0 0.5rem 0;
-      font-size: 0.875rem;
-      color: var(--muted-foreground);
-      text-transform: uppercase;
-    }
-
-    .stat-item .value {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: var(--primary);
-    }
-
-    .qr-section {
-      text-align: center;
-      margin: 2rem 0;
-    }
-
-    .qr-section img {
-      max-width: 200px;
-      border-radius: 8px;
-      border: 2px solid var(--chart-border);
-    }
-
-    .actions {
-      display: flex;
-      gap: 1rem;
-      margin-top: 2rem;
-      flex-wrap: wrap;
-    }
-
-    .btn-large {
-      padding: 1rem 2rem;
-      font-size: 1.125rem;
-      flex: 1;
-      min-width: 200px;
-    }
-
-    .btn-danger {
-      background-color: var(--status-error-bg);
-      border: 1px solid var(--status-error-border);
-      color: var(--status-error-text);
-    }
-
-    .btn-danger:hover {
-      background-color: var(--status-error-border);
-    }
-
-    .security-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background-color: var(--status-active-bg);
-      border: 1px solid var(--status-active-border);
-      border-radius: 4px;
-      font-size: 0.875rem;
-      color: var(--primary);
-      margin-bottom: 1rem;
-    }
-  </style>
+  <%- include('partials/head', { title: `Link preview · ${url.slug}`, styles: ['modals', 'forms', 'public-pages'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'public', currentPage: 'info' }) %>
-
-  <!-- Main Content -->
-  <main class="info-container">
-    <!-- Security Badge -->
-    <div class="security-badge">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-      </svg>
-      <span>Security Preview - See where this link goes before clicking</span>
-    </div>
-
-    <!-- Blocked Warning (Admin Blocked) -->
-    <% if (!validation.live && url.isBlocked) { %>
-      <div class="warning-banner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-        </svg>
-        <div>
-          <h3 style="margin: 0 0 0.5rem 0; color: var(--status-error-text); font-size: 1.125rem;">⛔ This URL has been blocked</h3>
-          <p style="margin: 0; color: var(--status-error-text);">This short URL has been permanently blocked by administrators due to malicious content. Access is not permitted.</p>
-        </div>
+<%
+  const shortUrl = `${baseUrl}/s/${url.slug}`;
+  const shortLabel = shortUrl.replace(/^https?:\/\//, '');
+  const showDestination = validation.live || validation.status === 'expired' || validation.status === 'limit_reached';
+  const host = destinationHost || 'the destination';
+-%>
+  <main class="public-page">
+    <% if (validation.status === 'blocked') { %>
+      <div class="notice danger" role="alert">
+        <%- include('partials/icon', { icon: 'lock' }) %>
+        <div><strong>This link was blocked</strong><p>The administrators of <%= branding.name %> blocked it. It can't be opened.</p></div>
+      </div>
+    <% } else if (url.isQuarantined) { %>
+      <div class="notice" role="alert">
+        <%- include('partials/icon', { icon: 'flag' }) %>
+        <div><strong>Under review</strong><p>Several visitors reported this link and an administrator hasn't looked at it yet. Visitors see a warning first.</p></div>
+      </div>
+    <% } else if (reportCount > 0) { %>
+      <div class="notice">
+        <%- include('partials/icon', { icon: 'flag' }) %>
+        <div><strong>Reported <%= reportCount === 1 ? 'once' : `${reportCount} times` %></strong><p>Be careful before you continue.</p></div>
       </div>
     <% } %>
 
-    <!-- Quarantine Warning (reported past the threshold, awaiting admin review) -->
-    <% if (url.isQuarantined && !url.isBlocked) { %>
-      <div class="warning-banner report-warning">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-        </svg>
-        <div>
-          <h3 style="margin: 0 0 0.5rem 0; color: var(--status-warning-text); font-size: 1.125rem;">Under review</h3>
-          <p style="margin: 0; color: var(--muted-foreground);">This link was reported by several visitors and is waiting for an administrator. Visitors see a warning before being redirected.</p>
-        </div>
-      </div>
-    <!-- Report Warning (for reported but not blocked URLs) -->
-    <% } else if (reportCount > 0 && !url.isBlocked) { %>
-      <div class="warning-banner report-warning">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-        </svg>
-        <div>
-          <h3 style="margin: 0 0 0.5rem 0; color: var(--status-warning-text); font-size: 1.125rem;">⚠️ Community Reports</h3>
-          <p style="margin: 0; color: var(--muted-foreground);">This link has received <%= reportCount %> <%= reportCount === 1 ? 'report' : 'reports' %> from users. Please exercise caution before proceeding.</p>
-        </div>
-      </div>
-    <% } %>
-
-    <!-- URL Info Card -->
-    <div class="info-card">
-      <h1>URL Preview</h1>
-
-      <p style="color: var(--muted-foreground); margin-bottom: 2rem;">
-        This security preview allows you to see where a shortened link goes before clicking it. <%= branding.name %> promotes transparency and safety.
-      </p>
-
-      <!-- Link Age -->
-      <div class="stat-item">
-        <h3>Link Age</h3>
-        <div class="value" style="font-size: 1.125rem;">
-          <%= ageInDays === 0 ? 'Created today' : `Created ${ageInDays} day${ageInDays === 1 ? '' : 's'} ago` %>
-        </div>
+    <article class="item-card">
+      <p class="item-kicker"><%- include('partials/icon', { icon: 'info' }) %> Link preview: see where it goes before you open it</p>
+      <div class="short-link-row">
+        <h1 class="short-link"><%= shortLabel %></h1>
+        <button type="button" class="btn btn-small btn-secondary copy-btn" data-copy="<%= shortUrl %>" aria-label="Copy the short link"><%- include('partials/icon', { icon: 'copy' }) %> Copy</button>
       </div>
 
-      <!-- Destination URL -->
-      <% if (validation.live || validation.status === 'expired' || validation.status === 'limit_reached') { %>
-        <!-- Show destination URL for active, expired, or max uses URLs (NOT blocked) -->
-        <div style="margin: 2rem 0; padding: 1rem; background-color: var(--secondary); border: 1px solid var(--border); border-radius: 8px;">
-          <h3 style="margin: 0 0 0.75rem 0; font-size: 0.875rem; color: var(--muted-foreground); text-transform: uppercase;">Destination URL</h3>
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <a href="/s/<%= url.slug %>" target="_blank" rel="noopener noreferrer" style="flex: 1; color: var(--primary); word-break: break-all; font-size: 1rem; text-decoration: none;">
-              <%= url.longUrl %>
-            </a>
-            <button onclick="copyToClipboard('<%= url.longUrl.replace(/'/g, "\\'") %>')" class="btn" style="padding: 0.5rem 1rem; white-space: nowrap; color: var(--primary-foreground);" title="Copy URL">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle;">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-      <% } else if (validation.status === 'blocked') { %>
-        <!-- Hide destination URL for blocked URLs -->
-        <div style="margin: 2rem 0; padding: 1rem; background-color: var(--status-error-bg); border: 1px solid var(--status-error-border); border-radius: 8px;">
-          <h3 style="margin: 0 0 0.75rem 0; font-size: 0.875rem; color: var(--status-error-text); text-transform: uppercase;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            Destination Hidden
-          </h3>
-          <p style="margin: 0; color: var(--muted-foreground); font-size: 0.875rem;">
-            The destination URL is hidden because this link has been blocked by administrators.
-          </p>
+      <% if (showDestination) { %>
+        <div class="destination">
+          <span class="destination-label">Goes to</span>
+          <span class="destination-host"><%= destinationHost || url.longUrl %></span>
+          <span class="destination-url"><%= url.longUrl %></span>
         </div>
       <% } else if (validation.status === 'scheduled') { %>
-        <!-- Hide destination URL for scheduled (not yet active) URLs -->
-        <div style="margin: 2rem 0; padding: 1rem; background-color: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: 8px;">
-          <h3 style="margin: 0 0 0.75rem 0; font-size: 0.875rem; color: var(--status-warning-text); text-transform: uppercase;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            Destination Hidden
-          </h3>
-          <p style="margin: 0; color: var(--muted-foreground); font-size: 0.875rem;">
-            The destination URL is hidden because this link is not yet active.
-            <% if (url.activateAt) { %>
-              It will become available on <%= new Date(url.activateAt).toLocaleString('en-GB', {
-                weekday: 'short',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              }) %>.
-            <% } %>
-          </p>
+        <div class="destination hidden-destination">
+          The destination is hidden until the link starts working<% if (url.activateAt) { %>, on <%= new Date(url.activateAt).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }) %> UTC<% } %>.
         </div>
+      <% } else { %>
+        <div class="destination hidden-destination">The destination is hidden because the link was blocked.</div>
       <% } %>
 
-      <!-- QR Code -->
-      <% if (features.qrCodes) { %>
-      <div class="qr-section">
-        <h3 style="margin-bottom: 1rem; color: var(--muted-foreground);">Scan QR Code (opens this preview page)</h3>
-        <img src="/qrcode/url/<%= url.slug %>?theme=light" alt="QR Code">
+      <div class="item-facts">
+        <span><%- include('partials/icon', { icon: 'clock' }) %> <%= ageInDays === 0 ? 'Created today' : `Created ${ageInDays} day${ageInDays === 1 ? '' : 's'} ago` %></span>
+        <% if (validation.status === 'expired') { %><span>Expired</span><% } %>
+        <% if (validation.status === 'limit_reached') { %><span>Click limit reached</span><% } %>
       </div>
-      <% } %>
 
-      <!-- Actions -->
-      <div class="actions">
+      <div class="item-actions">
         <% if (validation.live) { %>
-          <a href="/s/<%= url.slug %>" class="btn btn-large">
-            Continue to Destination →
-          </a>
-        <% } else if (validation.status === 'blocked') { %>
-          <button class="btn btn-large" disabled style="background-color: var(--status-error-border); color: var(--status-error-text); cursor: not-allowed;">
-            ⛔ Access Blocked by Administrator
-          </button>
-        <% } else if (validation.status === 'scheduled') { %>
-          <button class="btn btn-large" disabled style="background-color: var(--secondary); color: var(--muted-foreground); cursor: not-allowed;">
-            Link Not Yet Active
-          </button>
-        <% } else if (validation.status === 'expired') { %>
-          <button class="btn btn-large" disabled style="background-color: var(--secondary); color: var(--muted-foreground); cursor: not-allowed;">
-            Link Expired
-          </button>
-        <% } else if (validation.status === 'limit_reached') { %>
-          <button class="btn btn-large" disabled style="background-color: var(--secondary); color: var(--muted-foreground); cursor: not-allowed;">
-            Maximum Uses Reached
-          </button>
+          <a href="/s/<%= url.slug %>" class="btn btn-large" rel="noopener">Continue to <%= host %> <%- include('partials/icon', { icon: 'arrowRight' }) %></a>
+        <% } else { %>
+          <span class="btn btn-large btn-secondary" aria-disabled="true">
+            <%= { blocked: 'Blocked', scheduled: 'Not active yet', expired: 'This link has expired', limit_reached: 'This link reached its click limit' }[validation.status] || 'Unavailable' %>
+          </span>
+        <% } %>
+      </div>
+
+      <% if (features.qrCodes || (validation.live && features.reports)) { %>
+      <div class="item-footer">
+        <% if (features.qrCodes) { %>
+        <details class="qr-details">
+          <summary><%- include('partials/icon', { icon: 'qr' }) %> QR code</summary>
+          <img src="/qrcode/url/<%= url.slug %>?theme=light" alt="QR code for <%= shortLabel %>" width="160" height="160" loading="lazy">
+          <p>It opens this preview page.</p>
+        </details>
         <% } %>
         <% if (validation.live && features.reports) { %>
-          <button class="btn btn-large btn-danger" data-report-button onclick="openReportModal()">
-            <span data-report-label>Report This Link</span>
-          </button>
+          <button type="button" class="text-btn danger" data-report-button><%- include('partials/icon', { icon: 'flag' }) %> <span data-report-label>Report this link</span></button>
         <% } %>
       </div>
-
-      <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-top: 2rem;">
-        Short URL: <a href="/s/<%= url.slug %>" style="color: var(--primary);"><%= baseUrl %>/s/<%= url.slug %></a>
-      </p>
-    </div>
+      <% } %>
+    </article>
   </main>
 
   <% if (validation.live && features.reports) { %>
     <%- include('partials/report-modal', { type: 'url', id: url.id, noun: 'link' }) %>
   <% } %>
-
   <script src="/js/main.js"></script>
+  <script src="/js/public-item.js"></script>
 <%- include('partials/layout-end', { shell: 'public' }) %>
 </html>

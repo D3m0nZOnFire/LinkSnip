@@ -1,204 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: bundle.title, styles: ['modals'] }) %>
-  <style>
-    .bundle-launcher-container {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 80vh;
-      padding: 2rem 1rem;
-    }
-
-    .bundle-card {
-      background: var(--card-background);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 2rem;
-      max-width: 580px;
-      width: 100%;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .bundle-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .bundle-icon {
-      width: 48px;
-      height: 48px;
-      flex-shrink: 0;
-      color: var(--primary);
-    }
-
-    .bundle-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--foreground);
-      margin: 0 0 0.25rem;
-    }
-
-    .bundle-meta {
-      font-size: 0.875rem;
-      color: var(--muted-foreground);
-    }
-
-    .bundle-description {
-      color: var(--muted-foreground);
-      font-size: 0.95rem;
-      margin-bottom: 1.5rem;
-      line-height: 1.5;
-    }
-
-    .links-divider {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 1.5rem 0;
-    }
-
-    .links-section-title {
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted-foreground);
-      margin-bottom: 0.75rem;
-    }
-
-    .link-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      text-decoration: none;
-      color: var(--foreground);
-      transition: border-color 0.15s, background 0.15s;
-      margin-bottom: 0.5rem;
-    }
-
-    .link-item:hover {
-      border-color: var(--primary);
-      background: var(--status-active-bg);
-    }
-
-    .link-number {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--secondary);
-      color: var(--muted-foreground);
-      font-size: 0.75rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .link-content {
-      flex: 1;
-      overflow: hidden;
-    }
-
-    .link-label {
-      font-weight: 500;
-      color: var(--foreground);
-      font-size: 0.95rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .link-url {
-      font-size: 0.75rem;
-      color: var(--muted-foreground);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .link-arrow {
-      color: var(--muted-foreground);
-      flex-shrink: 0;
-    }
-  </style>
+  <%- include('partials/head', { title: bundle.title, styles: ['modals', 'forms', 'public-pages'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'public' }) %>
-
-  <div class="bundle-launcher-container">
-    <div class="bundle-card">
-      <div class="bundle-header">
-        <svg class="bundle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-        </svg>
-        <div>
-          <h1 class="bundle-title"><%= bundle.title %></h1>
-          <div class="bundle-meta">
-            <% if (creatorUsername) { %><span>by @<%= creatorUsername %></span> · <% } %>
-            <span><%= items.length %> link<%= items.length !== 1 ? 's' : '' %></span>
+<% const shortUrl = `${baseUrl}/b/${bundle.slug}`; -%>
+  <main class="public-page">
+    <article class="item-card">
+      <div class="file-head">
+        <span class="file-badge"><%- include('partials/icon', { icon: 'bundle' }) %></span>
+        <div class="file-head-text">
+          <h1 class="item-title file-name"><%= bundle.title %></h1>
+          <div class="paste-short">
+            <span><%= shortUrl.replace(/^https?:\/\//, '') %></span>
+            <button type="button" class="text-btn" data-copy="<%= shortUrl %>" aria-label="Copy the short link"><%- include('partials/icon', { icon: 'copy' }) %> Copy link</button>
           </div>
         </div>
       </div>
 
-      <% if (bundle.description) { %>
-        <p class="bundle-description"><%= bundle.description %></p>
-      <% } %>
+      <div class="item-facts">
+        <% if (creatorUsername) { %><span><%- include('partials/icon', { icon: 'bio' }) %> <%= creatorUsername %></span><% } %>
+        <span><%= items.length %> link<%= items.length === 1 ? '' : 's' %></span>
+      </div>
+      <% if (bundle.description) { %><p class="bundle-description"><%= bundle.description %></p><% } %>
 
-      <hr class="links-divider">
-      <div class="links-section-title">Links in this bundle</div>
-
-      <div id="linksList">
+      <ol class="bundle-links">
         <% items.forEach((item, index) => { %>
-          <a href="/bt/<%= item.id %>" target="_blank" rel="noopener noreferrer" class="link-item">
-            <div class="link-number"><%= index + 1 %></div>
-            <div class="link-content">
-              <% if (item.label) { %>
-                <div class="link-label"><%= item.label %></div>
-                <div class="link-url"><%= item.url %></div>
-              <% } else { %>
-                <div class="link-label"><%= item.url %></div>
-              <% } %>
-            </div>
-            <svg class="link-arrow" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-            </svg>
-          </a>
+          <li>
+            <a href="/bt/<%= item.id %>" target="_blank" rel="noopener noreferrer" class="bundle-link">
+              <span class="bundle-link-number"><%= index + 1 %></span>
+              <span class="bundle-link-text">
+                <span class="bundle-link-label"><%= item.label || item.url %></span>
+                <% if (item.label) { %><span class="bundle-link-url"><%= item.url %></span><% } %>
+              </span>
+              <%- include('partials/icon', { icon: 'external' }) %>
+            </a>
+          </li>
         <% }) %>
-      </div>
+      </ol>
 
-      <hr class="links-divider">
-      <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-        <% if (user && bundle.creatorId === user.id || user && user.isAdmin) { %>
-        <a href="/analytics/bundle/<%= bundle.id %>" style="background: none; border: none; cursor: pointer; color: var(--muted-foreground); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.75rem; border-radius: 6px; transition: color 0.15s, background 0.15s; text-decoration: none;" onmouseover="this.style.color='var(--primary)';this.style.background='var(--status-active-bg)'" onmouseout="this.style.color='var(--muted-foreground)';this.style.background='none'">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 3v18h18"></path>
-            <path d="M18 17V9"></path>
-            <path d="M13 17V5"></path>
-            <path d="M8 17v-3"></path>
-          </svg>
-          Analytics
-        </a>
-        <% } %>
+      <% if (canSeeAnalytics || features.reports) { %>
+      <div class="item-footer">
+        <% if (canSeeAnalytics) { %>
+          <a href="/analytics/bundle/<%= bundle.id %>" class="text-btn"><%- include('partials/icon', { icon: 'chart' }) %> Analytics</a>
+        <% } else { %><span></span><% } %>
         <% if (features.reports) { %>
-        <button id="reportBtn" data-report-button onclick="openReportModal()" style="background: none; border: none; cursor: pointer; color: var(--muted-foreground); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.75rem; border-radius: 6px; transition: color 0.15s, background 0.15s;" onmouseover="if(!this.disabled){this.style.color='var(--destructive)';this.style.background='var(--status-error-bg)'}" onmouseout="if(!this.disabled){this.style.color='var(--muted-foreground)';this.style.background='none'}">
-          <svg id="reportBtnIcon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path>
-          </svg>
-          <span data-report-label>Report this bundle</span>
-        </button>
+          <button type="button" class="text-btn danger" data-report-button><%- include('partials/icon', { icon: 'flag' }) %> <span data-report-label>Report this bundle</span></button>
         <% } %>
       </div>
-    </div>
-  </div>
+      <% } %>
+    </article>
+  </main>
 
   <% if (features.reports) { %>
     <%- include('partials/report-modal', { type: 'bundle', id: bundle.id, noun: 'bundle' }) %>
   <% } %>
+  <script src="/js/main.js"></script>
+  <script src="/js/public-item.js"></script>
 <%- include('partials/layout-end', { shell: 'public' }) %>
 </html>

@@ -1,226 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: paste.title || 'Paste', styles: ['modals'] }) %>
-  <style>
-    .paste-container {
-      max-width: 900px;
-      margin: 2.5rem auto;
-      padding: 0 1rem;
-    }
-
-    .paste-card {
-      background: var(--card-background);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 2rem;
-    }
-
-    .paste-title-row {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-      margin-bottom: 1rem;
-    }
-
-    .paste-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--foreground);
-      word-break: break-word;
-      margin: 0;
-    }
-
-    .lang-pill {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.2rem 0.6rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      background: color-mix(in srgb, var(--primary) 15%, transparent);
-      color: var(--primary);
-      border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
-      text-transform: lowercase;
-    }
-
-    .paste-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem 1.25rem;
-      margin-bottom: 1.25rem;
-      font-size: 0.875rem;
-      color: var(--muted-foreground);
-    }
-
-    .paste-meta span {
-      display: flex;
-      align-items: center;
-      gap: 0.3rem;
-    }
-
-    .tags-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.375rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .tag-chip {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.2rem 0.6rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      background: color-mix(in srgb, var(--primary) 15%, transparent);
-      color: var(--primary);
-      border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
-    }
-
-    .paste-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .paste-actions .btn,
-    .paste-actions button {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.5rem 0.9rem;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      text-decoration: none;
-      border: 1px solid var(--border);
-      background: var(--secondary);
-      color: var(--foreground);
-      font-family: inherit;
-    }
-
-    .paste-actions .btn-primary {
-      background: var(--primary);
-      color: var(--primary-foreground);
-      border-color: var(--primary);
-    }
-
-    .paste-actions button:hover,
-    .paste-actions .btn:hover { opacity: 0.9; }
-
-    .paste-code {
-      display: flex;
-      align-items: stretch;
-      background: var(--background);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-      font-family: var(--font-mono);
-      font-size: 0.875rem;
-      line-height: 1.55;
-    }
-
-    .paste-gutter {
-      flex-shrink: 0;
-      padding: 1rem 0.75rem;
-      text-align: right;
-      color: var(--muted-foreground);
-      background: var(--card);
-      border-right: 1px solid var(--border);
-      user-select: none;
-      -webkit-user-select: none;
-      white-space: pre;
-    }
-
-    .paste-gutter span { display: block; }
-
-    .paste-source {
-      flex: 1;
-      min-width: 0;
-      margin: 0;
-      padding: 1rem;
-      overflow-x: auto;
-      white-space: pre;
-      color: var(--foreground);
-      font-family: inherit;
-      font-size: inherit;
-      line-height: inherit;
-      tab-size: 2;
-    }
-  </style>
+  <%- include('partials/head', { title: paste.title || 'Paste', styles: ['modals', 'forms', 'public-pages', 'paste'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'public' }) %>
-
-  <div class="paste-container">
-    <div class="paste-card">
-      <div class="paste-title-row">
-        <h1 class="paste-title"><%= paste.title ? paste.title : '(untitled paste)' %></h1>
-        <% if (paste.language) { %>
-          <span class="lang-pill"><%= paste.language %></span>
-        <% } %>
+<%
+  const shortUrl = `${baseUrl}/p/${paste.slug}`;
+  const day = (value) => new Date(String(value).includes('T') ? value : `${String(value).replace(' ', 'T')}Z`)
+    .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+-%>
+  <main class="public-page wide paste-page">
+    <article class="item-card">
+      <h1 class="paste-title"><%= paste.title ? paste.title : 'Untitled paste' %></h1>
+      <div class="paste-short">
+        <span><%= shortUrl.replace(/^https?:\/\//, '') %></span>
+        <button type="button" class="text-btn" data-copy="<%= shortUrl %>" aria-label="Copy the short link"><%- include('partials/icon', { icon: 'copy' }) %> Copy link</button>
       </div>
 
-      <div class="paste-meta">
-        <span>
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          <%= owner.username %>
-        </span>
-        <span>
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <%= new Date(paste.createdAt).toLocaleDateString('en-GB') %>
-        </span>
-        <span>
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          <%= paste.views %> view<%= paste.views === 1 ? '' : 's' %><% if (paste.maxViews) { %> / <%= paste.maxViews %><% } %>
-        </span>
-        <span>
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
-          <%= sizeChars %> chars
-        </span>
-        <% if (paste.expiresAt) { %>
-        <span>
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Expires <%= new Date(paste.expiresAt).toLocaleDateString('en-GB') %>
-        </span>
-        <% } %>
+      <div class="item-facts">
+        <span><%- include('partials/icon', { icon: 'bio' }) %> <%= owner.username %></span>
+        <span><%- include('partials/icon', { icon: 'calendar' }) %> <%= day(paste.createdAt) %></span>
+        <span><%- include('partials/icon', { icon: 'eye' }) %> <%= paste.views.toLocaleString('en-US') %><%= paste.maxViews ? ` / ${paste.maxViews.toLocaleString('en-US')}` : '' %> view<%= paste.views === 1 && !paste.maxViews ? '' : 's' %></span>
+        <span><%= sizeChars.toLocaleString('en-US') %> characters</span>
+        <% if (paste.language) { %><span><%= paste.language %></span><% } %>
+        <% if (paste.expiresAt) { %><span>Expires <%= day(paste.expiresAt) %></span><% } %>
       </div>
+      <%- include('partials/tag-chips', { tags: paste.tags || [] }) %>
 
-      <% if (paste.tags && paste.tags.length > 0) { %>
-      <div class="tags-row">
-        <% paste.tags.forEach(function(tag) { %>
-          <span class="tag-chip" style="background:<%= tag.color %>22;color:<%= tag.color %>;border-color:<%= tag.color %>44;"><%= tag.name %></span>
-        <% }); %>
-      </div>
-      <% } %>
-
-      <div class="paste-actions">
-        <button type="button" id="copyPasteBtn" class="btn-primary" onclick="copyToClipboard(document.getElementById('pasteRaw').value, this)">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Copy
-        </button>
-        <a href="<%= rawUrl %>" class="btn" target="_blank" rel="noopener">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          Raw
-        </a>
-        <a href="<%= rawUrl %>?download=1" class="btn">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download
-        </a>
+      <div class="item-actions">
+        <button type="button" class="btn" data-copy-from="pasteRaw"><%- include('partials/icon', { icon: 'copy' }) %> <span data-copy-label>Copy text</span></button>
+        <a href="<%= rawUrl %>" class="btn btn-secondary" target="_blank" rel="noopener"><%- include('partials/icon', { icon: 'paste' }) %> Raw</a>
+        <a href="<%= rawUrl %>?download=1" class="btn btn-secondary"><%- include('partials/icon', { icon: 'download' }) %> Download</a>
         <% if (canEdit) { %>
-        <a href="/pastes/<%= paste.id %>/edit" class="btn">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-          Edit
-        </a>
-        <% } %>
-        <% if (features.reports) { %>
-        <button type="button" class="btn" data-report-button onclick="openReportModal()">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>
-          <span data-report-label>Report</span>
-        </button>
+          <a href="/pastes/<%= paste.id %>/edit" class="btn btn-secondary"><%- include('partials/icon', { icon: 'edit' }) %> Edit</a>
         <% } %>
       </div>
 
@@ -228,14 +40,21 @@
         <div class="paste-gutter" aria-hidden="true"><% for (var i = 1; i <= lines.length; i++) { %><span><%= i %></span><% } %></div>
         <pre class="paste-source"><% lines.forEach(function(line, idx) { %><%= line %><%= idx < lines.length - 1 ? '\n' : '' %><% }); %></pre>
       </div>
+      <textarea id="pasteRaw" readonly hidden aria-hidden="true"><%= paste.content %></textarea>
 
-      <textarea id="pasteRaw" style="position:absolute;left:-9999px;top:-9999px;" readonly aria-hidden="true"><%= paste.content %></textarea>
-    </div>
-  </div>
+      <% if (features.reports) { %>
+      <div class="item-footer">
+        <span></span>
+        <button type="button" class="text-btn danger" data-report-button><%- include('partials/icon', { icon: 'flag' }) %> <span data-report-label>Report this paste</span></button>
+      </div>
+      <% } %>
+    </article>
+  </main>
 
   <% if (features.reports) { %>
     <%- include('partials/report-modal', { type: 'paste', id: paste.id, noun: 'paste' }) %>
   <% } %>
   <script src="/js/main.js"></script>
+  <script src="/js/public-item.js"></script>
 <%- include('partials/layout-end', { shell: 'public' }) %>
 </html>

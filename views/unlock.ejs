@@ -1,226 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Password required', styles: ['forms'] }) %>
-  <style>
-    .unlock-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 80vh;
-      padding: 2rem;
-    }
-
-    .unlock-box {
-      background: var(--card-background);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 2.5rem;
-      max-width: 450px;
-      width: 100%;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .unlock-icon {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 1.5rem;
-      display: block;
-      color: var(--primary);
-    }
-
-    .unlock-box h1 {
-      font-size: 1.75rem;
-      margin-bottom: 0.5rem;
-      text-align: center;
-      color: var(--foreground);
-    }
-
-    .unlock-box p {
-      color: var(--muted-foreground);
-      text-align: center;
-      margin-bottom: 2rem;
-      font-size: 0.95rem;
-    }
-
-    .short-url-display {
-      background: var(--status-active-bg);
-      border: 1px solid var(--primary);
-      border-radius: 6px;
-      padding: 0.75rem;
-      margin-bottom: 1.5rem;
-      text-align: center;
-      font-family: var(--font-mono);
-      font-size: 1rem;
-      color: var(--primary);
-      word-break: break-all;
-    }
-
-    .error-banner {
-      background: var(--status-error-bg);
-      border: 1px solid var(--status-error-text);
-      border-radius: 6px;
-      padding: 0.75rem;
-      margin-bottom: 1.5rem;
-      color: var(--status-error-text);
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .error-banner svg {
-      flex-shrink: 0;
-    }
-
-    .password-input-group {
-      position: relative;
-      margin-bottom: 1.5rem;
-    }
-
-    .password-input-group input {
-      width: 100%;
-      padding-right: 3rem;
-    }
-
-    .toggle-password {
-      position: absolute;
-      right: 0.75rem;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: var(--muted-foreground);
-      cursor: pointer;
-      padding: 0.25rem;
-      display: flex;
-      align-items: center;
-      transition: color 0.2s;
-    }
-
-    .toggle-password:hover {
-      color: var(--foreground);
-    }
-
-    .unlock-actions {
-      display: flex;
-      gap: 0.75rem;
-      margin-top: 1.5rem;
-    }
-
-    .unlock-actions button,
-    .unlock-actions a {
-      flex: 1;
-      text-align: center;
-    }
-
-    .btn-secondary {
-      background: var(--muted);
-      color: var(--foreground);
-    }
-
-    .btn-secondary:hover {
-      background: var(--muted-hover);
-    }
-
-    .remember-checkbox {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-      font-size: 0.9rem;
-      color: var(--muted-foreground);
-    }
-
-    .remember-checkbox input[type="checkbox"] {
-      width: auto;
-      margin: 0;
-    }
-  </style>
+  <%- include('partials/head', { title: 'Password required', styles: ['forms', 'public-pages'], noindex: true }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'public' }) %>
+  <main class="public-page">
+  <div class="status-card locked">
+    <span class="status-icon"><%- include('partials/icon', { icon: 'lock' }) %></span>
+    <h1>Password required</h1>
+    <p>This <%= noun %> is protected. Enter its password to continue.</p>
+    <div class="status-detail"><%= label %></div>
 
-  <div class="unlock-container">
-    <div class="unlock-box">
-      <svg class="unlock-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-      </svg>
-
-      <h1>Password Required</h1>
-      <p>This <%= noun %> is password-protected. Please enter the password to continue.</p>
-
-      <div class="short-url-display">
-        <%= label %>
+    <form class="status-form" method="POST" action="/unlock/<%= type %>/<%= slug %>">
+      <% if (error) { %><p class="field-error" role="alert"><%= error %></p><% } %>
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" id="password" name="password" class="form-input" required autofocus autocomplete="off" data-toggle-password>
       </div>
-
-      <% if (error) { %>
-        <div class="error-banner">
-          <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-          </svg>
-          <%= error %>
-        </div>
+      <% if (canRemember) { %>
+        <label class="checkbox-row"><input type="checkbox" id="remember" name="remember" value="1"> Remember it for this session</label>
       <% } %>
+      <button type="submit" class="btn">Unlock</button>
+    </form>
 
-      <form method="POST" action="/unlock/<%= type %>/<%= slug %>">
-        <div class="password-input-group">
-          <input
-            type="password"
-            id="password"
-            name="password"
-            class="form-input"
-            placeholder="Enter password"
-            required
-            autofocus
-            autocomplete="off"
-          >
-          <button type="button" class="toggle-password" onclick="togglePassword()">
-            <svg id="eye-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-            </svg>
-          </button>
-        </div>
-
-        <% if (canRemember) { %>
-        <div class="remember-checkbox">
-          <input type="checkbox" id="remember" name="remember" value="1">
-          <label for="remember">Remember password for this session</label>
-        </div>
-        <% } %>
-
-        <button type="submit" class="btn btn-primary" style="width: 100%;">
-          Unlock & Continue
-        </button>
-      </form>
-
-      <div class="unlock-actions">
-        <a href="/" class="btn btn-secondary">Go Home</a>
-        <% if (locals.infoUrl) { %>
-          <a href="<%= infoUrl %>" class="btn btn-secondary">View Info</a>
-        <% } %>
-      </div>
+    <div class="status-actions">
+      <a href="/" class="btn btn-secondary">Home</a>
+      <% if (locals.infoUrl) { %><a href="<%= infoUrl %>" class="btn btn-secondary">About this <%= noun %></a><% } %>
     </div>
   </div>
-
-  <script>
-    function togglePassword() {
-      const input = document.getElementById('password');
-      const icon = document.getElementById('eye-icon');
-
-      if (input.type === 'password') {
-        input.type = 'text';
-        icon.innerHTML = `
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
-        `;
-      } else {
-        input.type = 'password';
-        icon.innerHTML = `
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-        `;
-      }
-    }
-  </script>
+  </main>
+  <script src="/js/main.js"></script>
 <%- include('partials/layout-end', { shell: 'public' }) %>
 </html>

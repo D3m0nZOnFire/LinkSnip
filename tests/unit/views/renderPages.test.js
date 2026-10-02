@@ -344,3 +344,88 @@ describe('app pages (v1.3 part 5b): no inline styling, no emoji, the shared look
     expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*data-url-id="\d+"/);
   });
 });
+
+describe('public pages (v1.3 part 6a): no inline styling or handlers, the agreed layouts', () => {
+  const PUBLIC_PAGES = ['index', 'url-info', 'paste-info', 'paste-view', 'file-download', 'bundle-launcher', 'unlock',
+    'quarantine', 'scheduled', 'error', 'partials/report-modal'];
+  const EMOJI = /\p{Extended_Pictographic}/u;
+
+  it.each(PUBLIC_PAGES)('%s.ejs has no <style> blocks, style attributes (CSS variables aside), inline handlers or emoji', (name) => {
+    const source = fs.readFileSync(path.join(VIEWS, `${name}.ejs`), 'utf8');
+    expect(source).not.toMatch(/<style/);
+    expect(source.match(/\sstyle="(?!--[a-z-]+:)[^"]*"/g)).toBeNull();
+    expect(source).not.toMatch(/\son[a-z]+="/);
+    expect(source).not.toMatch(EMOJI);
+  });
+
+  it.each(['url-info', 'paste-info', 'paste-view', 'file-download', 'bundle-launcher', 'unlock'])(
+    '%s has no inline script code', async (name) => {
+      const html = await renderPage(name);
+      const inline = (html.match(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/json")[^>]*>[\s\S]*?<\/script>/g) || [])
+        .filter(script => !/theme|data-theme/.test(script));
+      expect(inline).toEqual([]);
+    });
+
+  it('the status pages share one calm card (no pink .error-box)', async () => {
+    for (const name of ['error', 'scheduled', 'quarantine', 'unlock']) {
+      const html = await renderPage(name);
+      expect(html).toContain('class="status-card');
+      expect(html).not.toContain('error-box');
+    }
+  });
+
+  it('url-info: the short link is the copyable heading; the destination\'s domain leads; "Continue to <domain>"', async () => {
+    const html = await renderPage('url-info');
+    expect(html).toMatch(/<h1[^>]*class="short-link"[^>]*>[^<]*localhost:8081\/s\/link/);
+    expect(html).toMatch(/data-copy="http:\/\/localhost:8081\/s\/link"/);
+    expect(html).toMatch(/class="destination-host"[^>]*>example\.com</);
+    expect(html).toMatch(/Continue to example\.com/);
+    expect(html).not.toMatch(/data-copy="https:\/\/example\.com/); // copying the destination would skip analytics and limits
+  });
+
+  it('url-info: a destination with quotes and backslashes stays text (no inline JavaScript)', async () => {
+    getTestDatabase().prepare('UPDATE urls SET longUrl = ? WHERE id = ?').run("https://x.example/\\');alert(1)//", s.url.id);
+    const html = await renderPage('url-info');
+    expect(html).not.toMatch(/\son[a-z]+="/);
+    expect(html).not.toMatch(/copyToClipboard\(/);
+  });
+
+  it('paste-info: same pattern, with "Open paste"', async () => {
+    const html = await renderPage('paste-info');
+    expect(html).toMatch(/<h1[^>]*class="short-link"[^>]*>[^<]*localhost:8081\/p\/notes/);
+    expect(html).toMatch(/data-copy="http:\/\/localhost:8081\/p\/notes"/);
+  });
+
+  it('index: a visitor sees the site\'s name and tagline as the heading', async () => {
+    configService.updateSettings({ 'branding.tagline': 'Links for the Snipz crew' });
+    const { data } = await rendered(c('urlController').getCreateForm, request(null));
+    const html = await ejs.renderFile(path.join(VIEWS, 'index.ejs'), { ...appLocals(), ...(await localsFor(null)), ...data });
+    expect(html).toMatch(/<h1[^>]*class="hero-title"[^>]*>\s*Snipz\s*<\/h1>/);
+    expect(html).toContain('Links for the Snipz crew');
+    expect(html).not.toContain('Track Your Impact');
+  });
+
+  it('index: the default tagline is the neutral line; an emptied tagline shows none', async () => {
+    const page = async () => {
+      const { data } = await rendered(c('urlController').getCreateForm, request(null));
+      return ejs.renderFile(path.join(VIEWS, 'index.ejs'), { ...appLocals(), ...(await localsFor(null)), ...data });
+    };
+    expect(await page()).toMatch(/class="hero-tagline"[^>]*>\s*Short links, pastes, files and bundles, with analytics\./);
+    configService.updateSettings({ 'branding.tagline': '' });
+    expect(await page()).not.toContain('hero-tagline');
+  });
+
+  it('error: a readable title, the code small', async () => {
+    const html = await renderPage('error');
+    expect(html).toMatch(/class="status-code"[^>]*>\s*Error 404/);
+    expect(html).toMatch(/<h1[^>]*>\s*Page Not Found\s*<\/h1>/);
+  });
+});
+
+describe('bio-page: icon names never reach JavaScript', () => {
+  it('has no inline onerror handler (the icon fallback lives in public/js/bio-icons.js)', () => {
+    const source = fs.readFileSync(path.join(VIEWS, 'bio-page.ejs'), 'utf8');
+    expect(source).not.toMatch(/\sonerror=/);
+    expect(source).toContain('/js/bio-icons.js');
+  });
+});

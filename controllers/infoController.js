@@ -42,8 +42,13 @@ class InfoController {
       const now = new Date();
       const ageInDays = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
 
+      // "Continue to <domain>": the host name of the destination (null if it isn't a valid address)
+      let destinationHost = null;
+      try { destinationHost = new URL(url.longUrl).hostname || null; } catch (_) { destinationHost = null; }
+
       res.render('url-info', {
         url,
+        destinationHost,
         reportCount,
         ageInDays,
         validation,

@@ -1,56 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: title }) %>
+  <%- include('partials/head', { title: title, styles: ['public-pages'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'standalone', pageClass: 'page-center' }) %>
-  <div class="error-container">
-    <div class="error-box">
-      <!-- Status Icon -->
-      <div class="error-code">
-        <h1 style="color: var(--primary)">⏳</h1>
+<% const when = (value) => new Date(value).toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }) + ' UTC'; -%>
+  <main class="status-card warning">
+    <span class="status-icon"><%- include('partials/icon', { icon: 'calendar' }) %></span>
+    <h1><%= title %></h1>
+    <p><%= message %></p>
+    <% if (activateAt) { %>
+      <div class="status-detail">
+        <span class="destination-label">Starts working</span>
+        <%= when(activateAt) %>
       </div>
-
-      <!-- Status Message -->
-      <h2><%= title %></h2>
-      <p><%= message %></p>
-
-      <!-- Scheduling Information -->
-      <% if (activateAt || deactivateAt) { %>
-        <div style="margin: 2rem 0; padding: 1rem; background: var(--info-bg); border-radius: 0.5rem; text-align: left;">
-          <% if (activateAt) { %>
-            <p style="margin: 0; color: var(--foreground);">
-              <strong>Activation Time:</strong><br>
-              <%= new Date(activateAt).toLocaleString('en-GB', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false,
-                timeZoneName: 'short'
-              }) %>
-            </p>
-          <% } %>
-        </div>
-      <% } %>
-
-      <!-- Short link display -->
-      <% if (locals.path) { %>
-        <div style="margin: 1.5rem 0; padding: 0.75rem; background: var(--muted); border-radius: 0.5rem;">
-          <p style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">Short link:</p>
-          <p style="margin: 0.25rem 0 0 0; font-family: var(--font-mono); font-weight: bold; color: var(--foreground); word-break: break-all;">
-            <%= path %>
-          </p>
-        </div>
-      <% } %>
-
-      <!-- Action Buttons (no info link: info pages hide scheduled items) -->
-      <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
-        <a href="/" class="btn" style="color: var(--primary-foreground);">Go Back Home</a>
+    <% } %>
+    <% if (locals.path) { %>
+      <div class="status-detail">
+        <span class="destination-label">Short link</span>
+        <%= path %>
       </div>
+    <% } %>
+    <%# No info link: info pages hide scheduled items %>
+    <div class="status-actions">
+      <a href="/" class="btn btn-secondary">Go to the home page</a>
     </div>
-  </div>
+  </main>
 <%- include('partials/layout-end', { shell: 'standalone' }) %>
 </html>

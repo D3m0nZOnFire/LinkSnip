@@ -1,286 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: `Paste preview · ${paste.slug}`, styles: ['modals'] }) %>
-  <style>
-    .info-container {
-      max-width: 800px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-    }
-
-    .warning-banner {
-      background-color: var(--status-error-bg);
-      border: 1px solid var(--status-error-border);
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-      display: flex;
-      align-items: start;
-      gap: 1rem;
-    }
-
-    .warning-banner svg {
-      flex-shrink: 0;
-      width: 24px;
-      height: 24px;
-      color: var(--status-error-text);
-    }
-
-    .info-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-    }
-
-    .info-card h1 {
-      margin: 0 0 1.5rem 0;
-      color: var(--foreground);
-      font-size: 1.75rem;
-    }
-
-    .meta-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
-      margin: 1.5rem 0;
-    }
-
-    .meta-grid .meta-item {
-      background: var(--info-bg);
-      border: 1px solid var(--info-border);
-      border-radius: 8px;
-      padding: 1rem;
-    }
-
-    .meta-grid .meta-item h3 {
-      margin: 0 0 0.35rem 0;
-      font-size: 0.75rem;
-      color: var(--muted-foreground);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .meta-grid .meta-item .value {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--foreground);
-    }
-
-    .tags-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.375rem;
-      margin: 1.25rem 0;
-    }
-
-    .tag-chip {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.2rem 0.6rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 500;
-    }
-
-    .preview-block {
-      margin: 1.5rem 0;
-      background: var(--background);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-      font-family: var(--font-mono);
-      font-size: 0.8125rem;
-      line-height: 1.5;
-    }
-
-    .preview-block pre {
-      margin: 0;
-      padding: 1rem;
-      overflow-x: auto;
-      white-space: pre;
-      color: var(--foreground);
-    }
-
-    .preview-fade {
-      padding: 0.5rem 1rem;
-      font-size: 0.8rem;
-      color: var(--muted-foreground);
-      border-top: 1px solid var(--border);
-      background: var(--card);
-    }
-
-    .qr-section {
-      text-align: center;
-      margin: 2rem 0;
-    }
-
-    .qr-section img {
-      max-width: 200px;
-      border-radius: 8px;
-      border: 2px solid var(--chart-border);
-    }
-
-    .actions {
-      display: flex;
-      gap: 1rem;
-      margin-top: 2rem;
-      flex-wrap: wrap;
-    }
-
-    .btn-large {
-      padding: 1rem 2rem;
-      font-size: 1.125rem;
-      flex: 1;
-      min-width: 200px;
-    }
-
-    .security-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background-color: var(--status-active-bg);
-      border: 1px solid var(--status-active-border);
-      border-radius: 4px;
-      font-size: 0.875rem;
-      color: var(--primary);
-      margin-bottom: 1rem;
-    }
-  </style>
+  <%- include('partials/head', { title: `Paste preview · ${paste.slug}`, styles: ['modals', 'forms', 'public-pages', 'paste'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'public', currentPage: 'info' }) %>
-
-  <main class="info-container">
-    <div class="security-badge">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-      </svg>
-      <span>Paste Preview - inspect this paste before opening it</span>
-    </div>
-
-    <% if (!validation.live && paste.isBlocked) { %>
-      <div class="warning-banner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-        </svg>
-        <div>
-          <h3 style="margin: 0 0 0.5rem 0; color: var(--status-error-text); font-size: 1.125rem;">&#9940; This paste has been blocked</h3>
-          <p style="margin: 0; color: var(--status-error-text);">This paste was permanently blocked by administrators due to malicious content. Access is not permitted.</p>
-        </div>
+<%
+  const shortUrl = `${baseUrl}/p/${paste.slug}`;
+  const shortLabel = shortUrl.replace(/^https?:\/\//, '');
+  const day = (value) => new Date(String(value).includes('T') ? value : `${String(value).replace(' ', 'T')}Z`)
+    .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+-%>
+  <main class="public-page">
+    <% if (validation.status === 'blocked') { %>
+      <div class="notice danger" role="alert">
+        <%- include('partials/icon', { icon: 'lock' }) %>
+        <div><strong>This paste was blocked</strong><p>The administrators of <%= branding.name %> blocked it. It can't be opened.</p></div>
       </div>
     <% } %>
 
-    <div class="info-card">
-      <h1>Paste Preview</h1>
-
-      <p style="color: var(--muted-foreground); margin-bottom: 1rem;">
-        <strong style="color: var(--foreground);"><%= paste.title ? paste.title : '(untitled paste)' %></strong>
-        &nbsp;·&nbsp; by <%= owner.username %>
-        <% if (paste.language) { %>&nbsp;·&nbsp; <%= paste.language %><% } %>
-      </p>
-
-      <div class="meta-grid">
-        <div class="meta-item">
-          <h3>Status</h3>
-          <div class="value">
-            <% if (validation.status === 'blocked') { %>Blocked
-            <% } else if (validation.status === 'expired') { %>Expired
-            <% } else if (validation.status === 'limit_reached') { %>View limit reached
-            <% } else { %>Active<% } %>
-          </div>
-        </div>
-        <div class="meta-item">
-          <h3>Age</h3>
-          <div class="value"><%= ageInDays === 0 ? 'Created today' : `${ageInDays} day${ageInDays === 1 ? '' : 's'} old` %></div>
-        </div>
-        <div class="meta-item">
-          <h3>Views</h3>
-          <div class="value"><%= paste.views.toLocaleString() %><% if (paste.maxViews) { %> / <%= paste.maxViews.toLocaleString() %><% } %></div>
-        </div>
-        <div class="meta-item">
-          <h3>Size</h3>
-          <div class="value"><%= sizeChars.toLocaleString() %> chars</div>
-        </div>
-        <% if (paste.expiresAt) { %>
-        <div class="meta-item">
-          <h3>Expires</h3>
-          <div class="value"><%= new Date(paste.expiresAt).toLocaleDateString('en-GB') %></div>
-        </div>
-        <% } %>
-        <% if (paste.password) { %>
-        <div class="meta-item">
-          <h3>Protection</h3>
-          <div class="value">Password</div>
-        </div>
-        <% } %>
+    <article class="item-card">
+      <p class="item-kicker"><%- include('partials/icon', { icon: 'info' }) %> Paste preview: see what it is before you open it</p>
+      <div class="short-link-row">
+        <h1 class="short-link"><%= shortLabel %></h1>
+        <button type="button" class="btn btn-small btn-secondary copy-btn" data-copy="<%= shortUrl %>" aria-label="Copy the short link"><%- include('partials/icon', { icon: 'copy' }) %> Copy</button>
       </div>
+      <p class="item-title"><%= paste.title ? paste.title : 'Untitled paste' %></p>
 
-      <% if (paste.tags && paste.tags.length > 0) { %>
-      <div class="tags-row">
-        <% paste.tags.forEach(function(tag) { %>
-          <span class="tag-chip" style="background:<%= tag.color %>22;color:<%= tag.color %>;border:1px solid <%= tag.color %>44;"><%= tag.name %></span>
-        <% }); %>
+      <div class="item-facts">
+        <span><%- include('partials/icon', { icon: 'bio' }) %> <%= owner.username %></span>
+        <span><%- include('partials/icon', { icon: 'clock' }) %> <%= ageInDays === 0 ? 'Created today' : `Created ${ageInDays} day${ageInDays === 1 ? '' : 's'} ago` %></span>
+        <span><%- include('partials/icon', { icon: 'eye' }) %> <%= paste.views.toLocaleString('en-US') %><%= paste.maxViews ? ` / ${paste.maxViews.toLocaleString('en-US')}` : '' %> view<%= paste.views === 1 && !paste.maxViews ? '' : 's' %></span>
+        <span><%= sizeChars.toLocaleString('en-US') %> characters</span>
+        <% if (paste.language) { %><span><%= paste.language %></span><% } %>
+        <% if (paste.expiresAt) { %><span>Expires <%= day(paste.expiresAt) %></span><% } %>
+        <% if (paste.password) { %><span><%- include('partials/icon', { icon: 'lock' }) %> Password</span><% } %>
+        <% if (validation.status === 'expired') { %><span>Expired</span><% } %>
+        <% if (validation.status === 'limit_reached') { %><span>View limit reached</span><% } %>
       </div>
-      <% } %>
+      <%- include('partials/tag-chips', { tags: paste.tags || [] }) %>
 
       <% if (showPreview) { %>
-      <div class="preview-block">
-        <pre><% previewLines.forEach(function(line, idx) { %><%= line %><%= idx < previewLines.length - 1 ? '\n' : '' %><% }); %></pre>
-        <% if (previewTruncated) { %>
-        <div class="preview-fade">… preview truncated — open the paste to see the rest.</div>
-        <% } %>
-      </div>
+        <div class="paste-preview">
+          <pre><% previewLines.forEach(function(line, idx) { %><%= line %><%= idx < previewLines.length - 1 ? '\n' : '' %><% }); %></pre>
+          <% if (previewTruncated) { %><p class="paste-preview-more">Only the first lines; open the paste to read the rest.</p><% } %>
+        </div>
       <% } else if (paste.password) { %>
-      <div style="margin: 1.5rem 0; padding: 1rem; background-color: var(--status-warning-bg); border: 1px solid var(--status-warning-border); border-radius: 8px;">
-        <p style="margin: 0; color: var(--muted-foreground); font-size: 0.875rem;">
-          The content preview is hidden because this paste is password protected.
-        </p>
-      </div>
+        <div class="destination hidden-destination">The preview is hidden because the paste has a password.</div>
       <% } %>
 
-      <% if (features.qrCodes) { %>
-      <div class="qr-section">
-        <h3 style="margin-bottom: 1rem; color: var(--muted-foreground);">Scan QR Code (opens the paste)</h3>
-        <img src="/qrcode/paste/<%= paste.slug %>?theme=light" alt="QR Code">
-      </div>
-      <% } %>
-
-      <div class="actions">
+      <div class="item-actions">
         <% if (validation.live) { %>
-          <a href="/p/<%= paste.slug %>" class="btn btn-large">Open Paste &rarr;</a>
-          <a href="/p/<%= paste.slug %>/raw" class="btn btn-large" style="background-color: var(--secondary); color: var(--foreground);">View Raw</a>
-          <% if (features.reports) { %>
-            <button class="btn btn-large btn-danger" data-report-button onclick="openReportModal()">
-              <span data-report-label>Report This Paste</span>
-            </button>
-          <% } %>
-        <% } else if (validation.status === 'blocked') { %>
-          <button class="btn btn-large" disabled style="background-color: var(--status-error-border); color: var(--status-error-text); cursor: not-allowed;">
-            &#9940; Access Blocked by Administrator
-          </button>
-        <% } else if (validation.status === 'expired') { %>
-          <button class="btn btn-large" disabled style="background-color: var(--secondary); color: var(--muted-foreground); cursor: not-allowed;">
-            Paste Expired
-          </button>
-        <% } else if (validation.status === 'limit_reached') { %>
-          <button class="btn btn-large" disabled style="background-color: var(--secondary); color: var(--muted-foreground); cursor: not-allowed;">
-            View Limit Reached
-          </button>
+          <a href="/p/<%= paste.slug %>" class="btn btn-large">Open paste <%- include('partials/icon', { icon: 'arrowRight' }) %></a>
+          <a href="/p/<%= paste.slug %>/raw" class="btn btn-secondary">Raw text</a>
+        <% } else { %>
+          <span class="btn btn-large btn-secondary" aria-disabled="true">
+            <%= { blocked: 'Blocked', scheduled: 'Not available yet', expired: 'This paste has expired', limit_reached: 'This paste reached its view limit' }[validation.status] || 'Unavailable' %>
+          </span>
         <% } %>
       </div>
 
-      <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-top: 2rem;">
-        Paste link: <a href="/p/<%= paste.slug %>" style="color: var(--primary);"><%= baseUrl %>/p/<%= paste.slug %></a>
-      </p>
-    </div>
+      <% if (features.qrCodes || (validation.live && features.reports)) { %>
+      <div class="item-footer">
+        <% if (features.qrCodes) { %>
+        <details class="qr-details">
+          <summary><%- include('partials/icon', { icon: 'qr' }) %> QR code</summary>
+          <img src="/qrcode/paste/<%= paste.slug %>?theme=light" alt="QR code for <%= shortLabel %>" width="160" height="160" loading="lazy">
+          <p>It opens the paste.</p>
+        </details>
+        <% } %>
+        <% if (validation.live && features.reports) { %>
+          <button type="button" class="text-btn danger" data-report-button><%- include('partials/icon', { icon: 'flag' }) %> <span data-report-label>Report this paste</span></button>
+        <% } %>
+      </div>
+      <% } %>
+    </article>
   </main>
 
   <% if (validation.live && features.reports) { %>
     <%- include('partials/report-modal', { type: 'paste', id: paste.id, noun: 'paste' }) %>
   <% } %>
   <script src="/js/main.js"></script>
+  <script src="/js/public-item.js"></script>
 <%- include('partials/layout-end', { shell: 'public' }) %>
 </html>

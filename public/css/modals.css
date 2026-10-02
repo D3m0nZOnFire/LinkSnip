@@ -349,3 +349,25 @@
     padding: var(--spacing-md);
   }
 }
+/* Report box (views/partials/report-modal.ejs) */
+.report-done {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--status-active-border);
+  border-radius: var(--radius-md);
+  background: var(--status-active-bg);
+  font-size: var(--text-sm);
+}
+
+.report-done[hidden],
+.report-fields[hidden],
+#reportSubmit[hidden] {
+  display: none;
+}
+
+.modal-narrow {
+  max-width: 28rem;
+}
+
+.modal-body > .field-help {
+  margin-bottom: var(--spacing-md);
+}
