@@ -1,22 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Teams', styles: ['tables', 'forms'] }) %>
-  <style>
-    .team-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
-    .team-card { display: block; padding: 1.25rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--foreground); text-decoration: none; transition: border-color 0.15s; }
-    .team-card:hover { border-color: var(--primary); }
-    .team-card h3 { margin: 0 0 0.35rem; overflow-wrap: anywhere; }
-    .team-card p { margin: 0; color: var(--muted-foreground); font-size: 0.875rem; }
-    .create-team { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; max-width: 32rem; }
-    .create-team .form-group { flex: 1 1 14rem; margin: 0; }
-    .empty-note { color: var(--muted-foreground); margin-bottom: 2.5rem; }
-    .form-errors { color: var(--destructive); margin-top: 0.75rem; }
-  </style>
+  <%- include('partials/head', { title: 'Teams', styles: ['forms', 'sections', 'teams'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'app', currentPage: 'teams' }) %>
 
-  <main class="main-content-wide">
+  <main class="main-content-wide page-medium">
     <div class="header-section">
       <div>
         <h2>Teams</h2>
@@ -30,54 +19,38 @@
       <div class="team-list">
         <% teams.forEach(team => { %>
           <a class="team-card" href="/teams/<%= team.id %>">
-            <h3><%= team.name %></h3>
-            <p><%= team.role.charAt(0).toUpperCase() + team.role.slice(1) %> · <%= team.members %> member<%= team.members === 1 ? '' : 's' %></p>
+            <span class="team-card-icon"><%- include('partials/icon', { icon: 'teams' }) %></span>
+            <span class="team-card-text">
+              <strong><%= team.name %></strong>
+              <span><%= team.role.charAt(0).toUpperCase() + team.role.slice(1) %> · <%= team.members %> member<%= team.members === 1 ? '' : 's' %></span>
+            </span>
+            <%- include('partials/icon', { icon: 'chevronRight' }) %>
           </a>
         <% }) %>
       </div>
     <% } else { %>
-      <p class="empty-note">You're not in any team yet.<%= canCreate ? ' Create one below, or ask a team owner to invite you.' : ' Ask a team owner to invite you.' %></p>
+      <div class="empty-state">
+        <p>You're not in a team yet</p>
+        <p class="muted"><%= canCreate ? 'Create one below, or ask a team owner to invite you.' : 'Ask a team owner to invite you.' %></p>
+      </div>
     <% } %>
 
     <% if (canCreate) { %>
-      <section>
-        <h3 style="margin-bottom: 0.75rem;">New team</h3>
-        <form id="createTeamForm" class="create-team">
+      <section class="section-card">
+        <h3>New team</h3>
+        <p class="section-help">You become its owner and can invite people.</p>
+        <form id="createTeamForm" class="inline-form">
           <div class="form-group">
             <label for="teamName" class="form-label">Name</label>
             <input type="text" id="teamName" class="form-input" maxlength="60" required>
           </div>
-          <button type="submit" class="btn" style="color: var(--primary-foreground);">Create team</button>
+          <button type="submit" class="btn"><%- include('partials/icon', { icon: 'plus' }) %> Create team</button>
         </form>
-        <p id="createTeamError" class="form-errors" role="alert"></p>
+        <p id="createTeamError" class="field-error" role="alert"></p>
       </section>
     <% } %>
   </main>
 
-  <% if (canCreate) { %>
-  <script>
-    document.getElementById('createTeamForm').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const button = event.target.querySelector('button');
-      const error = document.getElementById('createTeamError');
-      error.textContent = '';
-      button.disabled = true;
-      try {
-        const response = await fetch('/api/teams', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: document.getElementById('teamName').value })
-        });
-        const data = await response.json();
-        if (data.success) window.location.href = `/teams/${data.team.id}`;
-        else error.textContent = data.error || 'Could not create the team.';
-      } catch (e) {
-        error.textContent = 'Request failed. Please try again.';
-      } finally {
-        button.disabled = false;
-      }
-    });
-  </script>
-  <% } %>
+  <script src="/js/teams.js"></script>
 <%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

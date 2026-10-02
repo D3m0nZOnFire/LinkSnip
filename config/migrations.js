@@ -521,7 +521,53 @@ function migrateTeams(db, logger = console) {
   })();
 }
 
+/**
+ * Files: userId becomes nullable with ON DELETE SET NULL (it was NOT NULL with ON DELETE CASCADE), like the other
+ * content tables. Deleting an account then keeps the person's files in teams, without an owner. SQLite can't change
+ * a column in place, so the table is rebuilt from its own CREATE statement; rows, indexes, triggers and the ID
+ * sequence are kept.
+ */
+function migrateFileOwners(db, logger = console) {
+  const info = db.prepare('PRAGMA table_info(files)').all();
+  const userId = info.find(c => c.name === 'userId');
+  if (!userId) return;
+  const fk = db.prepare('PRAGMA foreign_key_list(files)').all().find(f => f.from === 'userId');
+  if (!userId.notnull && (!fk || fk.on_delete === 'SET NULL')) return;
+
+  const { sql } = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'files'").get();
+  const rebuilt = sql
+    .replace(/^CREATE TABLE\s+(IF NOT EXISTS\s+)?["`]?files["`]?/i, 'CREATE TABLE files_rebuilt')
+    .replace(/\buserId(\s+)INTEGER(\s+)NOT NULL/i, 'userId$1INTEGER')
+    .replace(/FOREIGN KEY\s*\(userId\)\s*REFERENCES\s+users\s*\(id\)\s*ON DELETE CASCADE/i,
+      'FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL');
+  if (rebuilt === sql || !/ON DELETE SET NULL/.test(rebuilt)) {
+    logger.log('  ⚠️  files.userId: unexpected table definition, left as it is');
+    return;
+  }
+
+  logger.log('  📁 Files: keeping team files when their uploader\'s account is deleted...');
+  const extras = db.prepare("SELECT sql FROM sqlite_master WHERE tbl_name = 'files' AND type IN ('index', 'trigger') AND sql IS NOT NULL").all();
+  const sequence = db.prepare("SELECT seq FROM sqlite_sequence WHERE name = 'files'").get();
+  const columns = info.map(c => `"${c.name}"`).join(', ');
+
+  db.pragma('foreign_keys = OFF');
+  try {
+    db.transaction(() => {
+      db.exec(rebuilt);
+      db.exec(`INSERT INTO files_rebuilt (${columns}) SELECT ${columns} FROM files`);
+      db.exec('DROP TABLE files');
+      db.exec('ALTER TABLE files_rebuilt RENAME TO files');
+      for (const { sql: statement } of extras) db.exec(statement);
+      if (sequence) db.prepare("UPDATE sqlite_sequence SET seq = ? WHERE name = 'files'").run(sequence.seq);
+      const broken = db.prepare('PRAGMA foreign_key_check(files)').all();
+      if (broken.length) throw new Error(`files: ${broken.length} row(s) point at missing records`);
+    })();
+  } finally {
+    db.pragma('foreign_keys = ON');
+  }
+}
+
 module.exports = {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams
+  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners
 };

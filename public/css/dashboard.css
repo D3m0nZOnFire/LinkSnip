@@ -164,12 +164,6 @@
   max-width: 28rem;
 }
 
-.field-error {
-  color: var(--destructive);
-  font-size: var(--text-sm);
-}
-
-.field-error:empty,
 #editFileUsersError:empty {
   display: none;
 }

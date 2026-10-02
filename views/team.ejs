@@ -1,24 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: `${team.name} · Teams`, styles: ['tables', 'forms', 'modals'] }) %>
-  <style>
-    .team-section { margin-bottom: 2.5rem; }
-    .team-section h3 { margin-bottom: 0.75rem; }
-    .team-title { overflow-wrap: anywhere; }
-    .team-meta { color: var(--muted-foreground); }
-    .inline-form { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
-    .inline-form .form-group { margin: 0; flex: 1 1 12rem; }
-    .inline-form select.form-input { min-width: 9rem; }
-    .member-role-select { padding: 0.4rem 0.6rem; font-size: 0.9rem; width: auto; }
-    .you { color: var(--muted-foreground); font-size: 0.8rem; }
-    .btn-secondary { background: var(--secondary); color: var(--foreground); border: 1px solid var(--border); }
-    .danger-zone { border: 1px solid var(--destructive); border-radius: var(--radius-md); padding: 1rem 1.25rem; }
-    .danger-zone p { color: var(--muted-foreground); margin: 0.25rem 0 1rem; }
-    .form-errors { color: var(--destructive); margin-top: 0.75rem; }
-    .data-table td, .data-table th { white-space: nowrap; }
-    .data-table td:first-child { white-space: normal; overflow-wrap: anywhere; }
-  </style>
+  <%- include('partials/head', { title: `${team.name} · Teams`, styles: ['forms', 'modals', 'sections', 'teams'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'app', currentPage: 'teams' }) %>
 
@@ -34,27 +17,28 @@
       .map(([type, n]) => `${n} ${NOUNS[type]}${n === 1 ? '' : 's'}`).join(' · ') || 'No items yet';
   %>
 
-  <main class="main-content-wide" id="teamPage" data-team-id="<%= team.id %>" data-team-name="<%= team.name %>">
+  <main class="main-content-wide page-medium" id="teamPage" data-team-id="<%= team.id %>" data-team-name="<%= team.name %>">
     <div class="header-section">
       <div>
-        <h2 class="team-title"><%= team.name %></h2>
-        <p class="team-meta"><%= isMember ? `You are ${/^[aeiou]/.test(myRole) ? 'an' : 'a'} ${myRole}` : 'You see this team as a site admin' %> · <%= countText %></p>
+        <h2 class="page-title"><%= team.name %></h2>
+        <p><%= isMember ? `You are ${/^[aeiou]/.test(myRole) ? 'an' : 'a'} ${myRole}` : 'You see this team as a site admin' %> · <%= countText %></p>
       </div>
-      <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-        <a href="/dashboard?team=<%= team.id %>" class="btn" style="color: var(--primary-foreground);">Open items</a>
-        <a href="/teams" class="btn btn-secondary">All teams</a>
+      <div class="header-actions">
+        <a href="/teams" class="btn btn-secondary"><%- include('partials/icon', { icon: 'arrowLeft' }) %> All teams</a>
+        <a href="/dashboard?team=<%= team.id %>" class="btn"><%- include('partials/icon', { icon: 'dashboard' }) %> Open items</a>
       </div>
     </div>
 
-    <section class="team-section">
+    <section class="section-card">
       <h3>Members</h3>
-      <div class="table-container" style="overflow-x: auto;">
-        <table class="data-table">
+      <p class="section-help"><%= members.length %> member<%= members.length === 1 ? '' : 's' %>. Owners manage everyone; admins manage members and viewers.</p>
+      <div class="table-scroll">
+        <table class="section-table">
           <thead><tr><th>Name</th><th>Role</th><th>Joined</th><% if (isManager) { %><th></th><% } %></tr></thead>
           <tbody>
             <% members.forEach(member => { %>
               <tr>
-                <td><%= member.username %><% if (member.userId === user.id) { %> <span class="you">(you)</span><% } %></td>
+                <td class="name-cell"><%= member.username %><% if (member.userId === user.id) { %> <span class="you">(you)</span><% } %></td>
                 <td>
                   <% if (isManager && manages(member.role)) { %>
                     <select class="form-input member-role-select" data-member-id="<%= member.userId %>" aria-label="Role of <%= member.username %>">
@@ -66,9 +50,9 @@
                     <%= label(member.role) %>
                   <% } %>
                 </td>
-                <td><%= member.joinedAt ? String(member.joinedAt).slice(0, 10) : '' %></td>
+                <td class="muted"><%= member.joinedAt ? String(member.joinedAt).slice(0, 10) : '' %></td>
                 <% if (isManager) { %>
-                  <td>
+                  <td class="actions-cell">
                     <% if (manages(member.role) && member.userId !== user.id) { %>
                       <button type="button" class="btn btn-small btn-secondary remove-member" data-member-id="<%= member.userId %>" data-username="<%= member.username %>">Remove</button>
                     <% } %>
@@ -79,18 +63,19 @@
           </tbody>
         </table>
       </div>
-      <p id="membersError" class="form-errors" role="alert"></p>
+      <p id="membersError" class="field-error" role="alert"></p>
     </section>
 
     <% if (isManager) { %>
-      <section class="team-section">
+      <section class="section-card">
         <h3>Invite someone</h3>
+        <p class="section-help">They see the invite on their dashboard and choose to join.</p>
         <form id="inviteForm" class="inline-form">
           <div class="form-group">
             <label for="inviteUsername" class="form-label">Username</label>
             <input type="text" id="inviteUsername" class="form-input" autocomplete="off" required>
           </div>
-          <div class="form-group" style="flex: 0 1 10rem;">
+          <div class="form-group narrow">
             <label for="inviteRole" class="form-label">Role</label>
             <select id="inviteRole" class="form-input">
               <% inviteRoles.forEach(role => { %>
@@ -98,15 +83,14 @@
               <% }) %>
             </select>
           </div>
-          <button type="submit" class="btn" style="color: var(--primary-foreground);">Invite</button>
+          <button type="submit" class="btn">Invite</button>
         </form>
-        <p class="team-meta" style="font-size: 0.85rem; margin-top: 0.5rem;">They see the invite on their dashboard and choose to join.</p>
-        <p id="inviteError" class="form-errors" role="alert"></p>
+        <p id="inviteError" class="field-error" role="alert"></p>
 
         <% if (invites.length) { %>
-          <h3 style="margin-top: 1.5rem;">Pending invites</h3>
-          <div class="table-container" style="overflow-x: auto;">
-            <table class="data-table">
+          <h4>Pending invites</h4>
+          <div class="table-scroll">
+            <table class="section-table">
               <thead><tr><th>Name</th><th>Role</th><th>Invited by</th><th></th></tr></thead>
               <tbody>
                 <% invites.forEach(invite => { %>
@@ -114,7 +98,7 @@
                     <td><%= invite.username %></td>
                     <td><%= label(invite.role) %></td>
                     <td><%= invite.invitedBy || '' %></td>
-                    <td><button type="button" class="btn btn-small btn-secondary revoke-invite" data-invite-id="<%= invite.id %>">Revoke</button></td>
+                    <td class="actions-cell"><button type="button" class="btn btn-small btn-secondary revoke-invite" data-invite-id="<%= invite.id %>">Revoke</button></td>
                   </tr>
                 <% }) %>
               </tbody>
@@ -123,7 +107,7 @@
         <% } %>
       </section>
 
-      <section class="team-section">
+      <section class="section-card">
         <h3>Name</h3>
         <form id="renameForm" class="inline-form">
           <div class="form-group">
@@ -132,23 +116,23 @@
           </div>
           <button type="submit" class="btn btn-secondary">Rename</button>
         </form>
-        <p id="renameError" class="form-errors" role="alert"></p>
+        <p id="renameError" class="field-error" role="alert"></p>
       </section>
     <% } %>
 
     <% if (isMember) { %>
-      <section class="team-section">
+      <section class="section-card">
         <h3>Leave</h3>
-        <p class="team-meta">The items you created stay in the team.</p>
+        <p class="section-help">The items you created stay in the team.</p>
         <button type="button" class="btn btn-secondary" id="leaveTeamBtn">Leave team</button>
-        <p id="leaveError" class="form-errors" role="alert"></p>
+        <p id="leaveError" class="field-error" role="alert"></p>
       </section>
     <% } %>
 
     <% if (myRole === 'owner') { %>
-      <section class="team-section danger-zone">
-        <h3 style="margin: 0;">Delete team</h3>
-        <p>Deletes the team and everything in it: its links, bundles, pastes and files, with their analytics. This can't be undone.</p>
+      <section class="section-card danger">
+        <h3>Delete team</h3>
+        <p class="section-help">Deletes the team and everything in it: its links, bundles, pastes and files, with their analytics. This can't be undone.</p>
         <button type="button" class="btn btn-danger" id="deleteTeamBtn">Delete team</button>
       </section>
     <% } %>
@@ -156,15 +140,10 @@
 
   <% if (myRole === 'owner') { %>
   <div id="deleteTeamModal" class="modal-overlay">
-    <div class="modal">
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="deleteTeamTitle">
       <div class="modal-header">
-        <h3>Delete <%= team.name %></h3>
-        <button type="button" class="modal-close" onclick="closeModal('deleteTeamModal')" aria-label="Close">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <h3 id="deleteTeamTitle">Delete <%= team.name %></h3>
+        <button type="button" class="modal-close" data-close-modal="deleteTeamModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
       <form class="modal-body" id="deleteTeamForm">
         <p>This deletes <strong><%= countText.toLowerCase() %></strong> and the team itself. Type the team name to confirm.</p>
@@ -172,9 +151,9 @@
           <label for="confirmTeamName" class="form-label">Team name</label>
           <input type="text" id="confirmTeamName" class="form-input" autocomplete="off" required>
         </div>
-        <p id="deleteError" class="form-errors" role="alert"></p>
+        <p id="deleteError" class="field-error" role="alert"></p>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="closeModal('deleteTeamModal')">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-close-modal="deleteTeamModal">Cancel</button>
           <button type="submit" class="btn btn-danger" id="confirmDeleteBtn" disabled>Delete team</button>
         </div>
       </form>

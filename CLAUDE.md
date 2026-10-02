@@ -79,6 +79,15 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
    `registrationOpen`, `writableTeams`; `appLocals()` sets `appVersion` and `reportReasons` on `app.locals`)
 5. Routers (feature routers wrapped in `featureRoutes`), then the home routes, 404 and error handlers
 
+## Accounts
+
+- **`services/passwordPolicy.js`**: `MIN_PASSWORD_LENGTH` (8) and `passwordProblem(password)` for every new password
+  (register, change password, setup, Admin → Users create/edit, the CLI). Forms use `minPasswordLength`
+  (app.locals). Existing shorter passwords keep working.
+- **`services/accountDeletion.js`** `deleteAccount(userId)` (Settings → Delete account, Admin → Users → Delete):
+  deletes the personal links, bundles, pastes and files (uploads too) and the user; tags and the bio page cascade,
+  the items' analytics/share links/reports/tags go through the delete triggers. Team items stay, creator NULL.
+
 ## First admin and the admin CLI
 
 - **`services/setupService.js`**: while no admin exists, `start()` (called after `listen`) logs a one-time code
@@ -93,7 +102,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - `config/database.js` opens `DB_PATH`, applies `config/dbSetup.js` (WAL, `busy_timeout = 5000`, foreign keys), and
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
   `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
-  `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`); they're idempotent
+  `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`, `migrateFileOwners`); they're idempotent
   and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there
   (bio pages included). `tests/unit/config/freshDatabase.test.js` opens a brand-new database in its own process.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
@@ -107,7 +116,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - **users**: `isAdmin`, `isBanned`, `role`, `email`, `lastActive`
 - **urls**: `slug`, `longUrl`, `creatorId` (→ users, SET NULL), `clicks`, `maxUses`, `expiresAt`, `activateAt`,
   `deactivateAt` (datetime-local + `:00.000Z`, no timezone conversion), `password` (bcrypt), `isBlocked`, `isQuarantined`
-- **pastes**, **files**, **bundles** (+ `bundle_items`): same access fields as urls, `isQuarantined` included.
+- **pastes**, **files**, **bundles** (+ `bundle_items`): same access fields as urls, `isQuarantined` included. Every
+  owner column is nullable with ON DELETE SET NULL (`files.userId` since `migrateFileOwners`, a table rebuild).
   Pastes use `userId`/`views`/`maxViews`, files `userId`/`downloads`/`maxDownloads`/`size`/`sharingMode`/
   `allowedUsers`
 - **analytics_events** (every type): one row per visit, `targetType` + `targetId`, `subTargetId` (a bundle item click;
@@ -204,7 +214,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Bundles and bio pages
 - Bundles: `/b/:slug` launcher, `/bt/:itemId` per-item tracking redirect (checks the bundle's access).
   `Bundle.replaceItems` updates items in place: an item whose URL stays keeps its ID and click history.
-- Bio pages: `/bio/:username` public, `/bio/settings`. Hidden (404) when the owner's role lacks `bioPage`.
+- Bio pages: `/bio/:username` public, `/bio/settings`. Hidden (404) when the owner's role lacks `bioPage`. In the
+  settings, profile and social links are saved with the save bar (it sticks to the window while something is
+  unsaved); the link checkboxes save right away (`POST /api/bio/urls/:id/toggle`).
 
 ### Tags (every content type)
 - `models/Tag.js`: `forItem(type, id)` and `setForItem(type, id, names)` (replaces; an empty list removes all). Tags
@@ -426,6 +438,11 @@ share links · 5:30 expired files · 5:45 country database check.
   'teams', 'admin-teams', 'admin-appearance', 'bio-settings', 'import',
   'analytics', 'info'.
 - `views/error.ejs` takes `{ title, message, code }` (it also tolerates `statusCode` / `error.status`).
+- App pages made of sections (settings, bio settings, a team, import/export, tags): `public/css/sections.css`
+  (`.page-narrow` / `.page-medium` column, `.section-card` with `h3` + `.section-help`, `.section-card.danger`,
+  `.inline-form`, `.section-table` in a `.table-scroll`, `.save-bar`), plus a small stylesheet per page. No `<style>`,
+  `style=` (CSS variables aside), inline handlers or emoji in their templates; a test checks this.
+- `confirmAction()` returns a Promise: always `await` it (an unawaited one is always truthy).
 - Modals: `public/css/modals.css`, `openModal(id)` / `closeModal(id)` in `public/js/main.js`; `showToast`,
   `apiRequest`, `setButtonLoading` there too.
 - Password inputs with `data-toggle-password` get an eye toggle. Theme variables in `public/css/tokens.css`

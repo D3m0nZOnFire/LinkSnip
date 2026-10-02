@@ -1,3 +1,5 @@
+const { deleteAccount } = require('../services/accountDeletion');
+const { passwordProblem } = require('../services/passwordPolicy');
 const User = require('../models/User');
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
@@ -165,8 +167,9 @@ class AdminController {
     if (!username || !String(username).trim()) {
       return res.status(400).json({ error: 'Username is required' });
     }
-    if (!password || String(password).length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const weak = passwordProblem(password === undefined || password === null ? '' : String(password));
+    if (weak) {
+      return res.status(400).json({ error: weak });
     }
     if (role !== null && !RoleService.isAssignable(role)) {
       return res.status(400).json({ error: `Unknown role: ${role}` });
@@ -235,6 +238,12 @@ class AdminController {
     const role = req.body.role === undefined ? undefined : (req.body.role || null);
 
     const isSelf = parseInt(id) === req.session.userId;
+
+    // An empty password field keeps the current one; a new one has to follow the rule
+    if (password && String(password).trim() !== '') {
+      const weak = passwordProblem(String(password));
+      if (weak) return res.status(400).json({ error: weak });
+    }
 
     try {
       const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
@@ -380,14 +389,14 @@ class AdminController {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      const deleteStmt = db.prepare('DELETE FROM users WHERE id = ?');
-      deleteStmt.run(id);
+      // Their personal items go too; team items stay with the team
+      const { items } = deleteAccount(user.id);
 
-      // Log user deletion
       logAdminAction(ACTIONS.DELETE_USER, req, 'user', user.id, `${user.username}`, {
         email: user.email,
         wasAdmin: user.isAdmin,
-        wasBanned: user.isBanned
+        wasBanned: user.isBanned,
+        items
       });
 
       res.json({ success: true });

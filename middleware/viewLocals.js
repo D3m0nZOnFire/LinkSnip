@@ -21,6 +21,7 @@ const FEATURE_OF_PERMISSION = {
 function appLocals() {
   return {
     appVersion: require('../package.json').version,
+    minPasswordLength: require('../services/passwordPolicy').MIN_PASSWORD_LENGTH,
     reportReasons: require('../models/Report').REASONS
   };
 }
@@ -40,7 +41,7 @@ function viewLocals(req, res, next) {
   }));
   res.locals.canUploadFiles = res.locals.can.uploadFiles;
   res.locals.writableTeams = req.user ? teamService.writableTeams(req.user) : [];
-  res.locals.limits = Object.fromEntries(['urlsPerHour', 'pastesPerHour', 'bundlesPerHour', 'uploadsPerHour']
+  res.locals.limits = Object.fromEntries(['urlsPerHour', 'pastesPerHour', 'bundlesPerHour', 'uploadsPerHour', 'importsPerHour', 'importBatchSize']
     .map(name => [name, RoleService.limit(req.user || null, name)]));
   next();
 }

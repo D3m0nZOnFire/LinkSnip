@@ -1,3 +1,5 @@
+const { deleteAccount } = require('../services/accountDeletion');
+const { passwordProblem } = require('../services/passwordPolicy');
 const User = require('../models/User');
 const Url = require('../models/Url');
 const bcrypt = require('bcrypt');
@@ -81,8 +83,9 @@ class UserController {
       return res.status(400).json({ error: 'Both passwords are required' });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    const weak = passwordProblem(newPassword);
+    if (weak) {
+      return res.status(400).json({ error: weak });
     }
 
     try {
@@ -147,9 +150,8 @@ class UserController {
         return res.status(401).json({ error: 'Invalid password' });
       }
 
-      // Delete user (cascades to URLs due to foreign key)
-      const deleteStmt = db.prepare('DELETE FROM users WHERE id = ?');
-      deleteStmt.run(req.session.userId);
+      // The account and its personal items (team items stay with the team)
+      deleteAccount(user.id);
 
       // Destroy session
       req.session.destroy();

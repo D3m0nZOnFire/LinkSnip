@@ -1,271 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Tags', styles: ['tables', 'forms', 'modals'] }) %>
+  <%- include('partials/head', { title: 'Tags', styles: ['forms', 'modals', 'sections', 'tags'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'app', currentPage: 'tags' }) %>
-
-  <!-- Main Content -->
-  <main class="main-content-wide">
-    <!-- Header Section -->
+<%
+  const uses = tags.reduce((sum, t) => sum + t.itemCount, 0);
+  const visits = tags.reduce((sum, t) => sum + t.visits, 0);
+  const plural = (n, word) => `${n.toLocaleString('en-US')} ${word}${n === 1 ? '' : 's'}`;
+  const day = (value) => new Date(String(value).includes('T') ? value : `${String(value).replace(' ', 'T')}Z`)
+    .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+-%>
+  <main class="main-content-wide page-medium">
     <div class="header-section">
       <div>
-        <h2>Your Tags</h2>
-        <p>Organize links, bundles, pastes and files by campaign, platform, or project</p>
-      </div>
-      <a href="/dashboard" class="btn" style="color: var(--primary-foreground);">Back to Dashboard</a>
-    </div>
-
-    <!-- Info Box -->
-    <div style="margin-bottom: 2rem; padding: 1rem; background-color: var(--info-bg); border: 1px solid var(--info-border); border-radius: 0.5rem;">
-      <div style="display: flex; align-items: start; gap: 0.75rem;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; color: var(--primary);">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M12 16v-4"></path>
-          <path d="M12 8h.01"></path>
-        </svg>
-        <div style="font-size: 0.875rem;">
-          <p style="margin: 0 0 0.5rem 0; font-weight: 500; color: var(--foreground);">How to use tags:</p>
-          <ul style="margin: 0; padding-left: 1.25rem; color: var(--muted-foreground);">
-            <li style="margin-bottom: 0.25rem;">Add tags when creating or editing an item (e.g., <code style="background: color-mix(in srgb, var(--primary) 15%, transparent); padding: 2px 6px; border-radius: 3px;">email-campaign</code>, <code style="background: color-mix(in srgb, var(--primary) 15%, transparent); padding: 2px 6px; border-radius: 3px;">twitter</code>)</li>
-            <li style="margin-bottom: 0.25rem;">Filter your dashboard by tag</li>
-            <li style="margin-bottom: 0.25rem;">View analytics for everything with a specific tag</li>
-            <li>Track performance across campaigns and platforms</li>
-          </ul>
-        </div>
+        <h2>Tags</h2>
+        <p class="header-stats"><%= tags.length ? `${plural(tags.length, 'tag')} · ${plural(uses, 'use')} · ${plural(visits, 'visit')}` : 'Group links, bundles, pastes and files by campaign, platform or project' %></p>
       </div>
     </div>
 
-    <!-- Empty State or Table -->
     <% if (tags.length === 0) { %>
-      <div class="empty-state">
-        <p>No tags yet</p>
-        <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-top: 0.5rem;">
-          Tags are created automatically when you add them to an item
-        </p>
-        <a href="/" class="btn btn-small" style="margin-top: 1rem;">Create a new link with tags</a>
+      <div class="section-card tags-empty">
+        <h3>No tags yet</h3>
+        <p class="section-help">A tag is made the first time you add it to something.</p>
+        <ul class="tags-howto">
+          <li>Add tags when you create or edit an item, e.g. <code>newsletter</code> or <code>launch</code>.</li>
+          <li>Filter your dashboard by a tag.</li>
+          <li>See the visits of everything with a tag together.</li>
+        </ul>
+        <a href="/" class="btn btn-small"><%- include('partials/icon', { icon: 'plus' }) %> Create something</a>
       </div>
     <% } else { %>
-      <div class="table-container">
-        <div class="table-wrapper">
-          <table>
+      <div class="section-card tags-card">
+        <div class="table-scroll">
+          <table class="section-table">
             <thead>
-              <tr>
-                <th>Tag Name</th>
-                <th>Color</th>
-                <th class="text-right">Items</th>
-                <th class="text-right">Visits</th>
-                <th>Created</th>
-                <th class="text-center">Actions</th>
-              </tr>
+              <tr><th>Tag</th><th class="num">Items</th><th class="num">Visits</th><th>Created</th><th class="actions-cell"><span class="visually-hidden">Actions</span></th></tr>
             </thead>
             <tbody>
-              <% tags.forEach(tag => { %>
-                <tr>
-                  <td>
-                    <span style="display: inline-block; padding: 0.25rem 0.75rem; background-color: <%= tag.color %>20; color: <%= tag.color %>; border: 1px solid <%= tag.color %>40; border-radius: 4px; font-weight: 500;">
-                      <%= tag.name %>
-                    </span>
-                  </td>
-                  <td>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                      <div style="width: 1.5rem; height: 1.5rem; background-color: <%= tag.color %>; border-radius: 4px; border: 1px solid var(--border);"></div>
-                      <code style="color: var(--muted-foreground); font-size: 0.875rem;"><%= tag.color %></code>
-                    </div>
-                  </td>
-                  <% const breakdown = Object.entries(tag.counts).filter(([, n]) => n > 0)
-                       .map(([type, n]) => `${n} ${typeNouns[type]}${n === 1 ? '' : 's'}`).join(', '); %>
-                  <td class="text-right" title="<%= breakdown %>"><%= tag.itemCount %></td>
-                  <td class="text-right"><%= tag.visits %></td>
-                  <td><%= new Date(tag.createdAt).toLocaleDateString('en-GB') %></td>
-                  <td class="text-center">
-                    <div class="actions">
-                      <a href="/tags/<%= tag.id %>/analytics" class="icon-btn" title="Analytics">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M3 3v18h18"></path>
-                          <path d="M18 17V9"></path>
-                          <path d="M13 17V5"></path>
-                          <path d="M8 17v-3"></path>
-                        </svg>
-                      </a>
-                      <button class="icon-btn" onclick="editTag(<%= tag.id %>, '<%= tag.name %>', '<%= tag.color %>')" title="Edit">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                      </button>
-                      <button class="icon-btn danger" onclick="deleteTag(<%= tag.id %>, '<%= tag.name %>')" title="Delete">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              <% }); %>
+              <% tags.forEach(tag => {
+                   const breakdown = Object.entries(tag.counts).filter(([, n]) => n > 0)
+                     .map(([type, n]) => `${n} ${typeNouns[type]}${n === 1 ? '' : 's'}`).join(', ');
+              %>
+              <tr data-tag-id="<%= tag.id %>" data-tag-name="<%= tag.name %>" data-tag-color="<%= tag.color %>">
+                <td><%- include('partials/tag-chips', { tags: [tag] }) %></td>
+                <td class="num" title="<%= breakdown %>"><%= tag.itemCount %></td>
+                <td class="num"><%= tag.visits.toLocaleString('en-US') %></td>
+                <td class="muted"><%= day(tag.createdAt) %></td>
+                <td class="actions-cell">
+                  <a href="/tags/<%= tag.id %>/analytics" class="icon-btn" title="Analytics" aria-label="Analytics for <%= tag.name %>"><%- include('partials/icon', { icon: 'chart' }) %></a>
+                  <button type="button" class="icon-btn" data-action="edit" title="Edit" aria-label="Edit <%= tag.name %>"><%- include('partials/icon', { icon: 'edit' }) %></button>
+                  <button type="button" class="icon-btn danger" data-action="delete" title="Delete" aria-label="Delete <%= tag.name %>"><%- include('partials/icon', { icon: 'trash' }) %></button>
+                </td>
+              </tr>
+              <% }) %>
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <!-- Tag Statistics Summary -->
-      <div style="margin-top: 2rem; padding: 1.5rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
-        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Summary</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
-          <div>
-            <p style="color: var(--muted-foreground); font-size: 0.875rem;">Total Tags</p>
-            <p style="font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= tags.length %></p>
-          </div>
-          <div>
-            <p style="color: var(--muted-foreground); font-size: 0.875rem;">Tag uses</p>
-            <p style="font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= tags.reduce((sum, t) => sum + t.itemCount, 0) %></p>
-          </div>
-          <div>
-            <p style="color: var(--muted-foreground); font-size: 0.875rem;">Visits</p>
-            <p style="font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= tags.reduce((sum, t) => sum + t.visits, 0) %></p>
-          </div>
         </div>
       </div>
     <% } %>
   </main>
 
-  <!-- Edit Tag Modal -->
+  <!-- Edit a tag -->
   <div id="editTagModal" class="modal-overlay">
-    <div class="modal">
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="editTagTitle">
       <div class="modal-header">
-        <h3>Edit Tag</h3>
-        <button class="modal-close" onclick="closeModal('editTagModal')">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <h3 id="editTagTitle">Edit tag</h3>
+        <button type="button" class="modal-close" data-close-modal="editTagModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
-
-      <div class="modal-body">
+      <form class="modal-body" id="editTagForm" novalidate>
         <div class="form-group">
-          <label for="editTagName" class="form-label">Tag Name</label>
-          <input
-            type="text"
-            id="editTagName"
-            class="form-input"
-            placeholder="marketing"
-            required
-          >
+          <label for="editTagName" class="form-label">Name</label>
+          <input type="text" id="editTagName" class="form-input" maxlength="50" required>
         </div>
-
         <div class="form-group">
-          <label for="editTagColor" class="form-label">Color</label>
-          <div style="display: flex; gap: 1rem; align-items: stretch;">
-            <div class="color-picker-wrapper">
-              <input
-                type="color"
-                id="editTagColor"
-                class="color-picker-input"
-              >
-            </div>
-            <input
-              type="text"
-              id="editTagColorHex"
-              class="form-input"
-              placeholder="#34d399"
-              pattern="^#[0-9A-Fa-f]{6}$"
-              style="flex: 1;"
-            >
+          <label for="editTagColorHex" class="form-label">Color</label>
+          <div class="color-row">
+            <div class="color-picker-wrapper"><input type="color" id="editTagColor" class="color-picker-input" aria-label="Pick a color"></div>
+            <input type="text" id="editTagColorHex" class="form-input" placeholder="#34d399" pattern="^#[0-9A-Fa-f]{6}$">
           </div>
-          <small style="color: var(--muted-foreground); font-size: 0.875rem;">Choose a color or enter a hex code</small>
         </div>
-      </div>
-
+      </form>
       <div class="modal-footer">
-        <button class="btn" style="background-color: var(--secondary); color: var(--foreground);" onclick="closeModal('editTagModal')">
-          Cancel
-        </button>
-        <button class="btn" id="saveTagBtn" style="color: var(--primary-foreground);">
-          Save Changes
-        </button>
+        <button type="button" class="btn btn-secondary" data-close-modal="editTagModal">Cancel</button>
+        <button type="submit" class="btn" form="editTagForm" id="saveTagBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm (confirmAction in main.js) -->
+  <div id="confirmModal" class="modal-overlay">
+    <div class="modal modal-narrow" role="alertdialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+      <div class="modal-header"><h3 id="confirmModalTitle">Confirm</h3></div>
+      <div class="modal-body"><p id="confirmModalMessage"></p></div>
+      <div class="modal-footer">
+        <button type="button" id="confirmModalCancelBtn" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="confirmModalConfirmBtn" class="btn btn-danger">Delete</button>
       </div>
     </div>
   </div>
 
   <script src="/js/main.js"></script>
-  <script>
-    let currentEditingTagId = null;
-
-    // Edit tag modal
-    function editTag(id, name, color) {
-      currentEditingTagId = id;
-      document.getElementById('editTagName').value = name;
-      document.getElementById('editTagColor').value = color;
-      document.getElementById('editTagColorHex').value = color;
-      openModal('editTagModal');
-    }
-
-    // Sync color picker and hex input
-    document.getElementById('editTagColor').addEventListener('input', function(e) {
-      document.getElementById('editTagColorHex').value = e.target.value;
-    });
-
-    document.getElementById('editTagColorHex').addEventListener('input', function(e) {
-      const hex = e.target.value;
-      if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-        document.getElementById('editTagColor').value = hex;
-      }
-    });
-
-    // Save tag changes
-    document.getElementById('saveTagBtn').addEventListener('click', async function() {
-      if (!currentEditingTagId) return;
-
-      const name = document.getElementById('editTagName').value.trim();
-      const color = document.getElementById('editTagColorHex').value.trim();
-
-      if (!name) {
-        showToast('Tag name is required', 'error');
-        return;
-      }
-
-      if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
-        showToast('Invalid color format. Use hex format like #34d399', 'error');
-        return;
-      }
-
-      const saveBtn = document.getElementById('saveTagBtn');
-      setButtonLoading(saveBtn, true);
-
-      try {
-        await apiRequest(`/api/tags/${currentEditingTagId}`, {
-          method: 'PUT',
-          body: JSON.stringify({ name, color })
-        });
-
-        showToast('Tag updated successfully!');
-        closeModal('editTagModal');
-        setTimeout(() => location.reload(), 1000);
-      } catch (error) {
-        showToast('Error updating tag: ' + error.message, 'error');
-        setButtonLoading(saveBtn, false);
-      }
-    });
-
-    // Delete tag
-    async function deleteTag(id, name) {
-      if (!confirmAction(`Are you sure you want to delete the tag "${name}"? This will remove it from every item.`)) {
-        return;
-      }
-
-      try {
-        await apiRequest(`/api/tags/${id}`, {
-          method: 'DELETE'
-        });
-
-        showToast('Tag deleted successfully!');
-        setTimeout(() => location.reload(), 1000);
-      } catch (error) {
-        showToast('Error deleting tag: ' + error.message, 'error');
-      }
-    }
-  </script>
+  <script src="/js/tags.js"></script>
 <%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

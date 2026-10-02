@@ -4,6 +4,10 @@
  */
 (function () {
   const page = document.getElementById('teamPage');
+  if (!page) return;
+  document.querySelectorAll('[data-close-modal]').forEach(button => {
+    button.addEventListener('click', () => closeModal(button.dataset.closeModal));
+  });
   const teamId = page.dataset.teamId;
   const teamName = page.dataset.teamName;
 

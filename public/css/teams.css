@@ -1,0 +1,95 @@
+/* Teams (views/teams.ejs) and a team (views/team.ejs) */
+
+.team-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.team-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  text-decoration: none;
+  transition: border-color var(--transition-fast);
+}
+
+.team-card:hover {
+  border-color: var(--border-hover);
+}
+
+.team-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.team-card > .icon {
+  margin-left: auto;
+  color: var(--muted-foreground);
+}
+
+.team-card-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  background: var(--secondary);
+  color: var(--muted-foreground);
+}
+
+.team-card-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.team-card-text strong {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.team-card-text span {
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+}
+
+.inline-form .btn,
+.header-actions .btn {
+  gap: 0.35rem;
+}
+
+/* A team */
+.member-role-select.form-input {
+  width: auto;
+  padding: 0.35rem 2.25rem 0.35rem 0.6rem;
+  font-size: var(--text-sm);
+}
+
+.you {
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+}
+
+.section-card h4 {
+  margin: var(--spacing-lg) 0 var(--spacing-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.section-table .name-cell {
+  min-width: 7rem;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.modal-narrow {
+  max-width: 28rem;
+}
