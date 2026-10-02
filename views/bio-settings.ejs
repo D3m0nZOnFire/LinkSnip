@@ -94,7 +94,7 @@
           <h3>Links on your page</h3>
           <span class="muted" id="bioLinkCount"><%= shown %> of <%= userUrls.length %></span>
         </div>
-        <p class="section-help">Tick the short links to show. Saved right away.</p>
+        <p class="section-help">Tick the short links to show, and give them a label if you like. Saved right away.</p>
         <% if (userUrls.length === 0) { %>
           <p class="muted">No links yet. <a href="/">Create your first link</a>.</p>
         <% } else { %>
@@ -109,6 +109,11 @@
               </span>
               <span class="link-picker-clicks"><%= Number(url.clicks || 0).toLocaleString('en-US') %></span>
             </label>
+            <% const label = (locals.bioLabels && bioLabels.get(url.id)) || ''; %>
+            <div class="link-label-row"<%= bioPageUrlIds.has(url.id) ? '' : ' hidden' %>>
+              <input type="text" class="form-input" data-label-for="<%= url.id %>" value="<%= label %>" maxlength="100"
+                placeholder="Label on your page (optional), e.g. My YouTube channel" aria-label="Label for /s/<%= url.slug %>">
+            </div>
             <% }) %>
           </div>
         <% } %>

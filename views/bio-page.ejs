@@ -9,101 +9,66 @@
   shell: 'standalone',
   bodyClass: `bio-theme-${bioPage.theme}`,
   bodyStyle: bioPage.theme === 'gradient'
-    ? `background: linear-gradient(135deg, ${bioPage.gradientStart || '#667eea'} 0%, ${bioPage.gradientEnd || '#764ba2'} 100%);`
+    ? `--bio-from: ${bioPage.gradientStart || '#667eea'}; --bio-to: ${bioPage.gradientEnd || '#764ba2'};`
     : null
 }) %>
-  <!-- Optional minimal header for navigation -->
-  <div class="bio-header">
-    <a href="/" class="bio-home-link">
-      <img src="<%= branding.logoUrl %>" alt="<%= branding.name %>" style="height: 24px;">
-    </a>
+<%
+  const DASHBOARD_ICONS = 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg';
+  // What a link reads as: its label, else the destination's domain (and the rest of the address below)
+  const parts = (address) => {
+    try {
+      const u = new URL(address);
+      const rest = `${u.pathname === '/' ? '' : u.pathname}${u.search}`;
+      return { host: u.hostname.replace(/^www\./, ''), rest };
+    } catch (_) { return { host: address, rest: '' }; }
+  };
+-%>
+  <header class="bio-header">
+    <%- include('partials/brand') %>
     <% if (user && user.username === username) { %>
-      <a href="/bio/settings" class="btn-small" style="color: var(--primary-foreground);">Edit Bio Page</a>
+      <a href="/bio/settings" class="bio-edit">Edit your page</a>
     <% } %>
-  </div>
+  </header>
 
-  <!-- Bio Page Content -->
   <main class="bio-container">
-    <!-- Profile Section -->
     <div class="bio-profile">
       <h1 class="bio-display-name"><%= bioPage.displayName %></h1>
       <p class="bio-username">@<%= username %></p>
+      <% if (bioPage.bio) { %><p class="bio-text"><%= bioPage.bio %></p><% } %>
 
-      <% if (bioPage.bio) { %>
-        <p class="bio-text"><%= bioPage.bio %></p>
-      <% } %>
-
-      <!-- Social Links -->
       <% if (socialLinks && socialLinks.length > 0) { %>
         <div class="bio-social-links">
-          <% socialLinks.forEach(link => { %>
-            <a
-              href="<%= link.url %>"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="bio-social-link"
-              title="<%= link.platform || link.url %>"
-            >
-              <% const iconName = link.icon || 'link-outline'; %>
+          <% socialLinks.forEach(link => { const iconName = link.icon || 'link-outline'; %>
+            <a href="<%= link.url %>" target="_blank" rel="noopener noreferrer" class="bio-social-link" title="<%= link.platform || link.url %>">
               <% if (iconName.endsWith('-outline') || iconName.startsWith('logo-')) { %>
-                <ion-icon name="<%= iconName %>" style="font-size: 1.5rem;"></ion-icon>
+                <ion-icon name="<%= iconName %>" class="bio-social-icon"></ion-icon>
               <% } else { %>
-                <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/<%= iconName %>-light.svg"
-                     data-icon="<%= iconName %>"
-                     style="width:1.5rem;height:1.5rem;"
-                     alt="">
+                <img src="<%= DASHBOARD_ICONS %>/<%= iconName %>-light.svg" data-icon="<%= iconName %>" class="bio-social-icon" alt="">
               <% } %>
-              <% if (link.platform) { %>
-                <span style="margin-left: 0.5rem;"><%= link.platform %></span>
-              <% } %>
+              <% if (link.platform) { %><span><%= link.platform %></span><% } %>
             </a>
           <% }); %>
         </div>
       <% } %>
     </div>
 
-    <!-- URLs Section -->
     <div class="bio-links">
       <% if (urls.length === 0) { %>
-        <p class="bio-empty">No links available yet</p>
+        <p class="bio-empty">No links yet</p>
       <% } else { %>
-        <% urls.forEach(url => { %>
-          <a
-            href="<%= baseUrl %>/s/<%= url.slug %>"
-            class="bio-link-card"
-            target="_blank"
-            rel="noopener"
-          >
-            <div class="bio-link-content">
-              <div class="bio-link-title">
-                <%= baseUrl %>/s/<%= url.slug %>
-              </div>
-
-              <% if (url.tags && url.tags.length > 0) { %>
-                <div class="bio-link-tags">
-                  <% url.tags.forEach(tag => { %>
-                    <span class="bio-tag" style="background-color: <%= tag.color %>20; color: <%= tag.color %>;">
-                      <%= tag.name %>
-                    </span>
-                  <% }); %>
-                </div>
-              <% } %>
-            </div>
-
-            <div class="bio-link-arrow">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </div>
+        <% urls.forEach(url => { const { host, rest } = parts(url.longUrl); %>
+          <a href="<%= baseUrl %>/s/<%= url.slug %>" class="bio-link-card" target="_blank" rel="noopener">
+            <span class="bio-link-content">
+              <span class="bio-link-title"><%= url.label || host %></span>
+              <% if (url.label) { %><span class="bio-link-sub"><%= host %></span>
+              <% } else if (rest) { %><span class="bio-link-sub"><%= rest %></span><% } %>
+              <%- include('partials/tag-chips', { tags: url.tags || [] }) %>
+            </span>
+            <span class="bio-link-arrow"><%- include('partials/icon', { icon: 'chevronRight' }) %></span>
           </a>
         <% }); %>
       <% } %>
     </div>
-
-    <!-- Footer -->
-    <footer class="bio-footer">
-      <p>Powered by <a href="/"><%= branding.name %></a></p>
-    </footer>
   </main>
 <script src="/js/bio-icons.js"></script>
 <%- include('partials/layout-end', { shell: 'standalone' }) %>

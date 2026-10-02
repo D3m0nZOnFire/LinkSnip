@@ -74,6 +74,7 @@ app.use(require('./routes/healthRoutes'));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(require('./routes/vendorRoutes')); // Chart.js from node_modules (no CDN)
 // Palette CSS, logo and favicon (Admin → Appearance), and `branding` for every page, setup and errors included
 app.use(require('./routes/brandingRoutes'));
 app.use(brandingLocals);

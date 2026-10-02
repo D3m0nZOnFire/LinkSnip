@@ -167,6 +167,7 @@ function createTestDatabase() {
       bioPageId INTEGER NOT NULL,
       urlId INTEGER NOT NULL,
       position INTEGER DEFAULT 0,
+      label TEXT DEFAULT NULL,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (bioPageId, urlId),
       FOREIGN KEY (bioPageId) REFERENCES bio_pages(id) ON DELETE CASCADE,

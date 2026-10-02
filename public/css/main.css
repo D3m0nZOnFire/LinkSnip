@@ -37,10 +37,6 @@ body {
   flex-direction: column;
 }
 
-.page-center > .auth-container {
-  flex: 1 0 auto;
-}
-
 /* Status pages (error, scheduled, quarantine): the card in the middle of the window */
 .page-center > .status-card {
   margin: auto;
@@ -382,17 +378,6 @@ code, kbd, pre, samp {
   padding: var(--spacing-xl) var(--spacing-md);
 }
 
-.auth-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-md);
-}
-
-.auth-box {
-  width: 100%;
-  max-width: 28rem;
-}
 
 /* ========================================
    Cards

@@ -392,6 +392,8 @@ document.addEventListener('change', async (e) => {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
     showToast(box.checked ? 'Shown on your page' : 'Removed from your page');
+    const labelRow = box.closest('.link-picker-item').nextElementSibling;
+    if (labelRow && labelRow.classList.contains('link-label-row')) labelRow.hidden = !box.checked;
   } catch (error) {
     box.checked = !box.checked;
     showToast(error.message || 'Could not update your page', 'error');
@@ -399,6 +401,32 @@ document.addEventListener('change', async (e) => {
     box.disabled = false;
     updateLinkCount();
   }
+});
+
+// A link's label on the page: saved when the field is left (or on Enter)
+async function saveLinkLabel(input) {
+  if (input.value === input.dataset.saved) return;
+  try {
+    const response = await fetch(`/api/bio/urls/${input.dataset.labelFor}/label`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: input.value })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+    input.dataset.saved = input.value;
+    showToast('Label saved');
+  } catch (error) {
+    showToast(error.message || 'Could not save the label', 'error');
+  }
+}
+
+document.querySelectorAll('input[data-label-for]').forEach(input => {
+  input.dataset.saved = input.value;
+  input.addEventListener('change', () => saveLinkLabel(input));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+  });
 });
 
 // ============================================================================

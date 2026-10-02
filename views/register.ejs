@@ -1,236 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Register', styles: ['forms'] }) %>
-  <style>
-    .container {
-      width: 100%;
-      max-width: 28rem;
-      margin: auto;
-      padding: var(--spacing-xl) var(--spacing-md);
-    }
-
-    .logo-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .logo {
-      width: 2.5rem;
-      height: 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .logo span {
-      color: var(--primary-foreground);
-      font-weight: bold;
-    }
-
-    .logo-text {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: var(--primary);
-    }
-
-    .heading {
-      margin-bottom: 2rem;
-      text-align: center;
-    }
-
-    .heading h2 {
-      font-size: 1.875rem;
-      font-weight: bold;
-      margin-bottom: 0.5rem;
-    }
-
-    .heading p {
-      color: var(--muted-foreground);
-    }
-
-    .error-block {
-      margin-bottom: 1.5rem;
-      padding: 1rem;
-      background-color: var(--status-error-bg);
-      border: 1px solid var(--status-error-border);
-      border-radius: 0.5rem;
-      color: var(--destructive);
-      font-size: 0.875rem;
-    }
-
-    .form-group {
-      margin-bottom: 1rem;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 0.875rem;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      background-color: var(--secondary);
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      color: var(--foreground);
-      font-size: 1rem;
-      transition: all 0.2s;
-    }
-
-    .form-input::placeholder {
-      color: var(--muted-foreground);
-    }
-
-    .form-input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-
-    .btn {
-      width: 100%;
-      padding: 0.75rem 1.5rem;
-      background-color: var(--primary);
-      color: var(--primary-foreground);
-      border: none;
-      border-radius: 0.5rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 0.2s;
-      margin-top: 1.5rem;
-      font-size: 1rem;
-    }
-
-    .btn:hover {
-      opacity: 0.9;
-    }
-
-    .footer-links {
-      margin-top: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      text-align: center;
-      font-size: 0.875rem;
-    }
-
-    .footer-links p {
-      color: var(--muted-foreground);
-    }
-
-    .footer-links a {
-      color: var(--primary);
-      font-weight: 500;
-      text-decoration: none;
-      transition: opacity 0.2s;
-    }
-
-    .footer-links a:hover {
-      opacity: 0.8;
-    }
-  </style>
+  <%- include('partials/head', { title: 'Register', styles: ['forms', 'auth'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'standalone', pageClass: 'page-center' }) %>
-  <div class="container">
-    <!-- Logo -->
-    <div class="logo-container">
-      <%- include('partials/brand', { large: true }) %>
+  <main class="auth-card">
+    <div class="auth-brand"><%- include('partials/brand', { large: true }) %></div>
+    <div class="auth-heading">
+      <h1>Create an account</h1>
+      <p>on <%= branding.name %></p>
     </div>
-
-    <!-- Heading -->
-    <div class="heading">
-      <h2>Create Account</h2>
-      <p>Join <%= branding.name %> to start managing your links</p>
-    </div>
-
-    <!-- Error Block -->
-    <% if (error) { %>
-      <div class="error-block"><%= error %></div>
-    <% } %>
-
-    <!-- Form -->
-    <form action="/register" method="POST">
-      <div class="form-group">
-        <label for="email" class="form-label">Email (Optional)</label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          class="form-input"
-          placeholder="your@email.com"
-          value="<%= email %>"
-        >
-        <div class="form-hint">Optional - used for account recovery</div>
-      </div>
-
+    <form class="auth-form" action="/register" method="POST">
+      <% if (error) { %><div class="auth-error" role="alert"><%= error %></div><% } %>
       <div class="form-group">
         <label for="username" class="form-label">Username</label>
-        <input
-          type="text"
-          id="username"
-          name="username"
-          class="form-input"
-          placeholder="Enter your username"
-          value="<%= username %>"
-          required
-        >
+        <input type="text" id="username" name="username" class="form-input" value="<%= username %>" autocomplete="username" required<%= error ? '' : ' autofocus' %>>
       </div>
-
       <div class="form-group">
-        <label for="password" class="form-label">Password</label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          class="form-input"
-          placeholder="Enter your password"
-          minlength="<%= minPasswordLength %>"
-          required
-          data-toggle-password
-        >
+        <label for="email" class="form-label">Email <span class="muted">optional, for account recovery</span></label>
+        <input type="email" id="email" name="email" class="form-input" value="<%= email %>" autocomplete="email">
       </div>
-
       <div class="form-group">
-        <label for="confirmPassword" class="form-label">Confirm Password</label>
-        <input
-          type="password"
-          id="confirmPassword"
-          name="confirmPassword"
-          class="form-input"
-          placeholder="Confirm your password"
-          required
-          data-toggle-password
-        >
+        <label for="password" class="form-label">Password <span class="muted">at least <%= minPasswordLength %> characters</span></label>
+        <input type="password" id="password" name="password" class="form-input" minlength="<%= minPasswordLength %>" autocomplete="new-password" required data-toggle-password<%= error ? ' autofocus' : '' %>>
       </div>
-
-      <button type="submit" class="btn" style="color: var(--primary-foreground);">Create Account</button>
+      <div class="form-group">
+        <label for="confirmPassword" class="form-label">Repeat the password</label>
+        <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" autocomplete="new-password" required data-toggle-password>
+      </div>
+      <button type="submit" class="btn">Create account</button>
     </form>
-
-    <!-- Footer Links -->
-    <div class="footer-links">
-      <p>
-        Already have an account? 
-        <a href="/login">Sign in</a>
-      </p>
-      <a href="/">Back to Home</a>
+    <div class="auth-links">
+      <p>Already have an account? <a href="/login">Log in</a></p>
+      <a href="/">Back to the home page</a>
     </div>
-  </div>
-
+  </main>
   <script src="/js/main.js"></script>
-  <% if (error) { %>
-  <script>
-    window.onload = function() {
-      var pwField = document.getElementById('password');
-      if (pwField) pwField.focus();
-    };
-  </script>
-  <% } %>
 <%- include('partials/layout-end', { shell: 'standalone' }) %>
 </html>

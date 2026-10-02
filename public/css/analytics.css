@@ -1,0 +1,197 @@
+/* Analytics of one item (views/analytics.ejs, partials/analytics-summary.ejs, public/js/analytics.js); also the
+   read-only /stats/:token. Stat cards from overview.css, section cards and tables from sections.css. */
+
+.analytics-page .stat-card {
+  cursor: default;
+}
+
+.analytics-page .stat-card:hover {
+  border-color: var(--border);
+}
+
+.analytics-title p {
+  overflow-wrap: anywhere;
+}
+
+.analytics-title a {
+  color: var(--primary);
+}
+
+.analytics-path {
+  margin-left: 0.35rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.7em;
+  font-weight: 500;
+}
+
+.analytics-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.analytics-two .section-card {
+  margin-bottom: 0;
+}
+
+.chart-box {
+  position: relative; /* Chart.js sizes the canvas to this box */
+  height: 15rem;
+  margin-top: var(--spacing-md);
+}
+
+.chart-box-tall {
+  height: 18rem;
+}
+
+.chart-box canvas {
+  max-width: 100%;
+}
+
+.section-table .wrap-cell {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.credit {
+  margin-top: var(--spacing-sm);
+  font-size: var(--text-xs);
+}
+
+.credit a {
+  color: var(--muted-foreground);
+}
+
+/* The read-only banner of /stats */
+.info-notice {
+  border-color: var(--info-border);
+  background: var(--info-bg);
+}
+
+.info-notice .icon,
+.info-notice strong {
+  color: var(--primary);
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  padding: 0.75rem var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.notice strong {
+  display: block;
+}
+
+.notice p {
+  color: var(--muted-foreground);
+}
+
+/* QR and share links modals */
+.qr-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  text-align: center;
+}
+
+.qr-body img {
+  width: 15rem;
+  height: 15rem;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+}
+
+.modal-footer .btn {
+  gap: 0.35rem;
+}
+
+.share-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.share-form .form-group {
+  flex: 1 1 12rem;
+  margin: 0;
+}
+
+.share-form .form-group.narrow {
+  flex: 0 1 9rem;
+}
+
+.new-share-link {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--status-active-border);
+  border-radius: var(--radius-md);
+  background: var(--status-active-bg);
+  font-size: var(--text-sm);
+}
+
+.new-share-link[hidden] {
+  display: none;
+}
+
+.copy-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.copy-row .form-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.share-list-title {
+  margin: var(--spacing-lg) 0 var(--spacing-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.share-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.share-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.share-item div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.share-item .muted {
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 768px) {
+  .analytics-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

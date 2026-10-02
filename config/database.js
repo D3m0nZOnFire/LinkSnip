@@ -216,12 +216,19 @@ if (!bioPageUrlsExists) {
       bioPageId INTEGER NOT NULL,
       urlId INTEGER NOT NULL,
       position INTEGER DEFAULT 0,
+      label TEXT DEFAULT NULL,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (bioPageId, urlId),
       FOREIGN KEY (bioPageId) REFERENCES bio_pages(id) ON DELETE CASCADE,
       FOREIGN KEY (urlId) REFERENCES urls(id) ON DELETE CASCADE
     )
   `);
+}
+
+// A label per link on a bio page (tables from before it existed)
+if (!db.prepare('PRAGMA table_info(bio_page_urls)').all().some(col => col.name === 'label')) {
+  console.log('  🔗 Adding label column to bio_page_urls...');
+  db.exec('ALTER TABLE bio_page_urls ADD COLUMN label TEXT DEFAULT NULL');
 }
 
 // ============================================================================

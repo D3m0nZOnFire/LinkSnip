@@ -82,12 +82,14 @@ class BioPageController {
       // Get URLs currently on bio page
       const bioPageUrls = BioPage.getUrls(bioPage.id);
       const bioPageUrlIds = new Set(bioPageUrls.map(u => u.id));
+      const bioLabels = new Map(bioPageUrls.map(u => [u.id, u.label || '']));
 
       res.render('bio-settings', {
         user: req.user,
         bioPage,
         userUrls,
         bioPageUrlIds,
+        bioLabels,
         socialLinks: bioPage.socialLinks || [],
         currentPage: 'bio-settings'
       });
@@ -201,6 +203,23 @@ class BioPageController {
       console.error('Update bio page error:', error);
       res.status(500).json({ error: error.message });
     }
+  }
+
+  /**
+   * A link's label on the bio page (empty removes it)
+   * PUT /api/bio/urls/:urlId/label { label }
+   */
+  static setUrlLabel(req, res) {
+    const label = typeof req.body.label === 'string' ? req.body.label : '';
+    if (label.trim().length > 100) {
+      return res.status(400).json({ error: 'A label can have up to 100 characters' });
+    }
+    const bioPage = BioPage.findByUserId(req.session.userId);
+    const urlId = parseInt(req.params.urlId, 10);
+    if (!bioPage || !BioPage.setUrlLabel(bioPage.id, urlId, label)) {
+      return res.status(404).json({ error: 'This link is not on your bio page' });
+    }
+    return res.json({ success: true, label: label.trim() || null });
   }
 
   /**

@@ -429,3 +429,69 @@ describe('bio-page: icon names never reach JavaScript', () => {
     expect(source).toContain('/js/bio-icons.js');
   });
 });
+
+describe('public pages (v1.3 part 6b): auth, analytics, bio page', () => {
+  const PAGES_6B = ['login', 'register', 'setup', 'analytics', 'bio-page', 'partials/analytics-summary'];
+  const EMOJI = /\p{Extended_Pictographic}/u;
+
+  it.each(PAGES_6B)('%s.ejs has no <style> blocks, style attributes (CSS variables aside), inline handlers or emoji', (name) => {
+    const source = fs.readFileSync(path.join(VIEWS, `${name}.ejs`), 'utf8');
+    expect(source).not.toMatch(/<style/);
+    expect(source.match(/\sstyle="(?!--[a-z-]+:)[^"]*"/g)).toBeNull();
+    expect(source).not.toMatch(/\son[a-z]+="/);
+    expect(source).not.toMatch(EMOJI);
+  });
+
+  it.each(['login', 'register', 'setup', 'analytics', 'bio-page'])('%s has no inline script code (data goes as JSON)', async (name) => {
+    const html = await renderPage(name);
+    const inline = (html.match(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/json")[^>]*>[\s\S]*?<\/script>/g) || [])
+      .filter(script => !/theme|data-theme/.test(script));
+    expect(inline).toEqual([]);
+  });
+
+  it('auth pages share one centered card with the brand', async () => {
+    for (const name of ['login', 'register', 'setup']) {
+      const html = await renderPage(name);
+      expect(html).toContain('class="auth-card"');
+    }
+  });
+
+  it('login: carries next in the form', async () => {
+    const { data } = await rendered(c('authController').getLogin, request(null, { query: { next: '/f/doc' } }));
+    const html = await ejs.renderFile(path.join(VIEWS, 'login.ejs'), { ...appLocals(), ...(await localsFor(null)), ...data });
+    expect(html).toMatch(/<input type="hidden" name="next" value="\/f\/doc">/);
+  });
+
+  it('analytics: the overview stat cards and the data as JSON for public/js/analytics.js', async () => {
+    const html = await renderPage('analytics');
+    expect(html).toContain('class="stat-card"');
+    expect(html).toMatch(/<script type="application\/json" id="analyticsData">/);
+    expect(html).toContain('/js/analytics.js');
+    expect(html).toContain('/vendor/chart.umd.js');
+  });
+
+  it('bio-page: a link shows its label, else its domain; never the bare short address', async () => {
+    const data = bioPageData();
+    data.urls = [
+      { ...s.url, longUrl: 'https://www.youtube.com/@alice', label: 'My channel', tags: [] },
+      { ...s.url, id: 999, slug: 'gh', longUrl: 'https://github.com/alice', label: null, tags: [] }
+    ];
+    const html = await ejs.renderFile(path.join(VIEWS, 'bio-page.ejs'), { ...appLocals(), ...(await localsFor(null)), ...data });
+    expect(html).toMatch(/class="bio-link-title"[^>]*>\s*My channel/);
+    expect(html).toMatch(/class="bio-link-title"[^>]*>\s*github\.com/);
+    expect(html).not.toMatch(/>\s*http:\/\/localhost:8081\/s\/gh\s*</);
+  });
+
+  it('bio-page: "Powered by" once (the site footer)', async () => {
+    const html = await renderPage('bio-page');
+    expect(html.match(/Powered by/g)).toHaveLength(1);
+  });
+});
+
+describe('bio-settings: link labels', () => {
+  it('a ticked link has a label field with its label', async () => {
+    const data = { ...bioSettingsData(), bioLabels: new Map([[s.url.id, 'My link']]) };
+    const html = await ejs.renderFile(path.join(VIEWS, 'bio-settings.ejs'), { ...appLocals(), ...(await localsFor(s.user)), ...data });
+    expect(html).toMatch(new RegExp(`<input[^>]*data-label-for="${s.url.id}"[^>]*value="My link"`));
+  });
+});

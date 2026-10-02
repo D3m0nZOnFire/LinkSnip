@@ -18,6 +18,7 @@ router.get('/bio/:username', BioPageController.getBioPage);
 // API routes (authenticated + rate limited)
 router.put('/api/bio', isAuthenticated, canBioPage, apiLimiter, BioPageController.updateBioPage);
 router.post('/api/bio/urls/:urlId/toggle', isAuthenticated, canBioPage, apiLimiter, BioPageController.toggleUrlOnBioPage);
+router.put('/api/bio/urls/:urlId/label', isAuthenticated, canBioPage, apiLimiter, BioPageController.setUrlLabel);
 router.put('/api/bio/urls/reorder', isAuthenticated, canBioPage, apiLimiter, BioPageController.reorderBioPageUrls);
 
 module.exports = router;

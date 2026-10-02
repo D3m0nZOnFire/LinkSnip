@@ -1,91 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: `Analytics · ${path}`, styles: ['tables', 'modals'] }) %>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    .url-info { background: var(--chart-background); border: 1px solid var(--chart-border); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
-    .url-info h2 { margin: 0 0 1rem 0; color: var(--chart-text); word-break: break-all; }
-    .url-info p { margin: 0.5rem 0; color: var(--chart-muted-text); }
-    .url-info a { color: var(--status-active-text); word-break: break-all; }
-  </style>
+  <%- include('partials/head', { title: `Analytics · ${path}`, styles: ['forms', 'modals', 'overview', 'sections', 'analytics'], noindex: readOnly }) %>
 </head>
 <% const shell = locals.readOnly || !user ? 'public' : 'app'; %>
 <%- include('partials/layout-start', { shell, currentPage: 'analytics' }) %>
-
-  <!-- Main Content -->
-  <main class="main-content-wide">
+<%
+  const TARGET_LABEL = { url: 'Goes to', bundle: 'Bundle', paste: 'Paste', file: 'File' };
+  const shareLinks = !readOnly && can.analyticsShareLinks;
+  const created = new Date(String(item.createdAt).includes('T') ? item.createdAt : `${String(item.createdAt).replace(' ', 'T')}Z`)
+    .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+-%>
+  <main class="main-content-wide page-medium analytics-page" id="analyticsPage"
+    data-type="<%= type %>" data-id="<%= item.id %>" data-slug="<%= item.slug %>">
     <% if (readOnly) { %>
-    <!-- Share link banner -->
-    <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" aria-hidden="true">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="16" x2="12" y2="12"></line>
-        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-      </svg>
-      <div style="flex: 1;">
-        <strong style="color: #60a5fa;">Shared analytics</strong>
-        <p style="margin: 0.25rem 0 0 0; color: #9ca3af; font-size: 0.875rem;">
-          A read-only view shared by the owner of this <%= noun %>.
-        </p>
+      <div class="notice info-notice">
+        <%- include('partials/icon', { icon: 'chart' }) %>
+        <div><strong>Shared analytics</strong><p>A read-only view shared by the owner of this <%= noun %>.</p></div>
       </div>
-    </div>
     <% } %>
 
-    <!-- Item Info -->
-    <%
-      const TARGET_LABEL = { url: 'Long URL', bundle: 'Title', paste: 'Title', file: 'File' };
-      const qrForThisType = features.qrCodes;
-    %>
-    <div class="url-info">
-      <div style="display: flex; justify-content: space-between; align-items: start; gap: 2rem;">
-        <div style="flex: 1; min-width: 0;">
-          <h2>Analytics for <%= path %></h2>
-          <p><strong><%= TARGET_LABEL[type] %>:</strong>
-            <% if (type === 'url') { %><a href="<%= target %>" target="_blank" rel="noopener noreferrer"><%= target %></a>
-            <% } else { %><%= target || '(untitled)' %><% } %>
-          </p>
-          <p><strong>Short link:</strong> <a href="<%= baseUrl %><%= path %>" target="_blank"><%= baseUrl %><%= path %></a></p>
-          <p><strong>Created:</strong> <%= new Date(item.createdAt).toLocaleString('en-GB') %></p>
-          <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
-            <% if (infoUrl) { %>
-            <a href="<%= infoUrl %>" class="btn" style="display: inline-flex; align-items: center; text-decoration: none; color: var(--primary-foreground);">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 0.5rem;">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-              Public Info
-            </a>
-            <% } %>
-            <% if (qrForThisType) { %>
-            <button class="btn" onclick="showQRCode()" style="display: inline-flex; align-items: center; color: var(--primary-foreground);">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 0.5rem;">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
-              View QR Code
-            </button>
-            <% } %>
-            <% if (!readOnly && can.analyticsShareLinks) { %>
-            <button class="btn" onclick="openShareLinks()" style="display: inline-flex; align-items: center; color: var(--primary-foreground);">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 0.5rem;">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                <polyline points="16 6 12 2 8 6"></polyline>
-                <line x1="12" y1="2" x2="12" y2="15"></line>
-              </svg>
-              Share links
-            </button>
-            <% } %>
-          </div>
-        </div>
-        <% if (qrForThisType) { %>
-        <div style="flex-shrink: 0;">
-          <img src="/qrcode/<%= type %>/<%= item.slug %>?theme=light" alt="QR Code" style="width: 150px; height: 150px; border-radius: 8px; border: 2px solid var(--chart-border);">
-        </div>
-        <% } %>
+    <div class="header-section">
+      <div class="analytics-title">
+        <h2 class="page-title">Analytics <span class="analytics-path"><%= path %></span></h2>
+        <p>
+          <%= TARGET_LABEL[type] %>:
+          <% if (type === 'url') { %><a href="<%= target %>" target="_blank" rel="noopener noreferrer"><%= target %></a>
+          <% } else { %><%= target || '(untitled)' %><% } %>
+          · created <%= created %>
+        </p>
+      </div>
+      <div class="header-actions">
+        <% if (infoUrl) { %><a href="<%= infoUrl %>" class="btn btn-secondary"><%- include('partials/icon', { icon: 'info' }) %> Info page</a><% } %>
+        <% if (features.qrCodes) { %><button type="button" class="btn btn-secondary" data-open-qr><%- include('partials/icon', { icon: 'qr' }) %> QR code</button><% } %>
+        <% if (shareLinks) { %><button type="button" class="btn" data-open-share><%- include('partials/icon', { icon: 'share' }) %> Share links</button><% } %>
       </div>
     </div>
 
@@ -93,185 +41,65 @@
   </main>
 
   <% if (features.qrCodes) { %>
-  <!-- QR Code Modal -->
   <div id="qrcodeModal" class="modal-overlay">
-    <div class="modal">
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="qrTitle">
       <div class="modal-header">
-        <h3>QR Code</h3>
-        <button class="modal-close" onclick="closeModal('qrcodeModal')">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <h3 id="qrTitle">QR code</h3>
+        <button type="button" class="modal-close" data-close-modal="qrcodeModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
-
-      <div class="modal-body" style="text-align: center;">
-        <div id="qrcodeContainer" style="margin: 2rem 0;">
-          <img id="qrcodeImage" src="" alt="QR Code" style="max-width: 400px; width: 100%; border-radius: 8px;">
-        </div>
-        <p style="color: var(--chart-muted-text); margin-bottom: 1rem;">Scan this QR code to open this <%= noun %></p>
+      <div class="modal-body qr-body">
+        <img id="qrcodeImage" alt="QR code for <%= path %>" width="240" height="240">
+        <p class="field-help">It opens this <%= noun %><%= type === 'url' ? '’s info page' : '' %>.</p>
       </div>
-
       <div class="modal-footer">
-        <button class="btn" style="background-color: var(--secondary); color: var(--foreground);" onclick="closeModal('qrcodeModal')">
-          Close
-        </button>
-        <button class="btn" id="downloadQRBtn" style="color: var(--primary-foreground);">
-          Download PNG
-        </button>
+        <a class="btn" id="downloadQR" href="/qrcode/<%= type %>/<%= item.slug %>/download?theme=light"><%- include('partials/icon', { icon: 'download' }) %> Download PNG</a>
       </div>
     </div>
   </div>
   <% } %>
 
-  <% if (!readOnly && can.analyticsShareLinks) { %>
-  <!-- Share Links Modal -->
-  <div id="shareLinksModal" class="modal-overlay" onclick="closeModal('shareLinksModal')">
-    <div class="modal-content" onclick="event.stopPropagation()" role="dialog" aria-labelledby="shareLinksTitle">
-      <h3 id="shareLinksTitle">Share links</h3>
-      <p style="color: var(--muted-foreground); font-size: 0.875rem; margin: 0.5rem 0 1.5rem;">
-        Anyone with a share link can see these analytics without an account. Revoke a link to turn it off.
-      </p>
-
-      <form id="createShareLinkForm" style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border);">
-        <div class="form-group">
-          <label for="shareLinkLabel">Label (optional)</label>
-          <input type="text" id="shareLinkLabel" maxlength="100" placeholder="e.g. Client report">
-        </div>
-        <div class="form-group">
-          <label for="shareLinkExpiry">Expires</label>
-          <select id="shareLinkExpiry">
-            <option value="">Never</option>
-            <option value="1">In 1 day</option>
-            <option value="7">In 7 days</option>
-            <option value="30">In 30 days</option>
-            <option value="90">In 90 days</option>
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary" style="color: var(--primary-foreground);">Create link</button>
-      </form>
-
-      <div id="newShareLink" style="display: none; margin-bottom: 1.5rem; padding: 1rem; border: 1px solid var(--primary); border-radius: 8px;">
-        <p style="margin: 0 0 0.5rem; font-size: 0.875rem;"><strong>Copy this link now.</strong> It won't be shown again.</p>
-        <div style="display: flex; gap: 0.5rem;">
-          <input type="text" id="newShareLinkUrl" readonly style="flex: 1;" aria-label="New share link">
-          <button type="button" class="btn" id="copyShareLinkBtn" style="color: var(--primary-foreground);">Copy</button>
-        </div>
+  <% if (shareLinks) { %>
+  <div id="shareLinksModal" class="modal-overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shareLinksTitle">
+      <div class="modal-header">
+        <h3 id="shareLinksTitle">Share links</h3>
+        <button type="button" class="modal-close" data-close-modal="shareLinksModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
-
-      <h4 style="margin: 0 0 1rem 0; font-size: 1rem;">Active links <span id="shareLinksCount" style="color: var(--muted-foreground); font-weight: normal;"></span></h4>
-      <div id="shareLinksList"></div>
+      <div class="modal-body">
+        <p class="field-help">Anyone with a share link sees these analytics without an account. Revoke a link to turn it off.</p>
+        <form id="createShareLinkForm" class="share-form">
+          <div class="form-group">
+            <label for="shareLinkLabel" class="form-label">Label <span class="muted">optional</span></label>
+            <input type="text" id="shareLinkLabel" class="form-input" maxlength="100" placeholder="e.g. Client report">
+          </div>
+          <div class="form-group narrow">
+            <label for="shareLinkExpiry" class="form-label">Expires</label>
+            <select id="shareLinkExpiry" class="form-input">
+              <option value="">Never</option>
+              <option value="1">In 1 day</option>
+              <option value="7">In 7 days</option>
+              <option value="30">In 30 days</option>
+              <option value="90">In 90 days</option>
+            </select>
+          </div>
+          <button type="submit" class="btn">Create link</button>
+        </form>
+        <div id="newShareLink" class="new-share-link" hidden>
+          <p><strong>Copy this link now.</strong> It won't be shown again.</p>
+          <div class="copy-row">
+            <input type="text" id="newShareLinkUrl" class="form-input" readonly aria-label="New share link">
+            <button type="button" class="btn btn-secondary" id="copyShareLinkBtn">Copy</button>
+          </div>
+        </div>
+        <h4 class="share-list-title">Active links <span id="shareLinksCount" class="muted"></span></h4>
+        <div id="shareLinksList" class="share-list"></div>
+      </div>
     </div>
   </div>
   <% } %>
 
   <script src="/js/main.js"></script>
-  <script>
-    <% if (features.qrCodes) { %>
-    // QR Code functionality (by slug, for every type)
-    const QR_PATH = '/qrcode/<%= type %>/<%= item.slug %>';
-
-    function showQRCode() {
-      document.getElementById('qrcodeImage').src = `${QR_PATH}?theme=light`;
-      openModal('qrcodeModal');
-    }
-
-    document.getElementById('downloadQRBtn').addEventListener('click', () => {
-      window.location.href = `${QR_PATH}/download?theme=light`;
-    });
-    <% } %>
-
-    <% if (!readOnly && can.analyticsShareLinks) { %>
-    // Share links
-    const SHARE_LINKS_API = '/api/share-links/<%= type %>/<%= item.id %>';
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text == null ? '' : String(text);
-      return div.innerHTML;
-    }
-
-    function formatDate(value) {
-      return value ? new Date(value).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '';
-    }
-
-    async function openShareLinks() {
-      document.getElementById('newShareLink').style.display = 'none';
-      await loadShareLinks();
-      openModal('shareLinksModal');
-    }
-
-    async function loadShareLinks() {
-      const list = document.getElementById('shareLinksList');
-      try {
-        const response = await fetch(SHARE_LINKS_API);
-        const result = await response.json();
-        if (!result.success) throw new Error(result.error || 'Could not load share links');
-
-        document.getElementById('shareLinksCount').textContent =
-          result.limit === null ? `(${result.links.length})` : `(${result.links.length} of ${result.limit})`;
-
-        list.innerHTML = result.links.length === 0
-          ? '<p style="color: var(--muted-foreground); text-align: center;">No share links yet.</p>'
-          : result.links.map(link => `
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border);">
-              <div>
-                <p style="margin: 0; font-weight: 500;">${escapeHtml(link.label || 'Untitled link')}</p>
-                <p style="margin: 0.25rem 0 0; color: var(--muted-foreground); font-size: 0.8rem;">
-                  Created ${escapeHtml(formatDate(link.createdAt))}
-                  · ${link.expiresAt ? 'expires ' + escapeHtml(formatDate(link.expiresAt)) : 'never expires'}
-                  · ${link.viewCount} view${link.viewCount === 1 ? '' : 's'}
-                </p>
-              </div>
-              <button type="button" class="btn" style="background: var(--secondary); color: var(--foreground);" onclick="revokeShareLink(${link.id})">Revoke</button>
-            </div>`).join('');
-      } catch (error) {
-        list.innerHTML = `<p style="color: var(--destructive);">${escapeHtml(error.message)}</p>`;
-      }
-    }
-
-    async function revokeShareLink(id) {
-      if (!confirm('Revoke this link? Anyone using it will lose access.')) return;
-      const response = await fetch(`/api/share-links/${id}`, { method: 'DELETE' });
-      const result = await response.json();
-      if (!result.success) alert('Error: ' + (result.error || 'Could not revoke the link'));
-      loadShareLinks();
-    }
-
-    document.getElementById('createShareLinkForm').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const response = await fetch(SHARE_LINKS_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          label: document.getElementById('shareLinkLabel').value,
-          expiresInDays: document.getElementById('shareLinkExpiry').value || null
-        })
-      });
-      const result = await response.json();
-      if (!result.success) {
-        alert('Error: ' + (result.error || result.message || 'Could not create the link'));
-        return;
-      }
-      document.getElementById('shareLinkLabel').value = '';
-      document.getElementById('newShareLinkUrl').value = result.shareUrl;
-      document.getElementById('newShareLink').style.display = 'block';
-      loadShareLinks();
-    });
-
-    document.getElementById('copyShareLinkBtn').addEventListener('click', async () => {
-      const input = document.getElementById('newShareLinkUrl');
-      try {
-        await navigator.clipboard.writeText(input.value);
-      } catch (_) {
-        input.select();
-        document.execCommand('copy');
-      }
-      document.getElementById('copyShareLinkBtn').textContent = 'Copied!';
-      setTimeout(() => { document.getElementById('copyShareLinkBtn').textContent = 'Copy'; }, 1500);
-    });
-    <% } %>
-  </script>
+  <script src="/vendor/chart.umd.js"></script>
+  <script src="/js/analytics.js"></script>
 <%- include('partials/layout-end', { shell: shell }) %>
 </html>
