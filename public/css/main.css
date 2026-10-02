@@ -37,9 +37,13 @@ body {
   flex-direction: column;
 }
 
-.page-center > .auth-container,
-.page-center > .error-container {
+.page-center > .auth-container {
   flex: 1 0 auto;
+}
+
+/* Status pages (error, scheduled, quarantine): the card in the middle of the window */
+.page-center > .status-card {
+  margin: auto;
 }
 
 /* `hidden` wins over component display rules (.btn is inline-flex) */
@@ -390,18 +394,6 @@ code, kbd, pre, samp {
   max-width: 28rem;
 }
 
-.error-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-md);
-}
-
-.error-box {
-  text-align: center;
-  max-width: 28rem;
-}
-
 /* ========================================
    Cards
    ======================================== */
@@ -582,33 +574,6 @@ code, kbd, pre, samp {
 }
 
 /* ========================================
-   Error Pages
-   ======================================== */
-
-.error-code {
-  margin-bottom: var(--spacing-xl);
-}
-
-.error-code h1 {
-  font-size: 9rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.error-box h2 {
-  font-size: 1.875rem;
-  font-weight: 700;
-  margin-bottom: var(--spacing-md);
-}
-
-.error-box p {
-  color: var(--muted-foreground);
-  font-size: 1.125rem;
-  margin-bottom: var(--spacing-xl);
-  line-height: 1.6;
-}
-
-/* ========================================
    Auth Pages
    ======================================== */
 
@@ -756,14 +721,6 @@ code, kbd, pre, samp {
   color: var(--foreground);
 }
 
-.error-box {
-  padding: 1rem;
-  background-color: var(--status-error-bg);
-  border: 1px solid var(--status-error-border);
-  border-radius: var(--radius-md);
-  color: var(--status-error-text);
-}
-
 /* Chart/Analytics Containers */
 .chart-card {
   background: var(--chart-background);
@@ -815,18 +772,6 @@ code, kbd, pre, samp {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-md);
-  }
-
-  .error-code h1 {
-    font-size: 6rem;
-  }
-
-  .error-box h2 {
-    font-size: 1.5rem;
-  }
-
-  .error-box p {
-    font-size: 1rem;
   }
 }
 

@@ -153,6 +153,10 @@ class BioPageController {
             if (!link.url) {
               throw new Error('Each social link must have a URL');
             }
+            // The icon name becomes part of an image address on the public page
+            if (link.icon !== undefined && link.icon !== null && link.icon !== '' && !/^[a-z0-9-]{1,80}$/.test(link.icon)) {
+              throw new Error('Invalid icon name');
+            }
 
             // Add https:// if no protocol is specified
             if (!link.url.match(/^https?:\/\//i)) {

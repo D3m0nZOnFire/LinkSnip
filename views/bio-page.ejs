@@ -51,8 +51,7 @@
                 <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/<%= iconName %>-light.svg"
                      data-icon="<%= iconName %>"
                      style="width:1.5rem;height:1.5rem;"
-                     alt=""
-                     onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/<%= iconName %>.svg'">
+                     alt="">
               <% } %>
               <% if (link.platform) { %>
                 <span style="margin-left: 0.5rem;"><%= link.platform %></span>
@@ -106,22 +105,6 @@
       <p>Powered by <a href="/"><%= branding.name %></a></p>
     </footer>
   </main>
-<script>
-  (function() {
-    var cdn = 'https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg';
-    function updateDashboardIcons() {
-      var theme = document.documentElement.getAttribute('data-theme') || 'dark';
-      var suffix = theme === 'dark' ? '-light' : '-dark';
-      document.querySelectorAll('img[data-icon]').forEach(function(img) {
-        var name = img.dataset.icon;
-        img.onerror = function() { this.onerror = null; this.src = cdn + '/' + name + '.svg'; };
-        img.src = cdn + '/' + name + suffix + '.svg';
-      });
-    }
-    updateDashboardIcons();
-    new MutationObserver(updateDashboardIcons)
-      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-  })();
-</script>
+<script src="/js/bio-icons.js"></script>
 <%- include('partials/layout-end', { shell: 'standalone' }) %>
 </html>

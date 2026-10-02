@@ -237,8 +237,6 @@ exports.view = (req, res) => {
   // Record view-level analytics (async, non-blocking)
   AnalyticsService.record(req, 'paste', paste.id).catch(() => { /* non-critical */ });
 
-  const canEdit = !!(req.user && (req.user.isAdmin || req.user.id === paste.userId));
-
   return res.render('paste-view', {
     user: req.user || null,
     paste,
@@ -247,7 +245,7 @@ exports.view = (req, res) => {
     sizeChars: paste.content.length,
     rawUrl: `/p/${paste.slug}/raw`,
     baseUrl: `${req.protocol}://${req.get('host')}`,
-    canEdit
+    canEdit: !!req.user && canEdit(req.user, 'paste', paste)
   });
 };
 

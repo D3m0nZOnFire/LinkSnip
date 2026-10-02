@@ -125,6 +125,13 @@ html[data-theme="light"] input[type="time"].form-input::-webkit-calendar-picker-
   color: var(--foreground);
 }
 
+/* "Details  optional": a quiet note after a label */
+.form-label .muted {
+  margin-left: 0.35rem;
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
 /* A color picker next to its hex value */
 .color-row {
   display: flex;

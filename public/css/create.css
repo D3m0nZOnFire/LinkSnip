@@ -16,19 +16,16 @@
   text-align: center;
 }
 
-.hero h2 {
-  margin-bottom: var(--spacing-md);
+.hero-title {
+  margin-bottom: var(--spacing-sm);
   font-size: var(--text-4xl);
   font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
 }
 
-.hero .highlight {
-  color: var(--primary);
-}
-
-.hero p {
+.hero-tagline {
   max-width: 38rem;
   margin: 0 auto;
   color: var(--muted-foreground);
@@ -558,7 +555,7 @@
 }
 
 @media (max-width: 640px) {
-  .hero h2 {
+  .hero-title {
     font-size: var(--text-3xl);
   }
 

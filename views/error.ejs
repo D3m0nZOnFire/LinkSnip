@@ -4,29 +4,22 @@
   const DEFAULT_TITLES = { 403: 'Access Denied', 404: 'Not Found', 410: 'Gone', 429: 'Too Many Requests' };
   const title = locals.title || DEFAULT_TITLES[code] || 'Something Went Wrong';
   const message = locals.message || '';
+  const ICONS = { 403: 'lock', 404: 'search', 410: 'clock', 429: 'clock' };
 -%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: title }) %>
+  <%- include('partials/head', { title: title, styles: ['public-pages'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'standalone', pageClass: 'page-center' }) %>
-  <div class="error-container">
-    <div class="error-box">
-      <!-- Error Code -->
-      <div class="error-code">
-        <h1 style="color: <%= code === 404 || code === 410 ? 'var(--primary)' : 'var(--destructive)' %>">
-          <%= code %>
-        </h1>
-      </div>
-
-      <!-- Error Message -->
-      <h2><%= title %></h2>
-      <p><%= message %></p>
-
-      <!-- Action Button -->
-      <a href="/" class="btn" style="color: var(--primary-foreground);">Go Back Home</a>
+  <main class="status-card<%= code >= 500 ? ' danger' : '' %>">
+    <span class="status-icon"><%- include('partials/icon', { icon: ICONS[code] || 'info' }) %></span>
+    <span class="status-code">Error <%= code %></span>
+    <h1><%= title %></h1>
+    <% if (message) { %><p><%= message %></p><% } %>
+    <div class="status-actions">
+      <a href="/" class="btn">Go to the home page</a>
     </div>
-  </div>
+  </main>
 <%- include('partials/layout-end', { shell: 'standalone' }) %>
 </html>

@@ -1,47 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: `Reported ${kind}`, noindex: true }) %>
-  <style>
-    .quarantine-destination {
-      margin: 1rem 0 1.5rem;
-      padding: 0.75rem 1rem;
-      background: var(--secondary);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      word-break: break-all;
-      font-family: var(--font-mono);
-      font-size: 0.875rem;
-      text-align: left;
-    }
-    .quarantine-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
-  </style>
+  <%- include('partials/head', { title: `Reported ${kind}`, styles: ['public-pages'], noindex: true }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'standalone', pageClass: 'page-center' }) %>
-  <div class="error-container">
-    <div class="error-box">
-      <div class="error-code">
-        <h1 style="color: var(--destructive)" aria-hidden="true">⚠</h1>
-      </div>
-
-      <h2>This <%= kind %> has been reported</h2>
-      <p>
-        Several visitors reported this <%= kind %> as unsafe or abusive, and an administrator hasn't reviewed it yet.
-        Only continue if you trust where it leads.
-      </p>
-
-      <div class="quarantine-destination">
-        <%= { link: 'Destination', bundle: 'Bundle', paste: 'Paste', file: 'File' }[kind] || 'Destination' %>: <%= destination || '(untitled)' %>
-      </div>
-
-      <div class="quarantine-actions">
-        <a href="/" class="btn" style="color: var(--primary-foreground);">Take me back</a>
-        <a href="<%= continueUrl %>" class="btn" style="background: var(--secondary); color: var(--foreground);" rel="nofollow">Continue anyway</a>
-      </div>
-      <% if (infoUrl) { %>
-        <p style="margin-top: 1.5rem; font-size: 0.875rem;"><a href="<%= infoUrl %>">More about this <%= kind %></a></p>
-      <% } %>
+<% const LABELS = { link: 'Goes to', bundle: 'Bundle', paste: 'Paste', file: 'File' }; -%>
+  <main class="status-card warning">
+    <span class="status-icon"><%- include('partials/icon', { icon: 'flag' }) %></span>
+    <h1>This <%= kind %> was reported</h1>
+    <p>Several visitors reported it as unsafe or abusive, and an administrator hasn't looked at it yet. Only continue if you trust where it leads.</p>
+    <div class="status-detail">
+      <span class="destination-label"><%= LABELS[kind] || 'Goes to' %></span>
+      <%= destination || '(untitled)' %>
     </div>
-  </div>
+    <div class="status-actions">
+      <a href="/" class="btn">Take me back</a>
+      <a href="<%= continueUrl %>" class="btn btn-secondary" rel="nofollow">Continue anyway</a>
+    </div>
+    <% if (infoUrl) { %><a class="status-link" href="<%= infoUrl %>">More about this <%= kind %></a><% } %>
+  </main>
 <%- include('partials/layout-end', { shell: 'standalone' }) %>
 </html>

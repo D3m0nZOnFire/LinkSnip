@@ -247,7 +247,8 @@ exports.preview = async (req, res) => {
     owner: owner || { username: 'Unknown' },
     allowedUsernames,
     sizeFormatted: formatBytes(file.size),
-    downloadUrl: `/f/${file.slug}/download`
+    downloadUrl: `/f/${file.slug}/download`,
+    baseUrl: `${req.protocol}://${req.get('host')}`
   });
 };
 
