@@ -9,6 +9,7 @@ const admin = [AdminItemController.knownType, isAuthenticated, isAdmin];
 
 router.post('/api/admin/:type/bulk-block', admin, AdminItemController.bulkBlock);
 router.post('/api/admin/:type/bulk-unblock', admin, AdminItemController.bulkUnblock);
+router.post('/api/admin/:type/bulk-delete', admin, AdminItemController.bulkRemove);
 router.post('/api/admin/:type/:id/block', admin, AdminItemController.block);
 router.post('/api/admin/:type/:id/unblock', admin, AdminItemController.unblock);
 router.delete('/api/admin/:type/:id', admin, AdminItemController.remove);

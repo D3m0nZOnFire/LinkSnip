@@ -76,36 +76,6 @@ class File {
     return result ? result.count : 0;
   }
 
-  static findAll(limit = null, offset = 0, search = '') {
-    let query = `
-      SELECT files.*, users.username AS ownerUsername
-      FROM files
-      LEFT JOIN users ON files.userId = users.id
-    `;
-    const params = [];
-    if (search) {
-      query += ' WHERE files.originalName LIKE ?';
-      params.push(`%${search}%`);
-    }
-    query += ' ORDER BY files.createdAt DESC';
-    if (limit !== null) {
-      query += ' LIMIT ? OFFSET ?';
-      params.push(limit, offset);
-    }
-    const rows = db.prepare(query).all(...params);
-    return rows.map(f => ({ ...f, tags: Tag.forItem('file', f.id) }));
-  }
-
-  static countAll(search = '') {
-    let query = 'SELECT COUNT(*) as count FROM files';
-    const params = [];
-    if (search) {
-      query += ' WHERE originalName LIKE ?';
-      params.push(`%${search}%`);
-    }
-    return db.prepare(query).get(...params).count;
-  }
-
   static findExpired() {
     const now = new Date().toISOString();
     return db.prepare(`

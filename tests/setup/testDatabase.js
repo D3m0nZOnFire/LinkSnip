@@ -148,6 +148,32 @@ function createTestDatabase() {
     )
   `);
 
+  // Bio pages (mirrors config/database.js)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bio_pages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER UNIQUE NOT NULL,
+      displayName TEXT NOT NULL,
+      bio TEXT,
+      theme TEXT DEFAULT 'dark',
+      socialLinks TEXT,
+      gradientStart TEXT DEFAULT '#667eea',
+      gradientEnd TEXT DEFAULT '#764ba2',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS bio_page_urls (
+      bioPageId INTEGER NOT NULL,
+      urlId INTEGER NOT NULL,
+      position INTEGER DEFAULT 0,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (bioPageId, urlId),
+      FOREIGN KEY (bioPageId) REFERENCES bio_pages(id) ON DELETE CASCADE,
+      FOREIGN KEY (urlId) REFERENCES urls(id) ON DELETE CASCADE
+    );
+  `);
+
   // Create indexes
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_slug ON urls(slug);
@@ -189,6 +215,8 @@ function clearTestDatabase() {
   if (!db) return;
 
   // Delete in order respecting foreign key constraints
+  db.exec('DELETE FROM bio_page_urls');
+  db.exec('DELETE FROM bio_pages');
   db.exec('DELETE FROM reports');
   db.exec('DELETE FROM team_invites');
   db.exec('DELETE FROM team_members');
@@ -206,7 +234,7 @@ function clearTestDatabase() {
   db.exec('DELETE FROM users');
 
   // Reset autoincrement counters
-  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'urls', 'analytics_events', 'tags', 'reports', 'audit_logs', 'bundles', 'bundle_items', 'files', 'pastes', 'analytics_shares', 'teams', 'team_invites')");
+  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'urls', 'analytics_events', 'tags', 'reports', 'audit_logs', 'bundles', 'bundle_items', 'files', 'pastes', 'analytics_shares', 'teams', 'team_invites', 'bio_pages')");
 }
 
 /**

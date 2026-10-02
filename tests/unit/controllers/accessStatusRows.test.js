@@ -1,6 +1,4 @@
 const DashboardController = require('../../../controllers/dashboardController');
-const fileController = require('../../../controllers/fileController');
-const pasteController = require('../../../controllers/pasteController');
 const {
   createTestUser, createTestUrl, createTestBundle, createTestPaste, createTestFile,
   createMockRequest, createMockResponse
@@ -52,26 +50,25 @@ describe('user dashboard rows', () => {
   });
 });
 
-describe('admin rows', () => {
-  beforeEach(() => { user.isAdmin = 1; });
+describe('admin rows (Admin → Items)', () => {
+  const adminItems = require('../../../services/adminItems');
+  const rows = () => adminItems.list({ limit: null }).rows;
+  const statusIn = (type, slug) => rows().find(r => r.type === type && r.slug === slug).accessStatus;
 
-  it('admin dashboard links and bundles', () => {
+  it('links and bundles', () => {
     createTestUrl({ slug: 'u-exp', expiresAt: PAST });
     createTestBundle({ slug: 'b-reported', isQuarantined: 1 });
-
-    const data = render(DashboardController.getAdminDashboard);
-
-    expect(statusOf(data.urls, 'u-exp')).toBe('expired');
-    expect(statusOf(data.bundles, 'b-reported')).toBe('quarantined');
+    expect(statusIn('url', 'u-exp')).toBe('expired');
+    expect(statusIn('bundle', 'b-reported')).toBe('quarantined');
   });
 
-  it('Admin → Files', () => {
+  it('files', () => {
     createTestFile(user.id, { slug: 'f-deact', deactivateAt: PAST });
-    expect(statusOf(render(fileController.adminList).files, 'f-deact')).toBe('expired');
+    expect(statusIn('file', 'f-deact')).toBe('expired');
   });
 
-  it('Admin → Pastes', () => {
+  it('pastes', () => {
     createTestPaste(user.id, { slug: 'p-blocked', isBlocked: 1 });
-    expect(statusOf(render(pasteController.adminList).pastes, 'p-blocked')).toBe('blocked');
+    expect(statusIn('paste', 'p-blocked')).toBe('blocked');
   });
 });

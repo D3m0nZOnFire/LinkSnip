@@ -4,6 +4,7 @@ const { isAuthenticated, isAdmin } = require('../middleware/auth');
 const { apiLimiter, createPasteLimiter } = require('../middleware/rateLimiter');
 const requirePermission = require('../middleware/requirePermission');
 const PasteController = require('../controllers/pasteController');
+const AdminItemsController = require('../controllers/adminItemsController');
 
 
 // ── API — create is anonymous-allowed (limiter only, no auth), like /api/bundles
@@ -19,7 +20,7 @@ router.get('/pastes/:id/edit', isAuthenticated, PasteController.showEditPage);
 
 
 // ── Admin
-router.get('/admin/pastes', isAuthenticated, isAdmin, PasteController.adminList);
+router.get('/admin/pastes', isAuthenticated, isAdmin, AdminItemsController.redirectTo('paste'));
 
 // ── QR (public)
 

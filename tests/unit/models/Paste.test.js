@@ -97,30 +97,6 @@ describe('Paste Model', () => {
     });
   });
 
-  // ─── findAll / countAll ────────────────────────────────────
-  describe('findAll / countAll', () => {
-    it('returns all pastes and filters by title search', async () => {
-      const user = await createTestUser();
-      createTestPaste(user.id, { slug: 'a1', title: 'Deployment notes' });
-      createTestPaste(null, { slug: 'a2', title: 'Grocery list' });
-
-      expect(Paste.countAll()).toBe(2);
-      expect(Paste.findAll()).toHaveLength(2);
-      expect(Paste.countAll('deploy')).toBe(1);
-      expect(Paste.findAll(null, 0, 'deploy')[0].title).toBe('Deployment notes');
-    });
-
-    it('exposes ownerUsername (null for anonymous)', async () => {
-      const user = await createTestUser({ username: 'alice' });
-      createTestPaste(user.id, { slug: 'own1' });
-      createTestPaste(null, { slug: 'own2' });
-      const all = Paste.findAll();
-      const owned = all.find(p => p.slug === 'own1');
-      const anon = all.find(p => p.slug === 'own2');
-      expect(owned.ownerUsername).toBe('alice');
-      expect(anon.ownerUsername).toBeNull();
-    });
-  });
 
   // ─── findExpired ───────────────────────────────────────────
   describe('findExpired', () => {

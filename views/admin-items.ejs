@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title: 'Items · Admin', styles: ['forms', 'modals', 'items'] }) %>
+</head>
+<%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-items' }) %>
+<%
+  const TYPE_LABELS = { all: 'All', url: 'Links', bundle: 'Bundles', paste: 'Pastes', file: 'Files' };
+  const TYPE_ICONS = { url: 'link', bundle: 'dashboard', paste: 'paste', file: 'file' };
+  const USES = { url: ['click', 'clicks'], bundle: ['open', 'opens'], paste: ['view', 'views'], file: ['download', 'downloads'] };
+  const STATUS_OPTIONS = [
+    ['', 'Any status'], ['active', 'Active'], ['blocked', 'Blocked'], ['expired', 'Expired'], ['scheduled', 'Scheduled'],
+    ['max-uses', 'Limit reached'], ['quarantined', 'Under review'], ['anonymous', 'Anonymous'], ['password-protected', 'Password-protected']
+  ];
+  const SORT_OPTIONS = [['newest', 'Newest'], ['oldest', 'Oldest'], ['most-used', 'Most used'], ['least-used', 'Least used'], ['most-reports', 'Most reports']];
+  // The address of this list with some filters changed (page back to 1 unless given)
+  const link = (changes) => {
+    const params = new URLSearchParams();
+    const merged = { ...filters, page: 1, ...changes };
+    for (const [key, value] of Object.entries(merged)) {
+      if (value === '' || value === null || value === undefined) continue;
+      if ((key === 'type' && value === 'all') || (key === 'sort' && value === 'newest') || (key === 'limit' && value === 50) || (key === 'page' && value === 1)) continue;
+      params.set(key, value);
+    }
+    const query = params.toString();
+    return `/admin/items${query ? `?${query}` : ''}`;
+  };
+  const date = (value) => value ? new Date(String(value).includes('T') ? value : `${String(value).replace(' ', 'T')}Z`).toISOString().slice(0, 10) : '—';
+  const bytes = (n) => {
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let value = Number(n || 0); let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+    return `${value.toFixed(unit && value < 10 ? 1 : 0)} ${units[unit]}`;
+  };
+  const { rows, total, page, totalPages } = result;
+-%>
+
+  <main class="main-content-wide items-page">
+    <div class="header-section">
+      <div>
+        <h2>Items</h2>
+        <p><%= total.toLocaleString('en-US') %> <%= filters.type === 'all' ? 'items' : TYPE_LABELS[filters.type].toLowerCase() %><%= filters.search || filters.status || filters.hasReports || filters.dateFrom || filters.dateTo ? ' match' : '' %></p>
+      </div>
+      <button type="button" class="btn btn-secondary" id="selectModeBtn" aria-pressed="false">Select</button>
+    </div>
+
+    <nav class="type-pills" aria-label="Type">
+      <% ['all', ...types].forEach(t => { %>
+      <a href="<%= link({ type: t }) %>" class="type-pill" data-type-pill="<%= t %>"<%- filters.type === t ? ' aria-current="page"' : '' %>><%= TYPE_LABELS[t] %></a>
+      <% }) %>
+    </nav>
+
+    <form class="items-toolbar card" method="GET" action="/admin/items">
+      <% if (filters.type !== 'all') { %><input type="hidden" name="type" value="<%= filters.type %>"><% } %>
+      <div class="toolbar-search">
+        <label class="visually-hidden" for="itemSearch">Search</label>
+        <input type="search" class="form-input" id="itemSearch" name="search" value="<%= filters.search %>"
+          placeholder="Search, or @user:alice @status:expired | @anon …" autocomplete="off" spellcheck="false">
+        <button type="button" class="icon-btn search-help-btn" aria-expanded="false" aria-controls="searchHelp" title="Search shortcuts">?</button>
+      </div>
+      <label class="visually-hidden" for="itemStatus">Status</label>
+      <select class="form-input" id="itemStatus" name="status">
+        <% STATUS_OPTIONS.forEach(([value, label]) => { %>
+        <option value="<%= value %>"<%= filters.status === value ? ' selected' : '' %>><%= label %></option>
+        <% }) %>
+      </select>
+      <label class="visually-hidden" for="itemReports">Reports</label>
+      <select class="form-input" id="itemReports" name="hasReports">
+        <option value=""<%= !filters.hasReports ? ' selected' : '' %>>Reports: any</option>
+        <option value="yes"<%= filters.hasReports === 'yes' ? ' selected' : '' %>>Reported</option>
+        <option value="no"<%= filters.hasReports === 'no' ? ' selected' : '' %>>Not reported</option>
+      </select>
+      <label class="visually-hidden" for="itemSort">Sort</label>
+      <select class="form-input" id="itemSort" name="sort">
+        <% SORT_OPTIONS.forEach(([value, label]) => { %>
+        <option value="<%= value %>"<%= filters.sort === value ? ' selected' : '' %>><%= label %></option>
+        <% }) %>
+      </select>
+      <details class="toolbar-more"<%= filters.dateFrom || filters.dateTo ? ' open' : '' %>>
+        <summary>Created between</summary>
+        <div class="toolbar-dates">
+          <label>From <input type="date" class="form-input" name="dateFrom" value="<%= filters.dateFrom %>"></label>
+          <label>To <input type="date" class="form-input" name="dateTo" value="<%= filters.dateTo %>"></label>
+        </div>
+      </details>
+      <input type="hidden" name="limit" value="<%= filters.limit %>">
+      <div class="toolbar-actions">
+        <button type="submit" class="btn btn-small">Apply</button>
+        <a href="<%= filters.type === 'all' ? '/admin/items' : `/admin/items?type=${filters.type}` %>" class="btn btn-small btn-ghost">Reset</a>
+      </div>
+
+      <div class="search-help" id="searchHelp" hidden>
+        <table>
+          <tbody>
+            <tr><td><code>@user:alice</code></td><td>Owned by alice; <code>@user:alice,bob</code> either</td></tr>
+            <tr><td><code>@user:!alice</code></td><td>Not owned by alice</td></tr>
+            <tr><td><code>@anon</code></td><td>No owner (made without an account)</td></tr>
+            <tr><td><code>@status:expired</code></td><td>active · blocked · expired · scheduled · max-uses · quarantined · anonymous · password-protected</td></tr>
+            <tr><td><code>@protected</code></td><td>Password-protected</td></tr>
+            <tr><td><code>@uses:&gt;10</code></td><td>More than 10 clicks, opens, views or downloads (<code>&lt;</code> fewer, <code>@uses:0</code> never)</td></tr>
+            <tr><td><code>A | B</code></td><td>Matches A or B</td></tr>
+          </tbody>
+        </table>
+        <p>Example: <code>@user:alice @status:blocked | @anon @uses:&gt;100</code></p>
+      </div>
+    </form>
+
+    <% if (!rows.length) { %>
+      <div class="empty-state">
+        <p>No items match these filters.</p>
+        <a href="/admin/items" class="btn btn-small btn-secondary">Show everything</a>
+      </div>
+    <% } else { %>
+      <div class="item-list" id="itemList">
+        <% rows.forEach(item => { const uses = USES[item.type]; %>
+        <div class="item-row<%= item.isBlocked ? ' is-blocked' : '' %>" data-type="<%= item.type %>" data-id="<%= item.id %>" data-slug="<%= item.slug %>">
+          <div class="item-main">
+            <input type="checkbox" class="item-select" aria-label="Select <%= item.path %>" hidden>
+            <span class="item-type" title="<%= TYPE_LABELS[item.type].slice(0, -1) %>"><%- include('partials/icon', { icon: TYPE_ICONS[item.type] }) %></span>
+            <div class="item-text">
+              <div class="item-title">
+                <a href="<%= item.path %>" class="item-slug" target="_blank" rel="noopener"><%= item.path %></a>
+                <% if (item.type === 'url') { %>
+                  <a href="<%= item.label %>" class="item-label" target="_blank" rel="noopener noreferrer" title="<%= item.label %>"><%= item.label %></a>
+                <% } else { %>
+                  <span class="item-label" title="<%= item.label %>"><%= item.label %></span>
+                <% } %>
+              </div>
+              <div class="item-meta">
+                <span><%= item.ownerUsername || 'anonymous' %></span>
+                <span><%= date(item.createdAt) %></span>
+                <span><%= item.uses.toLocaleString('en-US') %><%= item.usageLimit ? ` / ${item.usageLimit}` : '' %> <%= item.uses === 1 ? uses[0] : uses[1] %></span>
+                <% if (item.type === 'file') { %><span><%= bytes(item.size) %></span><% } %>
+                <% if (item.reportCount) { %><span class="item-reports"><%= item.reportCount %> report<%= item.reportCount === 1 ? '' : 's' %></span><% } %>
+              </div>
+              <%- include('partials/tag-chips', { tags: item.tags }) %>
+            </div>
+            <div class="item-badges">
+              <% if (item.hasPassword) { %><span class="item-lock" title="Password-protected"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span class="visually-hidden">Password-protected</span></span><% } %>
+              <%- include('partials/deletion-badge', { days: item.deletesInDays, noun: TYPE_LABELS[item.type].slice(0, -1).toLowerCase() }) %>
+              <%- include('partials/status-badge', { status: item.accessStatus }) %>
+            </div>
+          </div>
+          <div class="item-actions">
+            <% if (item.infoPath) { %><a href="<%= item.infoPath %>" class="icon-btn" target="_blank" rel="noopener" title="Info page" aria-label="Info page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></a><% } %>
+            <a href="/analytics/<%= item.type %>/<%= item.id %>" class="icon-btn" title="Analytics" aria-label="Analytics"><%- include('partials/icon', { icon: 'chart' }) %></a>
+            <% if (features.qrCodes) { %><button type="button" class="icon-btn" data-qr="<%= item.type %>/<%= item.slug %>" title="QR code" aria-label="QR code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v.01M14 21h7v-4"/></svg></button><% } %>
+            <% if (item.type === 'url') { %>
+              <button type="button" class="icon-btn" data-edit-url="<%= item.id %>" title="Edit" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+            <% } else if (item.type === 'paste') { %>
+              <a href="/pastes/<%= item.id %>/edit" class="icon-btn" title="Edit" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></a>
+            <% } %>
+            <button type="button" class="icon-btn" data-action="<%= item.isBlocked ? 'unblock' : 'block' %>" title="<%= item.isBlocked ? 'Unblock' : 'Block' %>" aria-label="<%= item.isBlocked ? 'Unblock' : 'Block' %>">
+              <% if (item.isBlocked) { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              <% } else { %><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg><% } %>
+            </button>
+            <button type="button" class="icon-btn danger" data-action="delete" title="Delete" aria-label="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+
+      <div class="items-footer">
+        <form method="GET" action="/admin/items" class="page-size">
+          <% for (const key of ['type', 'search', 'status', 'hasReports', 'sort', 'dateFrom', 'dateTo']) { if (filters[key] && !(key === 'type' && filters.type === 'all')) { %>
+            <input type="hidden" name="<%= key %>" value="<%= filters[key] %>">
+          <% } } %>
+          <label for="pageSize">Per page</label>
+          <select class="form-input" id="pageSize" name="limit" data-autosubmit>
+            <% pageSizes.forEach(size => { %><option value="<%= size %>"<%= filters.limit === size ? ' selected' : '' %>><%= size %></option><% }) %>
+          </select>
+        </form>
+        <% if (totalPages > 1) { %>
+        <nav class="pager" aria-label="Pages">
+          <% if (page > 1) { %><a href="<%= link({ page: page - 1 }) %>" class="btn btn-small btn-secondary">Previous</a><% } %>
+          <span>Page <%= page %> of <%= totalPages %></span>
+          <% if (page < totalPages) { %><a href="<%= link({ page: page + 1 }) %>" class="btn btn-small btn-secondary">Next</a><% } %>
+        </nav>
+        <% } %>
+      </div>
+    <% } %>
+  </main>
+
+  <!-- Bulk actions, while selecting -->
+  <div class="bulk-bar" id="bulkBar" hidden>
+    <span id="bulkCount">0 selected</span>
+    <button type="button" class="btn btn-small btn-secondary" data-bulk="block" disabled>Block</button>
+    <button type="button" class="btn btn-small btn-secondary" data-bulk="unblock" disabled>Unblock</button>
+    <button type="button" class="btn btn-small btn-danger" data-bulk="delete" disabled>Delete</button>
+    <button type="button" class="btn btn-small btn-ghost" id="bulkCancel">Cancel</button>
+  </div>
+
+  <!-- QR code -->
+  <div id="qrModal" class="modal-overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="qrTitle">
+      <div class="modal-header">
+        <h3 id="qrTitle">QR code</h3>
+        <button type="button" class="modal-close" data-close-modal="qrModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
+      </div>
+      <div class="modal-body qr-body">
+        <img id="qrImage" alt="QR code" width="240" height="240">
+        <p class="field-help" id="qrTarget"></p>
+      </div>
+      <div class="modal-footer">
+        <a id="qrDownload" class="btn" href="#">Download PNG</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit a link -->
+  <div id="editUrlModal" class="modal-overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editUrlTitle">
+      <div class="modal-header">
+        <h3 id="editUrlTitle">Edit link</h3>
+        <button type="button" class="modal-close" data-close-modal="editUrlModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
+      </div>
+      <form class="modal-body" id="editUrlForm" novalidate>
+        <p class="field-help" id="editUrlMeta"></p>
+        <p class="field-help edit-password-note" id="editUrlPasswordNote" hidden>This link is password-protected.</p>
+        <div class="form-group">
+          <label for="editLongUrl" class="form-label">Destination</label>
+          <input type="url" id="editLongUrl" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label for="editCustomSlug" class="form-label">Slug</label>
+          <input type="text" id="editCustomSlug" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="editPassword" class="form-label">New password (optional)</label>
+          <input type="password" id="editPassword" class="form-input" autocomplete="new-password" data-toggle-password>
+          <label class="checkbox-line"><input type="checkbox" id="removePassword"> Remove the password</label>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editMaxUses" class="form-label">Click limit</label>
+            <input type="number" id="editMaxUses" class="form-input" min="1" placeholder="No limit">
+          </div>
+          <div class="form-group">
+            <label for="editExpirationDays" class="form-label">Days until it expires</label>
+            <input type="number" id="editExpirationDays" class="form-input" min="1" placeholder="Never">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editActivateDateTime" class="form-label">Active from (UTC)</label>
+            <input type="datetime-local" id="editActivateDateTime" class="form-input">
+          </div>
+          <div class="form-group">
+            <label for="editDeactivateDateTime" class="form-label">Active until (UTC)</label>
+            <input type="datetime-local" id="editDeactivateDateTime" class="form-input">
+          </div>
+        </div>
+      </form>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="editUrlModal">Cancel</button>
+        <button type="submit" class="btn" form="editUrlForm" id="saveUrlBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/adminItems.js"></script>
+<%- include('partials/layout-end', { shell: 'admin' }) %>
+</html>

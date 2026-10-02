@@ -100,11 +100,45 @@ function bulkSetBlocked(blocked) {
   };
 }
 
+/**
+ * POST /api/admin/:type/bulk-delete { ids }: each one deleted and logged like a single delete
+ */
+function bulkRemove(req, res) {
+  const { type } = req.params;
+  const { ids } = req.body || {};
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'ids must be a non-empty array' });
+  }
+  if (ids.length > MAX_BULK) {
+    return res.status(400).json({ error: `Cannot delete more than ${MAX_BULK} items at once` });
+  }
+
+  const Model = MODELS[type]();
+  let deleted = 0;
+  const errors = [];
+  for (const id of ids) {
+    try {
+      const item = Model.findById(parseInt(id, 10));
+      if (!item) { errors.push(`${id}: not found`); continue; }
+      if (type === 'file') fs.rmSync(path.join(UPLOADS_DIR, path.basename(item.storedName)), { force: true });
+      Model.delete(item.id);
+      logAdminAction(ACTIONS[`ADMIN_DELETE_${AUDIT_NAME[type]}`], req, type, item.id, describe(type, item), {
+        slug: item.slug, owner: ownerOf(type, item), bulk: true
+      });
+      deleted++;
+    } catch (err) {
+      errors.push(`${id}: ${err.message}`);
+    }
+  }
+  return res.json({ success: true, deleted, errors });
+}
+
 module.exports = {
   knownType,
   block: setBlocked(true),
   unblock: setBlocked(false),
   remove,
   bulkBlock: bulkSetBlocked(true),
-  bulkUnblock: bulkSetBlocked(false)
+  bulkUnblock: bulkSetBlocked(false),
+  bulkRemove
 };

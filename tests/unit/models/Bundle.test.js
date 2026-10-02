@@ -78,8 +78,7 @@ describe('bundle tags', () => {
       Bundle.findById(bundle.id),
       Bundle.findBySlug('tagged'),
       Bundle.findByIdWithItems(bundle.id),
-      Bundle.findByCreatorId(user.id)[0],
-      Bundle.findAll()[0]
+      Bundle.findByCreatorId(user.id)[0]
     ];
     for (const read of reads) expect(read.tags.map(t => t.name)).toEqual(['work']);
   });

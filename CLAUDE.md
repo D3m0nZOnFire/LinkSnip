@@ -17,6 +17,7 @@ npm start              # production-style start
 npm test               # jest (in-memory DB, temporary DATA_DIR per test file)
 npm run admin          # CLI: create admin / promote user / reset password
 npm run docs:config    # regenerate docs/CONFIGURATION.md from config/schema.js
+npm run seed:demo      # demo instance in ./demo-data (scripts/demoData.js; --reset), then DATA_DIR=./demo-data npm run dev
 docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ```
 
@@ -92,7 +93,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
   `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
   `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`); they're idempotent
-  and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there.
+  and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there
+  (bio pages included). `tests/unit/config/freshDatabase.test.js` opens a brand-new database in its own process.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
 - Migration pattern: `CREATE TABLE IF NOT EXISTS`, check `PRAGMA table_info` before `ALTER TABLE`,
   `CREATE INDEX IF NOT EXISTS`.
@@ -164,8 +166,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 ### Short links
 - `POST /create` (form), `GET /s/:slug` redirect with analytics, `/info/:slug` public preview.
-- Admin filter (`?status=`, `@status:`): active, blocked, expired, scheduled, max-uses (= `limit_reached`),
-  quarantined, plus anonymous and password-protected.
+- Admin → Items filter (`?status=`, `@status:`): active, blocked, expired, scheduled, max-uses (= `limit_reached`),
+  quarantined, plus anonymous and password-protected; for every type.
 - Anonymous links always expire within `anonymous.urlExpirationDays`; expired anonymous content is deleted nightly
   (4:00), registered users' after `retention.expiredGraceDays` (the "Deletes in Nd" badge on links and pastes:
   `services/retentionService.js` `deletesInDays`, shown by `partials/deletion-badge.ejs`).
@@ -188,7 +190,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `unlimited`/admins bypass both.
 - All `/f/*` responses send `X-Content-Type-Options: nosniff`; downloads also `Content-Security-Policy: sandbox`
   and are always attachments. Any file type is allowed.
-- Admin → Files can block/unblock (blocked → 403) and delete (the upload too).
+- Admin → Items (type Files) can block/unblock (blocked → 403) and delete (the upload too).
 - `sharingMode: 'restricted'` + `allowedUsers`: only the owner, listed users and admins (the `login_required` /
   `forbidden` access statuses).
 
@@ -317,8 +319,15 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - `/admin` is the Overview (`controllers/adminOverviewController.js`, `services/adminOverview.js` `summary()`: counts
   per enabled type with live / new this week, users, teams, storage, visits this week vs the week before, pending
   reports and quarantined items, the 8 newest audit entries, version and the newest nightly backup).
-- `/admin/links` (links and bundles, `views/admin-links.ejs`), `/admin/users` (role filter/select, **Create user** → `POST /api/admin/users`), `/admin/files`,
-  `/admin/pastes`, `/admin/reports`, `/admin/analytics`, `/admin/analytics-shares`, `/admin/audit-logs` (also manual
+- `/admin/items` (Admin → Items, `controllers/adminItemsController.js`, `views/admin-items.ejs`,
+  `public/js/adminItems.js`): links, bundles, pastes and files in one list (`services/adminItems.js` `list()`: one
+  query per enabled type from the registry, `UNION ALL` for "all", status from `statusSql`, pending report counts,
+  tags, `deletesInDays`). Type pills, search syntax (`parseSearch`: `@user:a,b`, `@user:!a`, `@anon`, `@status:`,
+  `@protected`, `@uses:>N` / `<N` / `N` (strict; `@clicks:` too), `|` for OR), status, reports, sort, date range,
+  25/50/100 per page. Row actions: info, analytics, QR, edit (links: modal on `/api/urls/:id`; pastes: their
+  editor), block/unblock, delete; select mode for bulk block/unblock/delete. `/admin/links`, `/admin/files`,
+  `/admin/pastes` redirect to it (filters kept).
+- `/admin/users` (role filter/select, **Create user** → `POST /api/admin/users`), `/admin/reports`, `/admin/analytics`, `/admin/analytics-shares`, `/admin/audit-logs` (also manual
   backup/cleanup), `/admin/settings[/:tab]` (tabs General, Features, Content, Moderation, Retention, Roles & limits: `TABS` in
   `controllers/adminSettingsController.js` maps settings.json sections to tabs, a test keeps every section on one; form
   from the schema; `PUT /api/admin/settings` validates, writes and logs `UPDATE_SETTINGS` with the diff), plus the
@@ -330,7 +339,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `UPDATE_ROLES`, `CREATE_ROLE`, `DELETE_ROLE`, `RESET_ROLE`.
 - Block, unblock and delete for every type (`routes/adminItemRoutes.js`, `controllers/adminItemController.js`):
   `POST /api/admin/:type/:id/block` | `/unblock`, `DELETE /api/admin/:type/:id`, `POST /api/admin/:type/bulk-block` |
-  `/bulk-unblock` (`{ ids }`, at most 200). `:type` is `url`/`bundle`/`paste`/`file`; an unknown type or a switched-off
+  `/bulk-unblock` | `/bulk-delete` (`{ ids }`, at most 200; each item audit-logged like a single action). `:type` is `url`/`bundle`/`paste`/`file`; an unknown type or a switched-off
   feature falls through (404). Audit names stay per type (`BLOCK_URL`, `ADMIN_DELETE_FILE`, …); deleting a file also
   removes the upload. (Replaced `/api/admin/urls|bundles|pastes|files/…`.)
 - A type's feature switch in shared code: `isTypeEnabled(type)` / `enabledTypes()` from `services/contentTypes.js`.
@@ -391,8 +400,8 @@ share links · 5:30 expired files · 5:45 country database check.
   on Escape and outside clicks). Theme buttons are `[data-theme-toggle]` (with `[data-theme-icon]` /
   `[data-theme-label]` slots), wired by `public/js/theme.js`. Icons: `partials/icon` (`{ icon: 'tag' }`).
   Pages must not scroll sideways at 320px.
-- `currentPage` values (marks the sidebar entry): 'home', 'dashboard', 'tags', 'settings', 'admin' (Overview), 'admin-links', 'admin-users', 'admin-analytics',
-  'admin-reports', 'admin-audit-logs', 'admin-files', 'admin-pastes', 'admin-analytics-shares', 'admin-settings',
+- `currentPage` values (marks the sidebar entry): 'home', 'dashboard', 'tags', 'settings', 'admin' (Overview), 'admin-items', 'admin-users', 'admin-analytics',
+  'admin-reports', 'admin-audit-logs', 'admin-analytics-shares', 'admin-settings',
   'teams', 'admin-teams', 'admin-appearance', 'bio-settings', 'import',
   'analytics', 'info'.
 - `views/error.ejs` takes `{ title, message, code }` (it also tolerates `statusCode` / `error.status`).

@@ -105,10 +105,8 @@ const PAGES = {
   'bio-page': async () => ({ req: request(null), view: 'bio-page', data: bioPageData() }),
   'bio-settings': async () => ({ req: request(s.user), view: 'bio-settings', data: bioSettingsData() }),
   'admin-overview': () => rendered(c('adminOverviewController').overviewPage, request(s.admin)),
-  'admin-links': () => rendered(c('dashboardController').getAdminDashboard, request(s.admin)),
+  'admin-items': () => rendered(c('adminItemsController').itemsPage, request(s.admin, { query: {} })),
   'admin-users': () => rendered(c('adminController').getUsersPage, request(s.admin)),
-  'admin-files': () => rendered(c('fileController').adminList, request(s.admin)),
-  'admin-pastes': () => rendered(c('pasteController').adminList, request(s.admin)),
   'admin-reports': () => rendered(c('reportController').getReportsPage, request(s.admin)),
   'admin-analytics': () => rendered(c('analyticsController').getAdminAnalyticsPage, request(s.admin)),
   'admin-analytics-shares': () => rendered(c('analyticsShareController').getAdminPage, request(s.admin)),
@@ -251,5 +249,34 @@ describe('index: links in the address (lnksnp.ch/<link>)', () => {
     const html = await ejs.renderFile(path.join(VIEWS, 'index.ejs'), { ...appLocals(), ...(await localsFor(s.user)), ...data });
     expect(html).toMatch(/<input[^>]*id="longUrl"[^>]*value="https:\/\/www\.youtube\.com\/watch\?v=JSur9qyqtuA&amp;t=262s"/);
     expect(html).toMatch(/<button[^>]*class="mode-pill active" id="pillUrl"/);
+  });
+});
+
+describe('admin-items', () => {
+  const renderItems = async (query) => {
+    const { req, data } = await rendered(c('adminItemsController').itemsPage, request(s.admin, { query }));
+    return ejs.renderFile(path.join(VIEWS, 'admin-items.ejs'), { ...appLocals(), ...(await localsFor(req.user)), ...data });
+  };
+
+  it('shows every type with its own actions, and the type pills', async () => {
+    const html = await renderItems({});
+    for (const [type, slug] of [['url', 'link'], ['bundle', 'kit'], ['paste', 'notes'], ['file', 'doc']]) {
+      expect(html).toMatch(new RegExp(`<div class="item-row[^"]*" data-type="${type}" data-id="\\d+" data-slug="${slug}"`));
+    }
+    for (const pill of ['all', 'url', 'bundle', 'paste', 'file']) expect(html).toContain(`data-type-pill="${pill}"`);
+    expect(html).toMatch(/href="\/analytics\/paste\/\d+"/);
+    expect(html).toMatch(/href="\/pastes\/\d+\/edit"/);
+    expect(html).toMatch(/data-edit-url="\d+"/);
+  });
+
+  it('marks the current type and keeps the filters in the form', async () => {
+    const html = await renderItems({ type: 'paste', search: '@user:alice', status: 'active' });
+    expect(html).toMatch(/<a href="\/admin\/items\?type=paste[^"]*" class="type-pill" data-type-pill="paste" aria-current="page">/);
+    expect(html).toContain('value="@user:alice"');
+    expect(html).toMatch(/<option value="active" selected>/);
+  });
+
+  it('says so when nothing matches', async () => {
+    expect(await renderItems({ search: 'zzz-nothing' })).toContain('No items match');
   });
 });

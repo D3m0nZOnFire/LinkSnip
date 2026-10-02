@@ -276,9 +276,10 @@ describe('report counts on links', () => {
     reportFrom('url', url.id, 2);
     db().prepare("UPDATE reports SET status = 'dismissed' WHERE id = (SELECT MIN(id) FROM reports)").run();
 
-    expect(Url.findAllWithFilters({}).find(u => u.id === url.id).reportCount).toBe(1);
+    const adminItems = require('../../../services/adminItems');
+    expect(adminItems.list({ type: 'url' }).rows.find(u => u.id === url.id).reportCount).toBe(1);
     expect(Url.findByCreatorIdWithFilters(owner.id).find(u => u.id === url.id).reportCount).toBe(1);
-    expect(Url.findAllWithFilters({ hasReports: 'yes' }).map(u => u.id)).toEqual([url.id]);
+    expect(adminItems.list({ type: 'url', hasReports: 'yes' }).rows.map(u => u.id)).toEqual([url.id]);
 
     const res = createMockResponse();
     InfoController.getUrlInfo(createMockRequest({ params: { slug: 'it' }, get: () => undefined }), res);

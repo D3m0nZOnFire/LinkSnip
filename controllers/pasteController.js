@@ -6,9 +6,8 @@ const SlugGenerator = require('../services/slugGenerator');
 const AnalyticsService = require('../services/analyticsService');
 const { logAccountChange, ACTIONS } = require('../services/auditService');
 const {
-  checkAccess, sendAccessDenied, recordStatus, isLive, withAccessStatus, message: accessMessage
+  checkAccess, sendAccessDenied, recordStatus, isLive, message: accessMessage
 } = require('../services/accessService');
-const { deletesInDays } = require('../services/retentionService');
 
 const configService = require('../services/configService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
@@ -19,7 +18,6 @@ const { TeamError } = teamService;
 
 // Read per request so edits to settings.json apply without a restart.
 const maxPasteBytes = () => configService.get('pastes.maxSizeKB') * 1024;
-
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 
@@ -332,25 +330,4 @@ exports.raw = (req, res) => {
 };
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
-
-/**
- * GET /admin/pastes
- */
-exports.adminList = (req, res) => {
-  const search = req.query.search || '';
-  const page = Math.max(1, parseInt(req.query.page) || 1);
-  const limit = 50;
-  const offset = (page - 1) * limit;
-
-  const pastes = Paste.findAll(limit, offset, search);
-  const total = Paste.countAll(search);
-  const totalPages = Math.ceil(total / limit);
-
-  return res.render('admin-pastes', {
-    user: req.user,
-    pastes: withAccessStatus('paste', pastes).map(p => ({ ...p, deletesInDays: deletesInDays('paste', p) })),
-    search,
-    pagination: { page, totalPages, total, limit }
-  });
-};
 

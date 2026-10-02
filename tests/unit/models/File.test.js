@@ -154,58 +154,7 @@ describe('File Model', () => {
     });
   });
 
-  // ─── findAll ───────────────────────────────────────────────
-  describe('findAll', () => {
-    it('returns all files across all users', async () => {
-      const userA = await createTestUser();
-      const userB = await createTestUser();
-      createTestFile(userA.id, { slug: 'a001' });
-      createTestFile(userB.id, { slug: 'b001' });
 
-      expect(File.findAll()).toHaveLength(2);
-    });
-
-    it('filters by search term on originalName', async () => {
-      const user = await createTestUser();
-      createTestFile(user.id, { slug: 's001', originalName: 'report.pdf' });
-      createTestFile(user.id, { slug: 's002', originalName: 'image.png' });
-
-      const results = File.findAll(null, 0, 'report');
-      expect(results).toHaveLength(1);
-      expect(results[0].originalName).toBe('report.pdf');
-    });
-
-    it('respects limit and offset', async () => {
-      const user = await createTestUser();
-      createTestFile(user.id, { slug: 'pg01' });
-      createTestFile(user.id, { slug: 'pg02' });
-      createTestFile(user.id, { slug: 'pg03' });
-
-      expect(File.findAll(2, 0)).toHaveLength(2);
-      expect(File.findAll(2, 2)).toHaveLength(1);
-    });
-  });
-
-  // ─── countAll ──────────────────────────────────────────────
-  describe('countAll', () => {
-    it('returns total file count', async () => {
-      const user = await createTestUser();
-      createTestFile(user.id, { slug: 'cnt1' });
-      createTestFile(user.id, { slug: 'cnt2' });
-
-      expect(File.countAll()).toBe(2);
-    });
-
-    it('filters count by search term', async () => {
-      const user = await createTestUser();
-      createTestFile(user.id, { slug: 'srch1', originalName: 'budget.xlsx' });
-      createTestFile(user.id, { slug: 'srch2', originalName: 'photo.jpg' });
-
-      expect(File.countAll('budget')).toBe(1);
-      expect(File.countAll('photo')).toBe(1);
-      expect(File.countAll('missing')).toBe(0);
-    });
-  });
 
   // ─── findExpired ───────────────────────────────────────────
   describe('findExpired', () => {

@@ -60,36 +60,6 @@ class Paste {
     return result ? result.count : 0;
   }
 
-  static findAll(limit = null, offset = 0, search = '') {
-    let query = `
-      SELECT pastes.*, users.username AS ownerUsername
-      FROM pastes
-      LEFT JOIN users ON pastes.userId = users.id
-    `;
-    const params = [];
-    if (search) {
-      query += ' WHERE pastes.title LIKE ?';
-      params.push(`%${search}%`);
-    }
-    query += ' ORDER BY pastes.createdAt DESC';
-    if (limit !== null) {
-      query += ' LIMIT ? OFFSET ?';
-      params.push(limit, offset);
-    }
-    const rows = db.prepare(query).all(...params);
-    return rows.map(p => ({ ...p, tags: Tag.forItem('paste', p.id) }));
-  }
-
-  static countAll(search = '') {
-    let query = 'SELECT COUNT(*) as count FROM pastes';
-    const params = [];
-    if (search) {
-      query += ' WHERE title LIKE ?';
-      params.push(`%${search}%`);
-    }
-    return db.prepare(query).get(...params).count;
-  }
-
   static findExpired() {
     const now = new Date().toISOString();
     return db.prepare(`
