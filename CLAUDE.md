@@ -214,7 +214,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Bundles and bio pages
 - Bundles: `/b/:slug` launcher, `/bt/:itemId` per-item tracking redirect (checks the bundle's access).
   `Bundle.replaceItems` updates items in place: an item whose URL stays keeps its ID and click history.
-- Bio pages: `/bio/:username` public, `/bio/settings`. Hidden (404) when the owner's role lacks `bioPage`.
+- Bio pages: `/bio/:username` public, `/bio/settings`. Hidden (404) when the owner's role lacks `bioPage`. In the
+  settings, profile and social links are saved with the save bar (it sticks to the window while something is
+  unsaved); the link checkboxes save right away (`POST /api/bio/urls/:id/toggle`).
 
 ### Tags (every content type)
 - `models/Tag.js`: `forItem(type, id)` and `setForItem(type, id, names)` (replaces; an empty list removes all). Tags
@@ -436,6 +438,11 @@ share links · 5:30 expired files · 5:45 country database check.
   'teams', 'admin-teams', 'admin-appearance', 'bio-settings', 'import',
   'analytics', 'info'.
 - `views/error.ejs` takes `{ title, message, code }` (it also tolerates `statusCode` / `error.status`).
+- App pages made of sections (settings, bio settings, a team, import/export, tags): `public/css/sections.css`
+  (`.page-narrow` / `.page-medium` column, `.section-card` with `h3` + `.section-help`, `.section-card.danger`,
+  `.inline-form`, `.section-table` in a `.table-scroll`, `.save-bar`), plus a small stylesheet per page. No `<style>`,
+  `style=` (CSS variables aside), inline handlers or emoji in their templates; a test checks this.
+- `confirmAction()` returns a Promise: always `await` it (an unawaited one is always truthy).
 - Modals: `public/css/modals.css`, `openModal(id)` / `closeModal(id)` in `public/js/main.js`; `showToast`,
   `apiRequest`, `setButtonLoading` there too.
 - Password inputs with `data-toggle-password` get an eye toggle. Theme variables in `public/css/tokens.css`

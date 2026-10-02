@@ -1,102 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Settings', styles: ['forms'] }) %>
+  <%- include('partials/head', { title: 'Settings', styles: ['forms', 'modals', 'sections'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'app', currentPage: 'settings' }) %>
 
-  <!-- Main Content -->
-  <main class="main-content">
-    <h2 style="font-size: 1.875rem; font-weight: 700; margin-bottom: 2rem;">Account Settings</h2>
-
-    <!-- Change Username Section -->
-    <div class="card" style="margin-bottom: 2rem;">
-      <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Change Username</h3>
-      <p style="color: var(--muted-foreground); margin-bottom: 1.5rem; font-size: 0.875rem;">
-        Current username: <strong><%= user.username %></strong>
-      </p>
-
-      <div class="form-group">
-        <label for="newUsername" class="form-label">New Username</label>
-        <input 
-          type="text" 
-          id="newUsername" 
-          class="form-input"
-          placeholder="Enter new username"
-        >
+  <main class="main-content-wide page-narrow">
+    <div class="header-section">
+      <div>
+        <h2>Settings</h2>
+        <p>Signed in as <strong><%= user.username %></strong></p>
       </div>
-
-      <div class="form-group">
-        <label for="usernamePassword" class="form-label">Current Password</label>
-        <input
-          type="password"
-          id="usernamePassword"
-          class="form-input"
-          placeholder="Confirm with your password"
-          data-toggle-password
-        >
-      </div>
-
-      <button class="btn" id="saveUsernameBtn" style="color: var(--primary-foreground);">Update Username</button>
     </div>
 
-    <!-- Change Password Section -->
-    <div class="card" style="margin-bottom: 2rem;">
-      <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Change Password</h3>
-      <p style="color: var(--muted-foreground); margin-bottom: 1.5rem; font-size: 0.875rem;">
-        Update your password to keep your account secure.
-      </p>
+    <section class="section-card">
+      <h3>Username</h3>
+      <p class="section-help">Your bio page address changes with it.</p>
+      <form id="usernameForm" novalidate>
+        <div class="form-group">
+          <label for="newUsername" class="form-label">New username</label>
+          <input type="text" id="newUsername" class="form-input" autocomplete="username" placeholder="<%= user.username %>">
+        </div>
+        <div class="form-group">
+          <label for="usernamePassword" class="form-label">Current password</label>
+          <input type="password" id="usernamePassword" class="form-input" autocomplete="current-password" data-toggle-password>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn" id="saveUsernameBtn">Change username</button>
+        </div>
+      </form>
+    </section>
 
-      <div class="form-group">
-        <label for="currentPassword" class="form-label">Current Password</label>
-        <input
-          type="password"
-          id="currentPassword"
-          class="form-input"
-          placeholder="Enter current password"
-          data-toggle-password
-        >
-      </div>
+    <section class="section-card">
+      <h3>Password</h3>
+      <p class="section-help">At least <%= minPasswordLength %> characters.</p>
+      <form id="passwordForm" novalidate>
+        <div class="form-group">
+          <label for="currentPassword" class="form-label">Current password</label>
+          <input type="password" id="currentPassword" class="form-input" autocomplete="current-password" data-toggle-password>
+        </div>
+        <div class="form-group">
+          <label for="newPassword" class="form-label">New password</label>
+          <input type="password" id="newPassword" class="form-input" autocomplete="new-password" minlength="<%= minPasswordLength %>" data-toggle-password>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword" class="form-label">Repeat the new password</label>
+          <input type="password" id="confirmPassword" class="form-input" autocomplete="new-password" data-toggle-password>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn" id="savePasswordBtn">Change password</button>
+        </div>
+      </form>
+    </section>
 
-      <div class="form-group">
-        <label for="newPassword" class="form-label">New Password</label>
-        <input
-          type="password"
-          id="newPassword"
-          class="form-input"
-          placeholder="Enter new password"
-          minlength="<%= minPasswordLength %>"
-          data-toggle-password
-        >
-        <div class="form-hint">At least <%= minPasswordLength %> characters</div>
-      </div>
-
-      <div class="form-group">
-        <label for="confirmPassword" class="form-label">Confirm New Password</label>
-        <input
-          type="password"
-          id="confirmPassword"
-          class="form-input"
-          placeholder="Confirm new password"
-          data-toggle-password
-        >
-      </div>
-
-      <button class="btn" id="savePasswordBtn" style="color: var(--primary-foreground);">Update Password</button>
-    </div>
-
-    <!-- Danger Zone -->
-    <div class="card" style="border-color: var(--destructive);">
-      <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--destructive);">
-        Danger Zone
-      </h3>
-      <p style="color: var(--muted-foreground); margin-bottom: 1.5rem; font-size: 0.875rem;">
-        Once you delete your account, there is no going back. All your URLs will be permanently deleted.
-      </p>
-
-      <button class="btn btn-danger" id="deleteAccountBtn">Delete Account</button>
-    </div>
+    <section class="section-card danger">
+      <h3>Delete account</h3>
+      <p class="section-help">Deletes your account and everything you made yourself: links, bundles, pastes and files,
+        with their analytics, tags and your bio page. Items in teams stay with the team. This can't be undone.</p>
+      <button type="button" class="btn btn-danger" id="deleteAccountBtn">Delete account…</button>
+    </section>
   </main>
+
+  <div id="deleteAccountModal" class="modal-overlay">
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="deleteAccountTitle">
+      <div class="modal-header">
+        <h3 id="deleteAccountTitle">Delete your account</h3>
+        <button type="button" class="modal-close" data-close-modal="deleteAccountModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
+      </div>
+      <form class="modal-body" id="deleteAccountForm" novalidate>
+        <p>Your links, bundles, pastes and files are deleted with it. Enter your password to confirm.</p>
+        <div class="form-group">
+          <label for="deletePassword" class="form-label">Password</label>
+          <input type="password" id="deletePassword" class="form-input" autocomplete="current-password" required data-toggle-password>
+        </div>
+        <p class="field-error" id="deleteAccountError" role="alert"></p>
+      </form>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="deleteAccountModal">Cancel</button>
+        <button type="submit" class="btn btn-danger" form="deleteAccountForm" id="confirmDeleteAccountBtn">Delete my account</button>
+      </div>
+    </div>
+  </div>
 
   <script src="/js/main.js"></script>
   <script src="/js/settings.js"></script>

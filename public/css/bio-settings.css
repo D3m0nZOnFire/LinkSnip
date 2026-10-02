@@ -1,0 +1,213 @@
+/* Bio page settings (views/bio-settings.ejs, public/js/bio-settings.js). The icon picker's own styles are in
+   forms.css. */
+
+.bio-settings .header-section a {
+  color: var(--primary);
+}
+
+.bio-settings .header-actions a.btn {
+  color: var(--foreground);
+}
+
+/* Profile and social links on the left, the link picker on the right (one column below 1100px) */
+.bio-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: start;
+  gap: var(--spacing-lg);
+}
+
+.bio-columns .section-card {
+  margin-bottom: 0;
+}
+
+.bio-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.bio-main .save-bar {
+  margin-top: 0;
+}
+
+.gradient-pickers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-md);
+}
+
+.gradient-pickers[hidden] {
+  display: none;
+}
+
+/* Social links: icon, name, address, remove */
+.social-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.social-link-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.social-link-item .form-input {
+  padding: 0.55rem 0.75rem;
+  font-size: var(--text-sm);
+}
+
+.social-link-item .icon-picker-trigger {
+  padding: 0.35rem 0.5rem;
+}
+
+.social-icon-preview {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.icon-picker-item .social-icon-preview {
+  width: 2rem;
+  height: 2rem;
+  font-size: 2rem;
+}
+
+.icon-picker-item[hidden] {
+  display: none;
+}
+
+.icon-picker-loading {
+  grid-column: 1 / -1;
+  padding: var(--spacing-xl);
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.icon-picker-close .icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.section-card > .btn {
+  gap: 0.35rem;
+}
+
+/* The links to show */
+.bio-links {
+  position: sticky;
+  top: var(--spacing-lg);
+}
+
+.bio-links .section-help {
+  margin-bottom: var(--spacing-sm);
+}
+
+.link-picker {
+  display: flex;
+  flex-direction: column;
+  max-height: 32rem;
+  margin: 0 calc(var(--spacing-lg) * -1) calc(var(--spacing-lg) * -1);
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+
+.link-picker-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: 0.6rem var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.link-picker-item:last-child {
+  border-bottom: 0;
+}
+
+.link-picker-item:hover {
+  background: var(--table-row-hover);
+}
+
+.link-picker-item input {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+  accent-color: var(--primary);
+}
+
+.link-picker-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.link-picker-slug {
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.link-picker-destination {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-picker-text .tag-chips {
+  margin-top: 0.25rem;
+}
+
+.link-picker-clicks {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1100px) {
+  .bio-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bio-links {
+    position: static;
+  }
+
+  .link-picker {
+    max-height: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .gradient-pickers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .social-link-item {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-auto-flow: dense;
+  }
+
+  .social-link-item .social-url {
+    grid-column: 1 / -1;
+  }
+
+  .link-picker {
+    margin: 0 calc(var(--spacing-md) * -1) calc(var(--spacing-md) * -1);
+  }
+
+  .link-picker-item {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+}

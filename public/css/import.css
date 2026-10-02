@@ -1,0 +1,126 @@
+/* Import / export (views/import.ejs, public/js/import.js) */
+
+.section-card .btn {
+  gap: 0.35rem;
+}
+
+.import-form .form-input[type="file"] {
+  padding: 0.5rem;
+  font-size: var(--text-sm);
+}
+
+.import-results {
+  margin-top: var(--spacing-md);
+  padding: 0.75rem var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--secondary);
+  font-size: var(--text-sm);
+}
+
+.import-results[hidden] {
+  display: none;
+}
+
+.import-results.success {
+  background: var(--status-active-bg);
+  border-color: var(--status-active-border);
+}
+
+.import-results.warning {
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
+}
+
+.import-results.error {
+  background: var(--status-error-bg);
+  border-color: var(--status-error-border);
+  color: var(--status-error-text);
+}
+
+.import-results details {
+  margin-top: var(--spacing-sm);
+}
+
+.import-results summary {
+  cursor: pointer;
+}
+
+.import-results ul {
+  margin: var(--spacing-xs) 0 0 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.import-results .btn {
+  margin-top: var(--spacing-sm);
+}
+
+/* The format guide, folded */
+.import-guide > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem var(--spacing-sm);
+  list-style: none;
+  cursor: pointer;
+}
+
+.import-guide > summary::-webkit-details-marker {
+  display: none;
+}
+
+.import-guide > summary::after {
+  content: "+";
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.import-guide[open] > summary::after {
+  content: "−";
+}
+
+.import-guide > summary h3 {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.import-guide > summary .muted {
+  font-size: var(--text-sm);
+}
+
+.import-guide h4 {
+  margin: var(--spacing-lg) 0 var(--spacing-xs);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.import-guide p {
+  margin-bottom: var(--spacing-sm);
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+}
+
+.import-guide pre {
+  max-width: 100%;
+  margin: 0;
+  padding: 0.75rem var(--spacing-md);
+  overflow-x: auto;
+  background: var(--secondary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.import-guide code {
+  font-family: var(--font-mono);
+}
+
+.import-guide td code,
+.import-guide p code {
+  padding: 0.05rem 0.3rem;
+  background: var(--secondary);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}

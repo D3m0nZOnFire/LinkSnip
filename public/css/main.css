@@ -318,6 +318,16 @@ code, kbd, pre, samp {
   border: 0;
 }
 
+.field-error {
+  color: var(--destructive);
+  font-size: var(--text-sm);
+}
+
+.field-error:empty,
+.field-error[hidden] {
+  display: none;
+}
+
 .field-help {
   margin-top: var(--spacing-xs);
   font-size: var(--text-sm);

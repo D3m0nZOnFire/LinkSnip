@@ -280,3 +280,67 @@ describe('admin-items', () => {
     expect(await renderItems({ search: 'zzz-nothing' })).toContain('No items match');
   });
 });
+
+describe('app pages (v1.3 part 5b): no inline styling, no emoji, the shared look', () => {
+  const APP_PAGES = ['tags', 'tag-analytics', 'teams', 'team', 'settings', 'import', 'bio-settings'];
+  const EMOJI = /\p{Extended_Pictographic}/u;
+
+  it.each(APP_PAGES)('%s.ejs has no <style> blocks, style attributes (CSS variables aside), inline handlers or emoji', (name) => {
+    const source = fs.readFileSync(path.join(VIEWS, `${name}.ejs`), 'utf8');
+    expect(source).not.toMatch(/<style/);
+    expect(source.match(/\sstyle="(?!--[a-z-]+:)[^"]*"/g)).toBeNull();
+    expect(source).not.toMatch(/\son[a-z]+="/);
+    expect(source).not.toMatch(EMOJI);
+  });
+
+  it.each(APP_PAGES)('%s has no inline script code (scripts come from /js)', async (name) => {
+    const html = await renderPage(name);
+    const inline = (html.match(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/json")[^>]*>[\s\S]*?<\/script>/g) || [])
+      .filter(script => !/theme|data-theme/.test(script)); // the head's theme bootstrap
+    const own = inline.filter(script => !script.includes('team-invite'));
+    expect(own).toEqual([]);
+  });
+
+  it('tags: the totals in the header, no "Back to Dashboard", the how-to only without tags', async () => {
+    const html = await renderPage('tags');
+    expect(html).toMatch(/1 tag · 1 use · 1 visit/);
+    expect(html).not.toContain('Back to Dashboard');
+    expect(html).not.toContain('How to use tags');
+    expect(html).toMatch(new RegExp(`data-tag-id="${s.tag.id}"[^>]*data-tag-name="launch"`));
+  });
+
+  it('tags: a quote in a tag name stays text (no inline JavaScript)', async () => {
+    getTestDatabase().prepare('UPDATE tags SET name = ? WHERE id = ?').run("it's\");alert(1)//", s.tag.id);
+    const html = await renderPage('tags');
+    expect(html).toContain('data-tag-name="it&#39;s&#34;);alert(1)//"');
+    expect(html).not.toMatch(/editTag\(/);
+  });
+
+  it('settings: says what deleting the account deletes, and asks for the password in the page', async () => {
+    const html = await renderPage('settings');
+    expect(html).toMatch(/links, bundles, pastes and files/);
+    expect(html).toMatch(/team[^.]*stay/i);
+    expect(html).toMatch(/<input[^>]*type="password"[^>]*id="deletePassword"/);
+    expect(html).not.toContain('All your URLs');
+  });
+
+  it('import: states the role\'s own limits; the format guide is folded away', async () => {
+    fs.writeFileSync(paths.ROLES_PATH, JSON.stringify({ roles: { user: { limits: { importsPerHour: 4, importBatchSize: 250 } } } }));
+    configService.reload();
+    try {
+      const html = await renderPage('import');
+      expect(html).toMatch(/4 imports per hour/);
+      expect(html).toMatch(/250 links per import/);
+      expect(html).toMatch(/<details[^>]*class="[^"]*import-guide/);
+    } finally {
+      fs.rmSync(paths.ROLES_PATH, { force: true });
+      configService.reload();
+    }
+  });
+
+  it('bio-settings: a save bar instead of a button at the top; link checkboxes without inline handlers', async () => {
+    const html = await renderPage('bio-settings');
+    expect(html).toMatch(/class="save-bar"/);
+    expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*data-url-id="\d+"/);
+  });
+});

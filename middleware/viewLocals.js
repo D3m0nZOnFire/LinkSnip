@@ -41,7 +41,7 @@ function viewLocals(req, res, next) {
   }));
   res.locals.canUploadFiles = res.locals.can.uploadFiles;
   res.locals.writableTeams = req.user ? teamService.writableTeams(req.user) : [];
-  res.locals.limits = Object.fromEntries(['urlsPerHour', 'pastesPerHour', 'bundlesPerHour', 'uploadsPerHour']
+  res.locals.limits = Object.fromEntries(['urlsPerHour', 'pastesPerHour', 'bundlesPerHour', 'uploadsPerHour', 'importsPerHour', 'importBatchSize']
     .map(name => [name, RoleService.limit(req.user || null, name)]));
   next();
 }

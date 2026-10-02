@@ -1,167 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Import / export', styles: ['tables', 'forms'] }) %>
+  <%- include('partials/head', { title: 'Import / export', styles: ['forms', 'sections', 'import'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'app', currentPage: 'import' }) %>
-
-  <main class="container">
-    <div style="max-width: 900px; margin: 0 auto;">
-      <div style="margin-bottom: 2rem;">
-        <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Bulk Import/Export</h1>
-        <p style="color: var(--muted-foreground);">
-          Import multiple URLs at once or export your existing URLs
-        </p>
+<%
+  const hourly = locals.limits || {};
+  const number = (n) => Number(n).toLocaleString('en-US');
+  const limitParts = [
+    hourly.importsPerHour === null || hourly.importsPerHour === undefined ? null : `Up to ${number(hourly.importsPerHour)} import${hourly.importsPerHour === 1 ? '' : 's'} per hour`,
+    hourly.importBatchSize === null || hourly.importBatchSize === undefined ? null : `${number(hourly.importBatchSize)} links per import`
+  ].filter(Boolean);
+-%>
+  <main class="main-content-wide page-narrow">
+    <div class="header-section">
+      <div>
+        <h2>Import / export</h2>
+        <p>Many short links at once, from a CSV, JSON or text file, and all of yours back out.</p>
       </div>
+    </div>
 
-      <!-- Rate Limit Info -->
-      <% if (!user.isAdmin) { %>
-      <div style="margin-bottom: 2rem; padding: 1rem; background-color: var(--status-active-bg); border: 1px solid var(--status-active-border); border-radius: 0.5rem;">
-        <p style="margin: 0; color: var(--foreground); font-size: 0.875rem;">
-          📊 <strong>Import Limits:</strong> 10 imports per hour • Up to 1,000 URLs per import
-        </p>
-      </div>
-      <% } else { %>
-      <div style="margin-bottom: 2rem; padding: 1rem; background-color: var(--status-active-bg); border: 1px solid var(--status-active-border); border-radius: 0.5rem;">
-        <p style="margin: 0; color: var(--foreground); font-size: 0.875rem;">
-          👑 <strong>Admin Mode:</strong> Unlimited imports • Up to 10,000 URLs per import
-        </p>
-      </div>
-      <% } %>
-
-      <!-- Import Section -->
-      <div class="card" style="margin-bottom: 2rem;">
-        <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">📥 Import URLs</h2>
-
-        <form id="importForm" style="margin-bottom: 2rem;">
-          <div class="form-group">
-            <label for="importFile" class="form-label">Upload File (CSV, JSON, or TXT)</label>
-            <input
-              type="file"
-              id="importFile"
-              name="file"
-              class="form-input"
-              accept=".csv,.json,.txt"
-              required
-            >
-            <small style="color: var(--muted-foreground); display: block; margin-top: 0.5rem;">
-              Maximum file size: 10MB
-            </small>
-          </div>
-
-          <div style="display: flex; gap: 1rem;">
-            <button type="submit" class="btn" style="color: var(--primary-foreground);">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              Import URLs
-            </button>
-            <a href="/api/import/template" class="btn" style="background-color: var(--secondary); color: var(--foreground); text-decoration: none;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              Download Template
-            </a>
-          </div>
-        </form>
-
-        <!-- Progress/Results Display -->
-        <div id="importResults" style="display: none;"></div>
-      </div>
-
-      <!-- Export Section -->
-      <div class="card" style="margin-bottom: 2rem;">
-        <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">📤 Export URLs</h2>
-        <p style="color: var(--muted-foreground); margin-bottom: 1.5rem;">
-          Download all your URLs with their statistics and metadata
-        </p>
-
-        <div style="display: flex; gap: 1rem;">
-          <a href="/api/export?format=csv" class="btn" style="color: var(--primary-foreground);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Export as CSV
-          </a>
-          <a href="/api/export?format=json" class="btn" style="background-color: var(--secondary); color: var(--foreground); text-decoration: none;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Export as JSON
-          </a>
+    <section class="section-card">
+      <h3>Import links</h3>
+      <p class="section-help"><%= limitParts.length ? limitParts.join(' · ') : 'No limits for your account' %>. Files up to 10 MB.</p>
+      <form id="importForm" class="import-form">
+        <div class="form-group">
+          <label for="importFile" class="form-label">File (CSV, JSON or TXT)</label>
+          <input type="file" id="importFile" name="file" class="form-input" accept=".csv,.json,.txt" required>
         </div>
-      </div>
-
-      <!-- Documentation -->
-      <div class="card">
-        <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">📖 Import Format Documentation</h2>
-
-        <div style="margin-bottom: 2rem;">
-          <h3 style="font-size: 1.125rem; margin-bottom: 0.75rem;">Supported File Formats</h3>
-          <ul style="list-style: none; padding: 0; margin: 0;">
-            <li style="margin-bottom: 0.5rem;">✅ <strong>CSV</strong> - Comma-separated values (recommended)</li>
-            <li style="margin-bottom: 0.5rem;">✅ <strong>JSON</strong> - JavaScript Object Notation</li>
-            <li style="margin-bottom: 0.5rem;">✅ <strong>TXT</strong> - Plain text (one URL per line)</li>
-          </ul>
+        <div class="form-actions">
+          <button type="submit" class="btn" id="importBtn"><%- include('partials/icon', { icon: 'upload' }) %> Import</button>
+          <a href="/api/import/template" class="btn btn-secondary"><%- include('partials/icon', { icon: 'download' }) %> CSV template</a>
         </div>
+      </form>
+      <div id="importResults" class="import-results" aria-live="polite" hidden></div>
+    </section>
 
-        <div style="margin-bottom: 2rem;">
-          <h3 style="font-size: 1.125rem; margin-bottom: 0.75rem;">CSV Format Options</h3>
-          <p style="color: var(--muted-foreground); margin-bottom: 1rem;">
-            The CSV format is flexible and supports multiple column configurations:
-          </p>
+    <section class="section-card">
+      <h3>Export links</h3>
+      <p class="section-help">All your personal links with their clicks, tags and settings.</p>
+      <div class="form-actions">
+        <a href="/api/export?format=csv" class="btn"><%- include('partials/icon', { icon: 'download' }) %> CSV</a>
+        <a href="/api/export?format=json" class="btn btn-secondary"><%- include('partials/icon', { icon: 'download' }) %> JSON</a>
+      </div>
+    </section>
 
-          <div style="margin-bottom: 1rem;">
-            <p style="font-weight: 500; margin-bottom: 0.5rem;">1. <strong>Simple</strong> - Just URLs:</p>
-            <pre style="background-color: var(--secondary); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.875rem;"><code>longUrl
-https://example.com/page1
-https://example.com/page2</code></pre>
-          </div>
+    <details class="section-card import-guide">
+      <summary><h3>File formats</h3><span class="muted">CSV, JSON and plain text, with examples</span></summary>
 
-          <div style="margin-bottom: 1rem;">
-            <p style="font-weight: 500; margin-bottom: 0.5rem;">2. <strong>With Custom Slugs</strong>:</p>
-            <pre style="background-color: var(--secondary); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.875rem;"><code>longUrl,slug
-https://example.com/page1,my-link
-https://example.com/page2,another-link</code></pre>
-          </div>
-
-          <div style="margin-bottom: 1rem;">
-            <p style="font-weight: 500; margin-bottom: 0.5rem;">3. <strong>With Tags</strong> (use semicolons to separate tags):</p>
-            <pre style="background-color: var(--secondary); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.875rem;"><code>longUrl,slug,tags
-https://example.com/page1,my-link,marketing;campaign;email
-https://example.com/page2,,social-media;twitter</code></pre>
-          </div>
-
-          <div style="margin-bottom: 1rem;">
-            <p style="font-weight: 500; margin-bottom: 0.5rem;">4. <strong>With Expiration</strong>:</p>
-            <pre style="background-color: var(--secondary); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.875rem;"><code>longUrl,slug,tags,expirationDays
-https://example.com/page1,my-link,marketing,30
-https://example.com/page2,,,60</code></pre>
-          </div>
-
-          <div>
-            <p style="font-weight: 500; margin-bottom: 0.5rem;">5. <strong>Full Format</strong> - All options:</p>
-            <pre style="background-color: var(--secondary); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.875rem;"><code>longUrl,slug,tags,expirationDays,maxUses
+      <h4>CSV</h4>
+      <p>Commas between columns; only <code>longUrl</code> is required. Separate several tags with semicolons.</p>
+      <pre><code>longUrl,slug,tags,expirationDays,maxUses
 https://example.com/page1,link1,marketing;email,30,100
-https://example.com/page2,link2,social-media;twitter,60,50
-https://example.com/page3,,,90,</code></pre>
-          </div>
-        </div>
+https://example.com/page2,link2,social-media,60,50
+https://example.com/page3,,,90,
+https://example.com/page4</code></pre>
 
-        <div style="margin-bottom: 2rem;">
-          <h3 style="font-size: 1.125rem; margin-bottom: 0.75rem;">JSON Format</h3>
-          <p style="color: var(--muted-foreground); margin-bottom: 1rem; font-size: 0.875rem;">
-            💡 In JSON format, you can use commas in tags since they're strings
-          </p>
-          <pre style="background-color: var(--secondary); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.875rem;"><code>[
+      <h4>JSON</h4>
+      <p>A list of objects with the same fields. Tags are one string, separated by commas.</p>
+      <pre><code>[
   {
     "longUrl": "https://example.com/page1",
     "slug": "my-link",
@@ -169,155 +66,30 @@ https://example.com/page3,,,90,</code></pre>
     "expirationDays": 30,
     "maxUses": 100
   },
-  {
-    "longUrl": "https://example.com/page2",
-    "tags": "social-media, twitter"
-  }
+  { "longUrl": "https://example.com/page2", "tags": "social-media" }
 ]</code></pre>
-        </div>
 
-        <div style="margin-bottom: 2rem;">
-          <h3 style="font-size: 1.125rem; margin-bottom: 0.75rem;">Plain Text Format</h3>
-          <pre style="background-color: var(--secondary); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.875rem;"><code>https://example.com/page1
-https://example.com/page2
-https://example.com/page3</code></pre>
-        </div>
+      <h4>Plain text</h4>
+      <p>One link per line.</p>
+      <pre><code>https://example.com/page1
+https://example.com/page2</code></pre>
 
-        <div>
-          <h3 style="font-size: 1.125rem; margin-bottom: 0.75rem;">Column Descriptions</h3>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Column</th>
-                <th>Required</th>
-                <th>Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>longUrl</code></td>
-                <td>✅ Yes</td>
-                <td>The full destination URL (must include http:// or https://)</td>
-              </tr>
-              <tr>
-                <td><code>slug</code></td>
-                <td>❌ No</td>
-                <td>Custom short code (leave empty for auto-generation)</td>
-              </tr>
-              <tr>
-                <td><code>tags</code></td>
-                <td>❌ No</td>
-                <td><strong>CSV:</strong> Semicolon-separated (e.g., "marketing;email;Q4-2024")<br><strong>JSON:</strong> Comma-separated (e.g., "marketing, email, Q4-2024")</td>
-              </tr>
-              <tr>
-                <td><code>expirationDays</code></td>
-                <td>❌ No</td>
-                <td>Number of days until URL expires (leave empty for no expiration)</td>
-              </tr>
-              <tr>
-                <td><code>maxUses</code></td>
-                <td>❌ No</td>
-                <td>Maximum number of times the URL can be used (leave empty for unlimited)</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div style="margin-top: 2rem; padding: 1rem; background-color: var(--info-bg); border-radius: 0.5rem;">
-          <p style="margin: 0; font-size: 0.875rem;">
-            💡 <strong>Tip:</strong> Download the template file to see example formats and get started quickly!
-          </p>
-        </div>
+      <h4>Columns</h4>
+      <div class="table-scroll">
+        <table class="section-table">
+          <thead><tr><th>Column</th><th>Required</th><th>What it is</th></tr></thead>
+          <tbody>
+            <tr><td><code>longUrl</code></td><td>Yes</td><td>The destination, with http:// or https://</td></tr>
+            <tr><td><code>slug</code></td><td>No</td><td>Your own short code; empty makes one up</td></tr>
+            <tr><td><code>tags</code></td><td>No</td><td>CSV: <code>marketing;email</code> · JSON: <code>"marketing, email"</code></td></tr>
+            <tr><td><code>expirationDays</code></td><td>No</td><td>Days until the link expires; empty never expires</td></tr>
+            <tr><td><code>maxUses</code></td><td>No</td><td>Clicks until the link stops working; empty has no limit</td></tr>
+          </tbody>
+        </table>
       </div>
-    </div>
+    </details>
   </main>
 
-  <script>
-    const form = document.getElementById('importForm');
-    const resultsDiv = document.getElementById('importResults');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const fileInput = document.getElementById('importFile');
-      const file = fileInput.files[0];
-
-      if (!file) {
-        alert('Please select a file to import');
-        return;
-      }
-
-      // Show loading state
-      resultsDiv.style.display = 'block';
-      resultsDiv.innerHTML = `
-        <div style="padding: 1.5rem; text-align: center;">
-          <p style="margin: 0; color: var(--primary);">⏳ Importing URLs... Please wait</p>
-        </div>
-      `;
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      try {
-        const response = await fetch('/api/import', {
-          method: 'POST',
-          body: formData
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-          // Success
-          let html = `
-            <div style="padding: 1.5rem; background-color: var(--status-active-bg); border: 1px solid var(--status-active-border); border-radius: 0.5rem;">
-              <h3 style="margin-top: 0; color: var(--primary);">✅ Import Complete!</h3>
-              <p style="margin-bottom: 1rem;"><strong>${result.results.success}</strong> URLs imported successfully</p>
-          `;
-
-          if (result.results.failed > 0) {
-            html += `<p style="margin-bottom: 1rem; color: var(--destructive);"><strong>${result.results.failed}</strong> URLs failed</p>`;
-            html += `<details style="margin-top: 1rem;"><summary style="cursor: pointer; font-weight: 500;">View Errors</summary><ul style="margin-top: 0.5rem;">`;
-            result.results.errors.forEach(err => {
-              html += `<li style="margin-bottom: 0.5rem; color: var(--destructive); font-size: 0.875rem;">Line ${err.line}: ${err.error}</li>`;
-            });
-            html += `</ul></details>`;
-          }
-
-          html += `
-            <a href="/dashboard" class="btn" style="display: inline-block; margin-top: 1rem; text-decoration: none; color: var(--primary-foreground);">View Dashboard</a>
-            </div>
-          `;
-
-          resultsDiv.innerHTML = html;
-          fileInput.value = ''; // Reset file input
-        } else {
-          // Error
-          let html = `
-            <div style="padding: 1.5rem; background-color: var(--status-error-bg); border: 1px solid var(--status-error-border); border-radius: 0.5rem;">
-              <h3 style="margin-top: 0; color: var(--destructive);">❌ Import Failed</h3>
-              <p style="margin-bottom: 1rem;">${result.error || 'Unknown error'}</p>
-          `;
-
-          if (result.details && result.details.length > 0) {
-            html += `<details><summary style="cursor: pointer; font-weight: 500;">View Details</summary><ul style="margin-top: 0.5rem;">`;
-            result.details.forEach(detail => {
-              html += `<li style="margin-bottom: 0.5rem; font-size: 0.875rem;">${detail}</li>`;
-            });
-            html += `</ul></details>`;
-          }
-
-          html += `</div>`;
-          resultsDiv.innerHTML = html;
-        }
-      } catch (error) {
-        resultsDiv.innerHTML = `
-          <div style="padding: 1.5rem; background-color: var(--status-error-bg); border: 1px solid var(--status-error-border); border-radius: 0.5rem;">
-            <h3 style="margin-top: 0; color: var(--destructive);">❌ Import Failed</h3>
-            <p style="margin: 0;">${error.message}</p>
-          </div>
-        `;
-      }
-    });
-  </script>
+  <script src="/js/import.js"></script>
 <%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

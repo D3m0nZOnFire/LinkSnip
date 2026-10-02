@@ -1,0 +1,91 @@
+/* Tags (views/tags.ejs) and tag analytics (views/tag-analytics.ejs) */
+
+.tags-card {
+  padding-top: var(--spacing-sm);
+  padding-bottom: var(--spacing-sm);
+}
+
+.tags-card .tag-chips {
+  margin: 0;
+}
+
+.tags-card .tag-chip {
+  font-size: var(--text-sm);
+}
+
+.tags-howto {
+  margin: 0 0 var(--spacing-md) 1.1rem;
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+}
+
+.tags-howto li + li {
+  margin-top: 0.25rem;
+}
+
+.tags-howto code {
+  padding: 0.05rem 0.35rem;
+  background: var(--secondary);
+  border-radius: var(--radius-sm);
+  color: var(--foreground);
+}
+
+.btn .icon {
+  flex-shrink: 0;
+}
+
+.tags-empty .btn {
+  gap: 0.35rem;
+}
+
+.modal-narrow {
+  max-width: 28rem;
+}
+
+/* Tag analytics */
+.tag-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.tag-title .tag-chips {
+  margin: 0;
+}
+
+.tag-title .tag-chip {
+  font-size: var(--text-lg);
+  padding: 0.1rem 0.6rem;
+}
+
+.chart-box {
+  position: relative; /* Chart.js sizes the canvas to this box */
+  height: 16rem;
+  margin-top: var(--spacing-md);
+}
+
+.type-cell {
+  text-transform: capitalize;
+}
+
+.path-cell a {
+  color: var(--primary);
+  font-family: var(--font-mono);
+  text-decoration: none;
+}
+
+.path-cell a:hover {
+  text-decoration: underline;
+}
+
+.name-cell {
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-box canvas {
+  max-width: 100%; /* also before Chart.js has sized it */
+}

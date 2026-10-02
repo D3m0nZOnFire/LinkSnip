@@ -1,99 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: `${tag.name} · Tag analytics`, styles: ['tables'] }) %>
+  <%- include('partials/head', { title: `${tag.name} · Tag analytics`, styles: ['overview', 'sections', 'tags'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'app', currentPage: 'tags' }) %>
-
-  <!-- Main Content -->
-  <main class="main-content-wide">
-    <!-- Header Section -->
+<%
+  const totalVisits = items.reduce((sum, i) => sum + i.visits, 0);
+  const breakdown = Object.keys(typeNouns).map(type => [type, items.filter(i => i.type === type).length])
+    .filter(([, n]) => n > 0).map(([type, n]) => `${n} ${typeNouns[type]}${n === 1 ? '' : 's'}`).join(' · ');
+  const day = (value) => new Date(String(value).includes('T') ? value : `${String(value).replace(' ', 'T')}Z`)
+    .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+-%>
+  <main class="main-content-wide page-medium" id="tagAnalytics" data-tag-id="<%= tag.id %>" data-tag-color="<%= /^#[0-9a-f]{6}$/i.test(tag.color || '') ? tag.color : '' %>">
     <div class="header-section">
       <div>
-        <h2 style="display: flex; align-items: center; gap: 0.75rem;">
-          <span style="display: inline-block; padding: 0.25rem 0.75rem; background-color: <%= tag.color %>20; color: <%= tag.color %>; border: 1px solid <%= tag.color %>40; border-radius: 4px; font-weight: 500;">
-            <%= tag.name %>
-          </span>
-          Analytics
-        </h2>
-        <p>Performance overview for everything with this tag</p>
+        <h2 class="tag-title"><%- include('partials/tag-chips', { tags: [tag] }) %> Analytics</h2>
+        <p>Everything with this tag, together</p>
       </div>
-      <a href="/tags" class="btn" style="color: var(--primary-foreground);">Back to Tags</a>
-    </div>
-
-    <!-- Summary Cards -->
-    <% const totalVisits = items.reduce((sum, i) => sum + i.visits, 0); %>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-      <div style="padding: 1.5rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
-        <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 0.5rem;">Tagged items</p>
-        <p style="font-size: 2rem; font-weight: bold; color: var(--primary);" id="totalItems"><%= items.length %></p>
-        <% const breakdown = Object.keys(typeNouns).map(type => [type, items.filter(i => i.type === type).length])
-             .filter(([, n]) => n > 0).map(([type, n]) => `${n} ${typeNouns[type]}${n === 1 ? '' : 's'}`).join(' · '); %>
-        <% if (breakdown) { %><p style="color: var(--muted-foreground); font-size: 0.8125rem;"><%= breakdown %></p><% } %>
-      </div>
-      <div style="padding: 1.5rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
-        <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 0.5rem;">Visits</p>
-        <p style="font-size: 2rem; font-weight: bold; color: var(--primary);" id="totalVisits"><%= totalVisits %></p>
-        <p style="color: var(--muted-foreground); font-size: 0.8125rem;">Link clicks, bundle opens, paste views and file downloads</p>
-      </div>
-      <div style="padding: 1.5rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
-        <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 0.5rem;">Average visits per item</p>
-        <p style="font-size: 2rem; font-weight: bold; color: var(--primary);" id="avgVisits">
-          <%= items.length > 0 ? Math.round(totalVisits / items.length) : 0 %>
-        </p>
+      <div class="header-actions">
+        <a href="/tags" class="btn btn-secondary"><%- include('partials/icon', { icon: 'arrowLeft' }) %> All tags</a>
       </div>
     </div>
 
-    <!-- Chart -->
-    <div style="margin-bottom: 2rem; padding: 1.5rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
-      <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1.5rem;">Visits (Last 30 Days)</h3>
-      <canvas id="visitsChart" style="max-height: 300px;"></canvas>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <span class="stat-label">Tagged items</span>
+        <span class="stat-value" id="totalItems"><%= items.length %></span>
+        <% if (breakdown) { %><span class="stat-label"><%= breakdown %></span><% } %>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Visits</span>
+        <span class="stat-value" id="totalVisits"><%= totalVisits.toLocaleString('en-US') %></span>
+        <span class="stat-label">Clicks, opens, views and downloads</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Visits per item</span>
+        <span class="stat-value" id="avgVisits"><%= items.length > 0 ? Math.round(totalVisits / items.length) : 0 %></span>
+      </div>
     </div>
 
-    <!-- Items Table -->
+    <div class="section-card chart-card">
+      <h3>Visits, last 30 days</h3>
+      <div class="chart-box"><canvas id="visitsChart" aria-label="Visits per day over the last 30 days" role="img"></canvas></div>
+    </div>
+
     <% if (items.length > 0) { %>
-      <div class="table-container">
-        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Items with this Tag</h3>
-        <div class="table-wrapper">
-          <table>
+      <div class="section-card">
+        <h3>Items with this tag</h3>
+        <div class="table-scroll">
+          <table class="section-table">
             <thead>
-              <tr>
-                <th>Type</th>
-                <th>Short URL</th>
-                <th>Destination / Title</th>
-                <th class="text-right">Visits</th>
-                <th>Created</th>
-                <th class="text-center">Actions</th>
-              </tr>
+              <tr><th>Type</th><th>Short link</th><th>Destination / title</th><th class="num">Visits</th><th>Created</th><th class="actions-cell"><span class="visually-hidden">Analytics</span></th></tr>
             </thead>
             <tbody>
               <% items.forEach(item => { %>
                 <tr>
-                  <td style="text-transform: capitalize;"><%= typeNouns[item.type] %></td>
-                  <td>
-                    <a href="<%= baseUrl %><%= item.publicPath %>" target="_blank" class="url-link">
-                      <%= item.publicPath %>
-                    </a>
-                  </td>
-                  <td>
-                    <span class="long-url" title="<%= item.name || '' %>"><%= item.name || '(untitled)' %></span>
-                  </td>
-                  <td class="text-right"><%= item.visits %></td>
-                  <td><%= new Date(item.createdAt).toLocaleDateString('en-GB') %></td>
-                  <td class="text-center">
-                    <div class="actions">
-                      <a href="<%= item.analyticsPath %>" class="icon-btn" title="Analytics">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M3 3v18h18"></path>
-                          <path d="M18 17V9"></path>
-                          <path d="M13 17V5"></path>
-                          <path d="M8 17v-3"></path>
-                        </svg>
-                      </a>
-                    </div>
-                  </td>
+                  <td class="type-cell"><%= typeNouns[item.type] %></td>
+                  <td class="path-cell"><a href="<%= baseUrl %><%= item.publicPath %>" target="_blank" rel="noopener"><%= item.publicPath %></a></td>
+                  <td class="name-cell" title="<%= item.name || '' %>"><%= item.name || '(untitled)' %></td>
+                  <td class="num"><%= item.visits.toLocaleString('en-US') %></td>
+                  <td class="muted"><%= day(item.createdAt) %></td>
+                  <td class="actions-cell"><a href="<%= item.analyticsPath %>" class="icon-btn" title="Analytics" aria-label="Analytics"><%- include('partials/icon', { icon: 'chart' }) %></a></td>
                 </tr>
-              <% }); %>
+              <% }) %>
             </tbody>
           </table>
         </div>
@@ -101,101 +70,12 @@
     <% } else { %>
       <div class="empty-state">
         <p>Nothing has this tag yet</p>
-        <a href="/" class="btn btn-small" style="margin-top: 1rem;">Create a link with this tag</a>
+        <a href="/" class="btn btn-small">Create something with this tag</a>
       </div>
     <% } %>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script>
-    // Fetch analytics data and render chart
-    async function loadAnalytics() {
-      try {
-        const response = await fetch('/api/tags/<%= tag.id %>/analytics');
-        const data = await response.json();
-
-        // Create chart
-        const ctx = document.getElementById('visitsChart').getContext('2d');
-
-        // Prepare data for last 30 days
-        const labels = [];
-        const visitData = [];
-        const today = new Date();
-
-        // Create map of existing data
-        const visitMap = new Map(
-          data.visitsByDate.map(item => [item.date, item.count])
-        );
-
-        // Generate labels for last 30 days
-        for (let i = 29; i >= 0; i--) {
-          const date = new Date(today);
-          date.setDate(date.getDate() - i);
-          const dateStr = date.toISOString().split('T')[0];
-          const displayDate = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-
-          labels.push(displayDate);
-          visitData.push(visitMap.get(dateStr) || 0);
-        }
-
-        // Get CSS variables
-        const rootStyles = getComputedStyle(document.documentElement);
-        const mutedText = rootStyles.getPropertyValue('--chart-muted-text').trim();
-        const borderColor = rootStyles.getPropertyValue('--border').trim();
-
-        new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Visits',
-              data: visitData,
-              borderColor: '<%= tag.color %>',
-              backgroundColor: '<%= tag.color %>20',
-              tension: 0.3,
-              fill: true
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-              legend: {
-                display: false
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  stepSize: 1,
-                  precision: 0,
-                  color: mutedText
-                },
-                grid: {
-                  color: borderColor
-                }
-              },
-              x: {
-                ticks: {
-                  color: mutedText,
-                  maxRotation: 45,
-                  minRotation: 45
-                },
-                grid: {
-                  color: borderColor
-                }
-              }
-            }
-          }
-        });
-      } catch (error) {
-        console.error('Failed to load analytics:', error);
-      }
-    }
-
-    // Load on page ready
-    document.addEventListener('DOMContentLoaded', loadAnalytics);
-  </script>
+  <script src="/js/tag-analytics.js"></script>
 <%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

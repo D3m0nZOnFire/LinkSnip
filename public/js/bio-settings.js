@@ -50,14 +50,20 @@ function getDashboardIconURL(name) {
 }
 
 // Renders the correct HTML for an icon (Dashboard Icons img or Ionicons ion-icon)
-function renderIconHTML(name, size) {
+function renderIconHTML(name) {
   if (!isDashboardIcon(name)) {
-    return `<ion-icon name="${name || 'link-outline'}"></ion-icon>`;
+    return `<ion-icon name="${name || 'link-outline'}" class="social-icon-preview"></ion-icon>`;
   }
-  const themedSrc = getDashboardIconURL(name);
-  const fallbackSrc = `${DASHBOARD_ICONS_CDN}/${name}.svg`;
-  return `<img src="${themedSrc}" data-icon="${name}" style="width:${size};height:${size};" alt="" onerror="this.onerror=null;this.src='${fallbackSrc}'">`;
+  return `<img src="${getDashboardIconURL(name)}" data-icon="${name}" class="social-icon-preview" alt="">`;
 }
+
+// A Dashboard Icon without a themed variant: fall back to the plain one, once (error events don't bubble: capture)
+document.addEventListener('error', (event) => {
+  const img = event.target;
+  if (!(img instanceof HTMLImageElement) || !img.dataset.icon || img.dataset.fallback) return;
+  img.dataset.fallback = '1';
+  img.src = `${DASHBOARD_ICONS_CDN}/${img.dataset.icon}.svg`;
+}, true);
 
 // Convert a kebab-case icon filename to a human-readable label
 function nameToLabel(name) {
@@ -134,7 +140,7 @@ function openIconPicker(triggerButton) {
     const allIcons = [...dashboardIcons, ...UTILITY_ICONS];
     grid.innerHTML = allIcons.map(icon => `
       <div class="icon-picker-item ${icon.name === currentIcon ? 'selected' : ''}" data-icon="${icon.name}">
-        ${renderIconHTML(icon.name, '2rem')}
+        ${renderIconHTML(icon.name)}
         <span>${icon.label}</span>
       </div>
     `).join('');
@@ -144,7 +150,7 @@ function openIconPicker(triggerButton) {
   if (cached) {
     populateGrid(cached);
   } else {
-    grid.innerHTML = '<div style="text-align:center;padding:2rem;grid-column:1/-1;color:var(--muted-foreground);">Loading icons…</div>';
+    grid.innerHTML = '<div class="icon-picker-loading">Loading icons…</div>';
     fetchDashboardIcons()
       .then(populateGrid)
       .catch(() => populateGrid([]));
@@ -171,7 +177,7 @@ function filterIcons(searchTerm) {
     const matches = iconName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                    iconLabel.toLowerCase().includes(searchTerm.toLowerCase());
 
-    item.style.display = matches ? 'flex' : 'none';
+    item.hidden = !matches;
   });
 }
 
@@ -199,7 +205,7 @@ document.getElementById('iconPickerGrid')?.addEventListener('click', (e) => {
   const hiddenInput = currentIconPickerTarget.parentElement.querySelector('.social-icon');
 
   if (slot) {
-    slot.innerHTML = renderIconHTML(iconName, '2rem');
+    slot.innerHTML = renderIconHTML(iconName);
   }
 
   if (hiddenInput) {
@@ -220,8 +226,7 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Make functions global for inline onclick handlers
-window.closeIconPicker = closeIconPicker;
+document.getElementById('iconPickerClose')?.addEventListener('click', closeIconPicker);
 
 // Update all dashboard icon images when the site theme changes
 new MutationObserver(() => {
@@ -229,8 +234,7 @@ new MutationObserver(() => {
   const suffix = theme === 'dark' ? '-light' : '-dark';
   document.querySelectorAll('img[data-icon]').forEach(img => {
     const name = img.dataset.icon;
-    const fallbackSrc = `${DASHBOARD_ICONS_CDN}/${name}.svg`;
-    img.onerror = function() { this.onerror = null; this.src = fallbackSrc; };
+    delete img.dataset.fallback;
     img.src = `${DASHBOARD_ICONS_CDN}/${name}${suffix}.svg`;
   });
 }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -243,7 +247,7 @@ new MutationObserver(() => {
 document.getElementById('theme')?.addEventListener('change', (e) => {
   const gradientPickers = document.getElementById('gradientColorPickers');
   if (gradientPickers) {
-    gradientPickers.style.display = e.target.value === 'gradient' ? 'block' : 'none';
+    gradientPickers.hidden = e.target.value !== 'gradient';
   }
 });
 
@@ -321,182 +325,105 @@ document.getElementById('saveBioBtn')?.addEventListener('click', async () => {
     const data = await response.json();
 
     if (response.ok) {
-      hasUnsavedChanges = false;  // Clear unsaved changes flag
-      alert('Bio page updated successfully!');
+      setUnsaved(false);
+      showToast('Bio page saved');
     } else {
-      alert(`Error: ${data.error}`);
+      showToast(data.error || 'Could not save the bio page', 'error');
     }
   } catch (error) {
     console.error('Save error:', error);
-    alert('Failed to save bio page');
+    showToast('Could not save the bio page', 'error');
   }
 });
 
 // Add social link
 document.getElementById('addSocialLinkBtn')?.addEventListener('click', () => {
   const container = document.getElementById('socialLinksContainer');
-  const index = document.querySelectorAll('.social-link-item').length;
+  const empty = container.querySelector('.social-empty');
+  if (empty) empty.hidden = true;
 
-  // Remove "no links" message if exists
-  const noLinksMsg = container.querySelector('p');
-  if (noLinksMsg) {
-    noLinksMsg.remove();
-  }
-
-  const itemHtml = `
-    <div class="social-link-item" data-index="${index}" style="margin-bottom: 1rem; padding: 1rem; background: var(--secondary); border-radius: 8px;">
-      <div style="display: flex; gap: 1rem; align-items: start;">
-        <div class="form-group" style="flex: 0 0 auto; margin-bottom: 0;">
-          <label class="form-label">Icon</label>
-          <button type="button" class="icon-picker-trigger" data-icon-value="link-outline">
-            <span class="icon-preview-slot">
-              <ion-icon name="link-outline" class="social-icon-preview" style="font-size: 2rem;"></ion-icon>
-            </span>
-            <ion-icon name="chevron-down-outline" class="chevron-icon"></ion-icon>
-          </button>
-          <input type="hidden" class="social-icon" value="link-outline">
-        </div>
-        <div class="form-group" style="flex: 1; margin-bottom: 0;">
-          <label class="form-label">Platform (optional)</label>
-          <input
-            type="text"
-            class="form-input social-platform"
-            placeholder="e.g., Twitter, Instagram (optional)"
-          >
-        </div>
-        <div class="form-group" style="flex: 2; margin-bottom: 0;">
-          <label class="form-label">URL</label>
-          <input
-            type="url"
-            class="form-input social-url"
-            placeholder="https://..."
-          >
-        </div>
-        <button
-          type="button"
-          class="btn-icon-only remove-social-link"
-          style="margin-top: 1.75rem;"
-          title="Remove"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-          </svg>
-        </button>
-      </div>
-    </div>
-  `;
-
-  container.insertAdjacentHTML('beforeend', itemHtml);
+  const item = document.createElement('div');
+  item.className = 'social-link-item';
+  item.dataset.index = container.querySelectorAll('.social-link-item').length;
+  item.innerHTML = `
+    <button type="button" class="icon-picker-trigger" data-icon-value="link-outline" aria-label="Choose an icon">
+      <span class="icon-preview-slot"><ion-icon name="link-outline" class="social-icon-preview"></ion-icon></span>
+      <ion-icon name="chevron-down-outline" class="chevron-icon"></ion-icon>
+    </button>
+    <input type="hidden" class="social-icon" value="link-outline">
+    <input type="text" class="form-input social-platform" placeholder="Name (optional)" aria-label="Name">
+    <input type="url" class="form-input social-url" placeholder="https://…" aria-label="Address">
+    <button type="button" class="icon-btn danger remove-social-link" title="Remove" aria-label="Remove this link">✕</button>`;
+  container.appendChild(item);
+  item.querySelector('.social-url').focus();
+  setUnsaved(true);
 });
 
 // Remove social link (event delegation)
 document.getElementById('socialLinksContainer')?.addEventListener('click', (e) => {
   const removeBtn = e.target.closest('.remove-social-link');
-  if (removeBtn) {
-    const item = removeBtn.closest('.social-link-item');
-    item.remove();
-  }
+  if (!removeBtn) return;
+  removeBtn.closest('.social-link-item').remove();
+  const container = document.getElementById('socialLinksContainer');
+  const empty = container.querySelector('.social-empty');
+  if (empty) empty.hidden = container.querySelectorAll('.social-link-item').length > 0;
+  setUnsaved(true);
 });
 
-// Toggle URL on bio page
-async function toggleUrlOnBioPage(urlId, isChecked) {
+// ============================================================================
+// LINKS ON THE PAGE (saved right away, one click at a time)
+// ============================================================================
+
+function updateLinkCount() {
+  const count = document.getElementById('bioLinkCount');
+  const boxes = document.querySelectorAll('.link-picker input[data-url-id]');
+  if (count) count.textContent = `${[...boxes].filter(box => box.checked).length} of ${boxes.length}`;
+}
+
+document.addEventListener('change', async (e) => {
+  const box = e.target.closest('.link-picker input[data-url-id]');
+  if (!box) return;
+  box.disabled = true;
   try {
-    const response = await fetch(`/api/bio/urls/${urlId}/toggle`, {
+    const response = await fetch(`/api/bio/urls/${box.dataset.urlId}/toggle`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert(`Error: ${data.error}`);
-      // Revert checkbox
-      const checkbox = document.getElementById(`url-${urlId}`);
-      if (checkbox) checkbox.checked = !isChecked;
-    }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+    showToast(box.checked ? 'Shown on your page' : 'Removed from your page');
   } catch (error) {
-    console.error('Toggle error:', error);
-    alert('Failed to update bio page');
-    // Revert checkbox
-    const checkbox = document.getElementById(`url-${urlId}`);
-    if (checkbox) checkbox.checked = !isChecked;
+    box.checked = !box.checked;
+    showToast(error.message || 'Could not update your page', 'error');
+  } finally {
+    box.disabled = false;
+    updateLinkCount();
   }
-}
-
-// Make function global for onclick handler
-window.toggleUrlOnBioPage = toggleUrlOnBioPage;
+});
 
 // ============================================================================
-// UNSAVED CHANGES WARNING
+// UNSAVED CHANGES (profile and social links; the save bar shows the state)
 // ============================================================================
 
-// Track changes to any form field
-function markAsChanged() {
-  hasUnsavedChanges = true;
+function setUnsaved(unsaved) {
+  hasUnsavedChanges = unsaved;
+  const bar = document.getElementById('saveBar');
+  const status = document.getElementById('saveStatus');
+  if (bar) bar.dataset.state = unsaved ? 'dirty' : 'clean';
+  if (status) status.textContent = unsaved ? 'Unsaved changes' : 'No unsaved changes';
 }
 
-// Listen for changes on all form inputs
 document.addEventListener('input', (e) => {
-  if (e.target.matches('.form-input, .social-icon, .social-platform, .social-url')) {
-    markAsChanged();
-  }
+  if (e.target.closest('.bio-main') && e.target.matches('input, textarea, select')) setUnsaved(true);
+});
+document.getElementById('theme')?.addEventListener('change', () => setUnsaved(true));
+document.getElementById('iconPickerGrid')?.addEventListener('click', (e) => {
+  if (e.target.closest('.icon-picker-item')) setUnsaved(true);
 });
 
-// Listen for theme changes
-document.getElementById('theme')?.addEventListener('change', markAsChanged);
-
-// Mark as changed when adding/removing social links
-const originalAddListener = document.getElementById('addSocialLinkBtn');
-if (originalAddListener) {
-  originalAddListener.addEventListener('click', markAsChanged);
-}
-
-// Mark as changed when removing social links
-document.getElementById('socialLinksContainer')?.addEventListener('click', (e) => {
-  if (e.target.closest('.remove-social-link')) {
-    markAsChanged();
-  }
-});
-
-// Mark as changed when toggling URLs
-const originalToggleUrlOnBioPage = window.toggleUrlOnBioPage;
-window.toggleUrlOnBioPage = function(...args) {
-  markAsChanged();
-  return originalToggleUrlOnBioPage.apply(this, args);
-};
-
-// Mark as changed when selecting icons
-document.getElementById('iconPickerGrid')?.addEventListener('click', markAsChanged);
-
-// Warn before leaving page if there are unsaved changes
+// Warn before leaving the page with unsaved changes
 window.addEventListener('beforeunload', (e) => {
-  if (hasUnsavedChanges) {
-    e.preventDefault();
-    e.returnValue = '';
-    return '';
-  }
-});
-
-// Warn when clicking navigation links
-document.addEventListener('click', (e) => {
-  const link = e.target.closest('a[href]');
-
-  // Skip if no unsaved changes or clicking same page links
-  if (!link || !hasUnsavedChanges) return;
-
-  // Skip if it's a target="_blank" link
-  if (link.target === '_blank') return;
-
-  // Skip if it's the View Bio Page button
-  if (link.href.includes('/bio/')) return;
-
-  // Check if it's an internal navigation link
-  const currentDomain = window.location.origin;
-  if (link.href.startsWith(currentDomain) || link.href.startsWith('/')) {
-    const userConfirmed = confirm('You have unsaved changes. Are you sure you want to leave this page?');
-    if (!userConfirmed) {
-      e.preventDefault();
-    }
-  }
+  if (!hasUnsavedChanges) return;
+  e.preventDefault();
+  e.returnValue = '';
 });
