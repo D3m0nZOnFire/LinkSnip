@@ -1,4 +1,4 @@
-const { parseSearch, effectiveStatus } = require('../../../services/adminItems');
+const { parseSearch, effectiveStatus } = require('../../../services/itemList');
 
 // The search syntax of Admin → Items (moved from the links list): groups separated by |, tokens within a group ANDed
 describe('parseSearch (Admin → Items search)', () => {

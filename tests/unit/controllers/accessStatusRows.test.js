@@ -25,6 +25,7 @@ function render(handler, req = listReq()) {
 }
 
 const statusOf = (rows, slug) => rows.find(r => r.slug === slug).accessStatus;
+const ofType = (data, type) => data.result.rows.filter(r => r.type === type);
 
 describe('user dashboard rows', () => {
   it('links, bundles, files and pastes all carry the shared status', () => {
@@ -39,19 +40,19 @@ describe('user dashboard rows', () => {
 
     const data = render(DashboardController.getUserDashboard);
 
-    expect(statusOf(data.urls, 'u-used')).toBe('limit_reached');
-    expect(statusOf(data.urls, 'u-reported')).toBe('quarantined');
-    expect(statusOf(data.bundles, 'b-deact')).toBe('expired');
-    expect(statusOf(data.bundles, 'b-used')).toBe('limit_reached');
-    expect(statusOf(data.files, 'f-used')).toBe('limit_reached');
-    expect(statusOf(data.files, 'f-later')).toBe('scheduled');
-    expect(statusOf(data.pastes, 'p-used')).toBe('limit_reached');
-    expect(statusOf(data.pastes, 'p-live')).toBe('active');
+    expect(statusOf(ofType(data, 'url'), 'u-used')).toBe('limit_reached');
+    expect(statusOf(ofType(data, 'url'), 'u-reported')).toBe('quarantined');
+    expect(statusOf(ofType(data, 'bundle'), 'b-deact')).toBe('expired');
+    expect(statusOf(ofType(data, 'bundle'), 'b-used')).toBe('limit_reached');
+    expect(statusOf(ofType(data, 'file'), 'f-used')).toBe('limit_reached');
+    expect(statusOf(ofType(data, 'file'), 'f-later')).toBe('scheduled');
+    expect(statusOf(ofType(data, 'paste'), 'p-used')).toBe('limit_reached');
+    expect(statusOf(ofType(data, 'paste'), 'p-live')).toBe('active');
   });
 });
 
 describe('admin rows (Admin → Items)', () => {
-  const adminItems = require('../../../services/adminItems');
+  const adminItems = require('../../../services/itemList');
   const rows = () => adminItems.list({ limit: null }).rows;
   const statusIn = (type, slug) => rows().find(r => r.type === type && r.slug === slug).accessStatus;
 

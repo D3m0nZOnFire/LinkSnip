@@ -276,7 +276,7 @@ describe('report counts on links', () => {
     reportFrom('url', url.id, 2);
     db().prepare("UPDATE reports SET status = 'dismissed' WHERE id = (SELECT MIN(id) FROM reports)").run();
 
-    const adminItems = require('../../../services/adminItems');
+    const adminItems = require('../../../services/itemList');
     expect(adminItems.list({ type: 'url' }).rows.find(u => u.id === url.id).reportCount).toBe(1);
     expect(Url.findByCreatorIdWithFilters(owner.id).find(u => u.id === url.id).reportCount).toBe(1);
     expect(adminItems.list({ type: 'url', hasReports: 'yes' }).rows.map(u => u.id)).toEqual([url.id]);

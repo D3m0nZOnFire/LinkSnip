@@ -1,0 +1,292 @@
+/* Dashboard (views/dashboard.ejs, views/partials/dashboard-results.ejs, public/js/dashboard.js).
+   The rows and pills come from items.css (shared with Admin → Items). */
+
+.dash-title {
+  overflow-wrap: anywhere;
+}
+
+.dash-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.dash-header-actions .form-input {
+  width: auto;
+  max-width: 14rem;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  font-size: var(--text-sm);
+}
+
+.dash-header-actions .btn {
+  gap: 0.35rem;
+  padding: 0.5rem 0.9rem;
+  font-size: var(--text-sm);
+}
+
+/* One toolbar: search, tag, sort */
+.dash-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.dash-toolbar .form-input {
+  width: auto;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  font-size: var(--text-sm);
+}
+
+.dash-search {
+  position: relative;
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.dash-search .icon {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  color: var(--muted-foreground);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.dash-toolbar .dash-search .form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+}
+
+.pill-count {
+  margin-left: 0.25rem;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.type-pill[aria-current="page"] .pill-count {
+  color: var(--foreground);
+}
+
+/* While the live search loads */
+#dashResults[aria-busy="true"] {
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+
+.team-creator strong {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+.results-count {
+  margin-left: var(--spacing-sm);
+}
+
+/* The ⋯ menu on each row */
+.row-menu {
+  position: relative;
+}
+
+.row-menu .menu {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: 0.25rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.row-menu .menu[hidden] {
+  display: none;
+}
+
+.row-menu .menu.opens-up {
+  top: auto;
+  bottom: calc(100% + 0.25rem);
+}
+
+.row-menu .menu > a,
+.row-menu .menu > button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--foreground);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.row-menu .menu > a:hover,
+.row-menu .menu > button:hover,
+.row-menu .menu > a:focus-visible,
+.row-menu .menu > button:focus-visible {
+  outline: none;
+  background: var(--secondary);
+}
+
+.row-menu .menu .icon {
+  color: var(--muted-foreground);
+}
+
+.row-menu .menu > .danger,
+.row-menu .menu > .danger .icon {
+  color: var(--destructive);
+}
+
+/* Select mode */
+.dash-page .item-row.is-selected {
+  background: var(--status-active-bg);
+}
+
+/* Modals */
+#editUrlMeta,
+#editFileName {
+  margin-bottom: var(--spacing-md);
+}
+
+.modal-narrow {
+  max-width: 28rem;
+}
+
+.field-error {
+  color: var(--destructive);
+  font-size: var(--text-sm);
+}
+
+.field-error:empty,
+#editFileUsersError:empty {
+  display: none;
+}
+
+.edit-password-note {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--status-warning-text);
+}
+
+.edit-password-note[hidden] {
+  display: none;
+}
+
+.bundle-edit-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.bundle-edit-item {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.bundle-edit-item .form-input {
+  padding: 0.5rem 0.75rem;
+  font-size: var(--text-sm);
+}
+
+.btn .icon {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  /* Two lines per row: icon + text, then status + actions */
+  .dash-page .item-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.4rem var(--spacing-sm);
+  }
+
+  .dash-page .item-main {
+    display: contents;
+  }
+
+  .dash-page .item-type {
+    grid-row: 1;
+    grid-column: 1;
+    align-self: start;
+  }
+
+  .dash-page .item-text {
+    grid-row: 1;
+    grid-column: 2 / 4;
+  }
+
+  .dash-page .item-select {
+    grid-row: 2;
+    grid-column: 1;
+    justify-self: center;
+  }
+
+  .dash-page .item-badges {
+    grid-row: 2;
+    grid-column: 2;
+    flex-wrap: wrap;
+    margin-left: 0;
+  }
+
+  .dash-page .item-actions {
+    grid-row: 2;
+    grid-column: 3;
+    margin-left: 0;
+  }
+
+  .dash-toolbar .form-input {
+    flex: 1 1 8rem;
+  }
+
+  .dash-header-actions {
+    width: 100%;
+  }
+
+  .dash-header-actions .form-input {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
+  .bundle-edit-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .bundle-edit-item .edit-bundle-label {
+    grid-column: 1;
+  }
+}
+
+/* Long edit forms: the header and the buttons stay, the form scrolls */
+.modal-overlay .modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-overlay .modal > .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.modal-overlay .modal > .modal-header,
+.modal-overlay .modal > .modal-footer {
+  flex-shrink: 0;
+}

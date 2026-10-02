@@ -1,6 +1,4 @@
 <%# "Deletes in Nd" for an expired item. Takes { days, noun }: a row's deletesInDays (services/retentionService.js). %>
 <% if (days !== null && days !== undefined) { %>
-  <div style="flex-shrink: 0;" title="This expired <%= noun %> will be automatically deleted in <%= days %> day<%= days === 1 ? '' : 's' %>">
-    <span class="badge badge-max">⚠️ Deletes in <%= days %>d</span>
-  </div>
+  <span class="badge badge-muted" title="This expired <%= noun %> will be deleted automatically in <%= days %> day<%= days === 1 ? '' : 's' %>">Deletes in <%= days %>d</span>
 <% } %>

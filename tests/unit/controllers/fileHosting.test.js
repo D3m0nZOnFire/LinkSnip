@@ -220,3 +220,42 @@ describe('download headers', () => {
     expect((await upload(trusted, 100, 'index.html')).status).toBe(200);
   });
 });
+
+describe('GET /api/files/:id (the dashboard edit form)', () => {
+  const get = (user, id) => request(app).get(`/api/files/${id}`).set('x-user', JSON.stringify(user));
+
+  it('gives the owner the file\'s settings, allowed people by name, and no password hash', async () => {
+    const friend = await createTestUser({ username: 'friend' });
+    const file = createTestFile(trusted.id, {
+      slug: 'doc', password: '$2b$10$hash', sharingMode: 'restricted', allowedUsers: JSON.stringify([friend.id]), maxDownloads: 5
+    });
+
+    const res = await get(trusted, file.id);
+    expect(res.status).toBe(200);
+    expect(res.body.file).toMatchObject({ id: file.id, slug: 'doc', maxDownloads: 5, sharingMode: 'restricted', hasPassword: true });
+    expect(res.body.file.allowedUsers).toEqual([{ id: friend.id, username: 'friend' }]);
+    expect(res.body.file.password).toBeUndefined();
+    expect(res.body.file.tags).toEqual([]);
+  });
+
+  it('works for a team admin editing a member\'s file', async () => {
+    const teamService = require('../../../services/teamService');
+    const memberRow = await createTestUser({ username: 'member', role: 'trusted' });
+    const member = { id: memberRow.id, username: 'member', role: 'trusted', isAdmin: 0 };
+    const team = teamService.create(trusted, 'Acme');
+    teamService.acceptInvite(member, teamService.invite(trusted, team.id, 'member', 'member').id);
+    const file = createTestFile(member.id, { slug: 'team-doc' });
+    getTestDatabase().prepare('UPDATE files SET teamId = ? WHERE id = ?').run(team.id, file.id);
+
+    expect((await get(trusted, file.id)).status).toBe(200);
+  });
+
+  it('refuses other people and unknown IDs', async () => {
+    const otherRow = await createTestUser({ username: 'other', role: 'trusted' });
+    const other = { id: otherRow.id, username: 'other', role: 'trusted', isAdmin: 0 };
+    const file = createTestFile(trusted.id, { slug: 'private' });
+
+    expect((await get(other, file.id)).status).toBe(403);
+    expect((await get(trusted, 99999)).status).toBe(404);
+  });
+});

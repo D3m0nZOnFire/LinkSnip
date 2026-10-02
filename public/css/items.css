@@ -242,10 +242,6 @@ a.item-label:hover {
   color: var(--destructive);
 }
 
-.item-text > div[style] {
-  margin-top: 0.35rem !important;
-}
-
 .item-badges {
   display: flex;
   flex-shrink: 0;

@@ -123,6 +123,29 @@ exports.list = (req, res) => {
 };
 
 /**
+ * One file's settings for the dashboard's edit form: allowed people by name, no password hash.
+ * GET /api/files/:id
+ */
+exports.get = (req, res) => {
+  const file = File.findById(parseInt(req.params.id, 10));
+  if (!file) return res.status(404).json({ error: 'File not found' });
+  if (!canEdit(req.user, 'file', file)) return res.status(403).json({ error: 'Access denied' });
+
+  let allowedIds = [];
+  try { allowedIds = JSON.parse(file.allowedUsers) || []; } catch (_) { allowedIds = []; }
+  const allowedUsers = allowedIds
+    .map(id => User.findById(id))
+    .filter(Boolean)
+    .map(user => ({ id: user.id, username: user.username }));
+
+  const { password, storedName, ...rest } = file;
+  return res.json({
+    success: true,
+    file: { ...rest, hasPassword: !!password, allowedUsers, tags: Tag.forItem('file', file.id) }
+  });
+};
+
+/**
  * DELETE /api/files/:id
  */
 exports.delete = (req, res) => {

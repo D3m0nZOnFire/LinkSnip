@@ -183,6 +183,57 @@ code, kbd, pre, samp {
   border: 1px solid var(--status-error-border);
 }
 
+.badge-muted {
+  background-color: var(--secondary);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+}
+
+/* An item's tags (partials/tag-chips.ejs): each chip tinted with its tag's color */
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.tag-chip {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--tag-color) 40%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--tag-color) 14%, transparent);
+  color: color-mix(in srgb, var(--tag-color) 75%, var(--foreground));
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+/* Pending team invites (partials/team-invites.ejs) */
+.team-invites {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.team-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm) var(--spacing-md);
+  padding: 0.75rem var(--spacing-md);
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.team-invite-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
 .badge-max {
   background-color: var(--status-warning-bg);
   color: var(--status-warning-text);

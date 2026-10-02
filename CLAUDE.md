@@ -65,8 +65,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - **Feature switches** (`features.*` in settings.json) sit above roles: `middleware/requireFeature.js` provides
   `featureRoutes(feature, router)` (wraps a whole router in `app.js`) and `requireFeature(feature)` (single routes;
   falls through with `next('route')`). A switched-off feature 404s for everyone, admins included.
-- Views get `can.<permission>` (false when its feature is off), `features.<name>`, `canUploadFiles` and
-  `registrationOpen` from `middleware/viewLocals.js`. Use `locals.can` in partials that may render without it.
+- Views get `can.<permission>` (false when its feature is off), `features.<name>`, `canUploadFiles`,
+  `registrationOpen` and `limits` (`urlsPerHour`, `pastesPerHour`, `bundlesPerHour`, `uploadsPerHour`; null = none) from
+  `middleware/viewLocals.js`. Use `locals.can` in partials that may render without it.
 - Users table: `role` (NULL = default). The legacy `tier` column is left in old databases but never read.
 
 ## Request flow
@@ -174,6 +175,11 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - URL prefill (`middleware/prefill.js`, before the routes): `/https://example.com/a?b=1`, `/example.com/a` (first
   segment a host name) or an encoded link opens the create page (`/`) with it in the Link tab; a merged `https:/` is
   repaired. Only http(s), at most 2048 characters; LinkSnip's own paths never match.
+- Create page (`views/index.ejs`, `public/css/create.css`, `public/js/create.js`): logged-in users get a plain
+  "Create" page, visitors the hero. Modes Link / Text / Bundle / File are `[data-section]`s; a chip `[data-chip]` opens
+  the `[data-panel]` of the same name in its section (`data-format` says how its value reads on the chip). Chips the
+  role lacks are disabled. Links post the form; pastes, bundles and files go to their APIs. Schedules are typed in
+  local time and sent as UTC. The limit line comes from `limits`.
 
 ### Pastes
 - `/p/:slug`, `/p/:slug/raw`, `/p-info/:slug`, editor `/pastes/:id/edit`, API `/api/pastes`. Model `models/Paste.js`,
@@ -184,7 +190,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 ### Files
 - Upload `POST /api/files/upload` (permission `uploadFiles`, `uploadLimiter`), preview `/f/:slug`, download
-  `/f/:slug/download`.
+  `/f/:slug/download`. `GET /api/files/:id` (who may edit it) gives the dashboard's edit form the settings, allowed
+  people as `{ id, username }`, tags and `hasPassword` (never the hash).
 - `middleware/fileUpload.js` builds multer per request: byte limit = min(role `maxFileSizeMB` capped by
   `files.globalMaxFileSizeMB`, remaining `storageQuotaMB`). Oversized uploads are cut off while streaming (413);
   `unlimited`/admins bypass both.
@@ -207,8 +214,20 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `tags` permission through `permissionGate.tagsChanged`.
 - `/tags` and `/tags/:id/analytics` count every type whose feature is on (`enabledTypes()` in `contentTypes.js`):
   `Tag.getAllWithStats`, `Tag.itemsFor`, `Tag.dailyVisits`. Visits are analytics events (bundle item clicks left out).
-- Dashboard: every row has `data-tags` and `partials/tag-chips.ejs`; the tag filter and the type pills both apply
-  (`applyRowFilters()`). Import/export stays link-only.
+- Dashboard: a tag filter (`?tag=`) next to the search; every row shows `partials/tag-chips.ejs`. Import/export stays
+  link-only.
+
+### Dashboard
+- `/dashboard` (`controllers/dashboardController.js`, `views/dashboard.ejs`, `views/partials/dashboard-results.ejs`,
+  `public/css/dashboard.css`, `public/js/dashboard.js`): links, bundles, pastes and files in one server-side list,
+  `services/itemList.js` `list({ scope, types, type, search, tags, sort, limit, page })` (the same query as Admin →
+  Items; `counts` per type for the pills). Files only for roles with `uploadFiles` (personal) or on a team dashboard.
+- One toolbar: live search (debounced), tag, sort; type pills; 25/50/100 per page. The results are fetched from
+  `/dashboard?…&partial=1` (renders only `partials/dashboard-results`) and swapped in; the address bar follows.
+- Dense rows (the `items.css` rows of Admin → Items; two lines below 768px): copy short link, analytics, and a ⋯ menu
+  (info page, QR, move to/out of a team, edit, delete). Edit: links, bundles and files in modals (`GET /api/urls/:id`,
+  `/api/bundles/:id`, `/api/files/:id`, all with tags), pastes on their editor page. Select mode deletes any mix of
+  types (bulk endpoints for links, bundles, pastes; files one by one).
 
 ### Analytics and share links
 - One page for every type: `/analytics/:type/:id` (owner/admin, permission `analytics`, the type's feature on), JSON
@@ -288,7 +307,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Creating: every create handler reads `teamId` through `teamService.teamForNewItem` (member or above; 400 while
   `features.teams` is off). The create page's "Create in" select (`res.locals.writableTeams`, `?team=` preselects).
 - Lists take a scope (`services/itemScope.js`): a user ID / `{ userId }` = personal items only (`teamId IS NULL`),
-  `{ teamId }` = the team's. `/dashboard?team=:id` shows a team (rows carry `canEdit`, `canMoveIn`, `canMoveOut`).
+  `{ teamId }` = the team's (`scopeCondition(type, scope, { alias })`). `/dashboard?team=:id` shows a team (rows carry
+  `canEdit`, `canMoveIn`, `canMoveOut`).
   Team items count toward their creator's limits and storage quota. Tags of team items are the team's
   (`tags.teamId`, `Tag.forTeam`). Bio pages, import/export and `/tags` stay personal.
 
@@ -320,7 +340,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   per enabled type with live / new this week, users, teams, storage, visits this week vs the week before, pending
   reports and quarantined items, the 8 newest audit entries, version and the newest nightly backup).
 - `/admin/items` (Admin → Items, `controllers/adminItemsController.js`, `views/admin-items.ejs`,
-  `public/js/adminItems.js`): links, bundles, pastes and files in one list (`services/adminItems.js` `list()`: one
+  `public/js/adminItems.js`): links, bundles, pastes and files in one list (`services/itemList.js` `list()`, shared with
+  the dashboard: one
   query per enabled type from the registry, `UNION ALL` for "all", status from `statusSql`, pending report counts,
   tags, `deletesInDays`). Type pills, search syntax (`parseSearch`: `@user:a,b`, `@user:!a`, `@anon`, `@status:`,
   `@protected`, `@uses:>N` / `<N` / `N` (strict; `@clicks:` too), `|` for OR), status, reports, sort, date range,

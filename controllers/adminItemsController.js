@@ -1,8 +1,8 @@
-const adminItems = require('../services/adminItems');
+const adminItems = require('../services/itemList');
 
 /**
  * Admin → Items (/admin/items): links, bundles, pastes and files in one list. The search syntax is documented in
- * services/adminItems.js; actions use /api/admin/:type/… (adminItemController).
+ * services/itemList.js; actions use /api/admin/:type/… (adminItemController).
  */
 const PAGE_SIZES = [25, 50, 100];
 

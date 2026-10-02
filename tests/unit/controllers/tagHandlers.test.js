@@ -141,3 +141,20 @@ describe.each(Object.keys(TYPES))('%s tags', (type) => {
     expect(Tag.findByUserId(admin.id).map(tag => tag.name)).toEqual(['work']);
   });
 });
+
+describe('reading an item for its edit form returns its tags', () => {
+  // The edit forms fill their tag input from these; without tags, saving would remove them
+  it('GET /api/urls/:id', async () => {
+    const url = createTestUrl({ slug: 'tagged', creatorId: owner.id });
+    Tag.setForItem('url', url.id, ['launch', 'docs']);
+    const res = await call(UrlController.getUrlById, { params: { id: String(url.id) } });
+    expect(res._jsonData.tags.map(t => t.name).sort()).toEqual(['docs', 'launch']);
+  });
+
+  it('GET /api/bundles/:id', async () => {
+    const bundle = createTestBundle({ slug: 'kit', creatorId: owner.id });
+    Tag.setForItem('bundle', bundle.id, ['launch']);
+    const res = await call(BundleController.getBundleById, { params: { id: String(bundle.id) } });
+    expect(res._jsonData.tags.map(t => t.name)).toEqual(['launch']);
+  });
+});

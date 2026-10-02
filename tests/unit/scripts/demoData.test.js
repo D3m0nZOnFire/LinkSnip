@@ -4,7 +4,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const paths = require('../../../config/paths');
 const { seedDemo, DEMO_PASSWORD } = require('../../../scripts/demoData');
-const adminItems = require('../../../services/adminItems');
+const adminItems = require('../../../services/itemList');
 const { getTestDatabase } = require('../../setup/testDatabase');
 
 /**

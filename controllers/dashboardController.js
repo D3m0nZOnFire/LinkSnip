@@ -1,30 +1,31 @@
 const Url = require('../models/Url');
-const Bundle = require('../models/Bundle');
 const AnalyticsShare = require('../models/AnalyticsShare');
-const File = require('../models/File');
-const Paste = require('../models/Paste');
+const Tag = require('../models/Tag');
+const Team = require('../models/Team');
 const RoleService = require('../services/roleService');
 const configService = require('../services/configService');
-const { withAccessStatus } = require('../services/accessService');
-const { deletesInDays } = require('../services/retentionService');
+const itemList = require('../services/itemList');
+const { contentType } = require('../services/contentTypes');
 const teamService = require('../services/teamService');
-const Team = require('../models/Team');
 const { canEdit, canMoveToTeam, canMoveFromTeam } = require('../services/itemPermissions');
+
+const PAGE_SIZES = [25, 50, 100];
+const SORTS = ['newest', 'oldest', 'most-used', 'least-used'];
 
 class DashboardController {
   /**
-   * Render user dashboard
+   * The user's items (or a team's, ?team=:id): links, bundles, pastes and files in one list (services/itemList.js).
+   * Filters: search, type, tag, sort, limit, page. ?partial=1 renders only the results, for the live search.
    * GET /dashboard
    */
   static getUserDashboard(req, res) {
-    // Switched-off features (settings.json → features.*) show no rows
     const features = configService.getSettings().features;
 
     // Whose items: the user's personal ones, or a team's (?team=:id, for its members and site admins)
     const dashboardTeams = features.teams ? teamService.listForUser(req.user) : [];
     const writableTeams = dashboardTeams.filter(team => team.role !== 'viewer');
     let currentTeam = null;
-    let scope = req.session.userId;
+    let scope = req.user.id;
     if (features.teams && req.query.team) {
       const team = Team.findById(Number(req.query.team));
       const role = team ? (Team.memberRole(team.id, req.user.id) || (req.user.isAdmin ? 'owner' : null)) : null;
@@ -35,79 +36,53 @@ class DashboardController {
       scope = { teamId: team.id };
     }
 
-    // What the user may do to each row (team rows: by their role in the team)
-    const withActions = (type, rows) => rows.map(row => ({
-      ...row,
-      canEdit: canEdit(req.user, type, row),
-      canMoveIn: !currentTeam && writableTeams.some(team => canMoveToTeam(req.user, type, row, team.id)),
-      canMoveOut: !!currentTeam && canMoveFromTeam(req.user, type, row)
-    }));
-
-    // Pagination parameters
-    const limit = req.query.limit ? (req.query.limit === 'all' ? null : parseInt(req.query.limit)) : 50;
-    const page = parseInt(req.query.page) || 1;
-    const offset = limit !== null ? (page - 1) * limit : 0;
-
-    // Filter/sort parameters
-    const search = req.query.search || '';
-    const sort = req.query.sort || 'newest';
-
-    // Get URLs and total count (with filters if provided)
-    const filterOptions = { limit, offset, search, sort };
-    const urls = Url.findByCreatorIdWithFilters(scope, filterOptions);
-    const totalUrls = Url.countByCreatorIdWithFilters(scope, { search });
-
-    // Number of active analytics share links per URL, and the deletion countdown
-    const urlsWithShares = withActions('url', withAccessStatus('url', urls)).map(url => ({
-      ...url,
-      shareCount: AnalyticsShare.countActive('url', url.id),
-      deletesInDays: deletesInDays('url', url)
-    }));
-
-    // Get all bundles (no pagination — typically few bundles)
-    const bundles = features.bundles ? withActions('bundle', withAccessStatus('bundle', Bundle.findByCreatorId(scope))) : [];
-
-    // Files: personal ones for roles that can upload; a team's for every member
+    // Files: personal ones for roles that can upload (the file API needs it); a team's for every member
     const canUploadFiles = features.files && RoleService.can(req.user, 'uploadFiles');
-    const showFiles = features.files && (canUploadFiles || !!currentTeam);
-    const files = showFiles ? withActions('file', withAccessStatus('file', File.findByUserId(scope))) : [];
-    const fileCount = files.length;
+    const types = itemList.types().filter(type => type !== 'file' || canUploadFiles || !!currentTeam);
 
-    // Pastes for unified list (available to every logged-in user)
-    const pastes = features.pastes
-      ? withActions('paste', withAccessStatus('paste', Paste.findByUserId(scope)))
-        .map(paste => ({ ...paste, deletesInDays: deletesInDays('paste', paste) }))
-      : [];
-    const pasteCount = pastes.length;
+    const q = req.query;
+    const filters = {
+      search: typeof q.search === 'string' ? q.search.trim() : '',
+      type: types.includes(q.type) ? q.type : 'all',
+      tag: typeof q.tag === 'string' ? q.tag.trim().toLowerCase() : '',
+      sort: SORTS.includes(q.sort) ? q.sort : ({ 'most-clicks': 'most-used', 'least-clicks': 'least-used' })[q.sort] || 'newest',
+      limit: PAGE_SIZES.includes(Number(q.limit)) ? Number(q.limit) : 50
+    };
 
-    // Calculate pagination info
-    const totalPages = limit !== null ? Math.ceil(totalUrls / limit) : 1;
+    const result = itemList.list({
+      scope, types, type: filters.type, search: filters.search, tags: filters.tag ? [filters.tag] : [],
+      sort: filters.sort, limit: filters.limit, page: q.page
+    });
 
-    res.render('dashboard', {
+    // What the user may do to each row (team rows: by their role in the team)
+    result.rows = result.rows.map(row => {
+      const item = { ...row, [contentType(row.type).ownerColumn]: row.ownerId };
+      return {
+        ...row,
+        canEdit: canEdit(req.user, row.type, item),
+        canMoveIn: !currentTeam && writableTeams.some(team => canMoveToTeam(req.user, row.type, item, team.id)),
+        canMoveOut: !!currentTeam && canMoveFromTeam(req.user, row.type, item),
+        shareCount: features.analyticsShareLinks ? AnalyticsShare.countActive(row.type, row.id) : 0
+      };
+    });
+
+    const tagOptions = currentTeam ? Tag.forTeam(currentTeam.id) : Tag.findByUserId(req.user.id).filter(tag => !tag.teamId);
+
+    const view = {
       user: req.user,
       teamInvites: features.teams ? teamService.invitesForUser(req.user) : [],
       dashboardTeams,
       writableTeams,
       currentTeam,
-      urls: urlsWithShares,
-      bundles,
-      baseUrl: `${req.protocol}://${req.get('host')}`,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        limit: limit !== null ? limit : 'all',
-        totalUrls,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
-      },
-      filters: { search, sort },
-      files,
-      fileCount,
+      types,
+      filters,
+      result,
+      tagOptions,
+      pageSizes: PAGE_SIZES,
       canUploadFiles,
-      showFiles,
-      pastes,
-      pasteCount
-    });
+      baseUrl: `${req.protocol}://${req.get('host')}`
+    };
+    res.render(q.partial === '1' ? 'partials/dashboard-results' : 'dashboard', view);
   }
 
   /**

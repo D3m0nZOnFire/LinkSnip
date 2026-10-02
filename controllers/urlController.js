@@ -277,7 +277,8 @@ class UrlController {
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      res.json(url);
+      // The edit forms fill their tag input from this; without tags, saving would remove them
+      res.json({ ...url, tags: Tag.forItem('url', url.id) });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
