@@ -28,3 +28,14 @@ it('no page loads Chart.js from a CDN any more', () => {
     expect({ file, cdn: /cdn\.jsdelivr\.net\/npm\/chart\.js/.test(source) }).toEqual({ file, cdn: false });
   }
 });
+
+it('every page with Chart.js also loads the shared chart setup (hover anywhere shows the nearest day)', () => {
+  const views = path.join(__dirname, '../../../views');
+  for (const file of fs.readdirSync(views).filter(f => f.endsWith('.ejs'))) {
+    const source = fs.readFileSync(path.join(views, file), 'utf8');
+    if (!source.includes('/vendor/chart.umd.js')) continue;
+    const chart = source.indexOf('/vendor/chart.umd.js');
+    const setup = source.indexOf('/js/chart-setup.js');
+    expect({ file, setupAfterChart: setup > chart }).toEqual({ file, setupAfterChart: true });
+  }
+});
