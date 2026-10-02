@@ -34,6 +34,7 @@ const canUpload = requirePermission('uploadFiles');
 
 router.post('/api/files/upload', canUpload, uploadLimiter, uploadSingle, fileController.upload);
 router.get('/api/files', canUpload, fileController.list);
+router.get('/api/files/:id', canUpload, fileController.get);
 router.delete('/api/files/:id', canUpload, fileController.delete);
 router.patch('/api/files/:id', canUpload, fileController.updateSettings);
 

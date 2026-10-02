@@ -38,10 +38,17 @@ function page(user, query = {}) {
   }), res);
   const features = configService.getSettings().features;
   return ejs.renderFile(VIEW, {
+    views: [path.join(__dirname, '../../../views')],
     ...res._viewData,
     features,
     can: { analytics: true, tags: true, createPastes: true, createBundles: true, analyticsShareLinks: true }
   });
+}
+
+// The markup of one row (rows carry data-type and data-id)
+function row(html, type, id) {
+  const chunk = html.split('class="item-row').find(part => part.includes(`data-type="${type}" data-id="${id}"`));
+  return chunk || '';
 }
 
 describe('team dashboard', () => {
@@ -55,9 +62,11 @@ describe('team dashboard', () => {
 
   it('shows Edit and Delete only on rows the user may change', async () => {
     const html = await page(member, { team: team.id });
-    expect(html).toContain(`editUrl(${ours.id})`);
-    expect(html).not.toContain(`editUrl(${theirs.id})`);
-    expect(html).not.toContain(`deleteUrl(${theirs.id})`);
+    expect(row(html, 'url', ours.id)).toContain('data-action="edit"');
+    expect(row(html, 'url', ours.id)).toContain('data-action="delete"');
+    expect(row(html, 'url', theirs.id)).not.toBe('');
+    expect(row(html, 'url', theirs.id)).not.toContain('data-action="edit"');
+    expect(row(html, 'url', theirs.id)).not.toContain('data-action="delete"');
   });
 
   it('shows who created each team item', async () => {
@@ -67,12 +76,10 @@ describe('team dashboard', () => {
 
   it('viewers get no edit, delete or select', async () => {
     const html = await page(viewer, { team: team.id });
-    for (const id of [ours.id, theirs.id]) {
-      expect(html).not.toContain(`editUrl(${id}`);
-      expect(html).not.toContain(`deleteUrl(${id}`);
-    }
-    expect(html).not.toContain('id="toggleSelectBtn"');
-    expect(html).not.toContain('onclick="deletePaste(');
+    expect(html).toContain('class="item-row');
+    expect(html).not.toContain('data-action="edit"');
+    expect(html).not.toContain('data-action="delete"');
+    expect(html).not.toContain('id="selectModeBtn"');
   });
 
   it('owners can move items out of the team', async () => {
@@ -92,7 +99,7 @@ describe('personal dashboard', () => {
     const html = await page(member);
     expect(html).toMatch(new RegExp(`data-move-in[^>]*data-type="url"[^>]*data-id="${mine.id}"|data-type="url"[^>]*data-id="${mine.id}"[^>]*data-move-in`));
     expect(html).toContain('id="moveToTeamModal"');
-    expect(html).not.toContain(`editUrl(${ours.id})`);
+    expect(row(html, 'url', ours.id)).toBe('');
   });
 
   it('has no switcher or move without teams', async () => {

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const paths = require('../../../config/paths');
 const configService = require('../../../services/configService');
-const adminItems = require('../../../services/adminItems');
+const adminItems = require('../../../services/itemList');
 const { recordStatus } = require('../../../services/accessService');
 const { contentType } = require('../../../services/contentTypes');
 const { getTestDatabase } = require('../../setup/testDatabase');
@@ -11,7 +11,7 @@ const {
 
 /**
  * Admin → Items: one list for links, bundles, pastes and files, with the search syntax of the old links list
- * (services/adminItems.js). Everything here runs against real rows.
+ * (services/itemList.js). Everything here runs against real rows.
  */
 const PAST = '2000-01-01T00:00:00.000Z';
 const FUTURE = '2999-01-01T00:00:00.000Z';
@@ -260,5 +260,79 @@ describe('reports, dates, sorting, pages', () => {
     createTestUrl({ slug: 'only' });
     expect(list({ limit: 50, page: 9 })).toMatchObject({ page: 1, totalPages: 1 });
     expect(list({ limit: 50, page: 9 }).rows).toHaveLength(1);
+  });
+});
+
+describe('dashboard lists (scope, tags, counts)', () => {
+  const teamService = require('../../../services/teamService');
+  const { createTestTag, tagItem } = require('../../setup/testHelpers');
+  const toTeam = (table, id, teamId) => db().prepare(`UPDATE ${table} SET teamId = ? WHERE id = ?`).run(teamId, id);
+
+  it('a user scope lists only their personal items, of every type', () => {
+    createTestUrl({ slug: 'a-link', creatorId: alice.id });
+    createTestBundle({ slug: 'a-kit', creatorId: alice.id });
+    createTestPaste(alice.id, { slug: 'a-note' });
+    createTestFile(alice.id, { slug: 'a-doc' });
+    createTestUrl({ slug: 'b-link', creatorId: bob.id });
+    createTestUrl({ slug: 'anon' });
+
+    expect(keys(list({ scope: alice.id }))).toEqual(['bundle:a-kit', 'file:a-doc', 'paste:a-note', 'url:a-link']);
+    expect(keys(list({ scope: { userId: bob.id } }))).toEqual(['url:b-link']);
+  });
+
+  it('a team scope lists the team\'s items, and personal lists leave them out', () => {
+    const owner = { id: alice.id, username: 'alice', isAdmin: 0, role: 'trusted' };
+    db().prepare("UPDATE users SET role = 'trusted' WHERE id = ?").run(alice.id);
+    const team = teamService.create(owner, 'Acme');
+    toTeam('urls', createTestUrl({ slug: 't-link', creatorId: alice.id }).id, team.id);
+    toTeam('pastes', createTestPaste(bob.id, { slug: 't-note' }).id, team.id);
+    createTestUrl({ slug: 'mine', creatorId: alice.id });
+
+    expect(keys(list({ scope: { teamId: team.id } }))).toEqual(['paste:t-note', 'url:t-link']);
+    expect(keys(list({ scope: alice.id }))).toEqual(['url:mine']);
+  });
+
+  it('filters by tag name (any of the given names), for every type', () => {
+    const launch = createTestTag({ name: 'launch', userId: alice.id });
+    const docs = createTestTag({ name: 'docs', userId: alice.id });
+    const url = createTestUrl({ slug: 'tagged', creatorId: alice.id });
+    const paste = createTestPaste(alice.id, { slug: 'notes' });
+    const bundle = createTestBundle({ slug: 'kit', creatorId: alice.id });
+    createTestUrl({ slug: 'plain', creatorId: alice.id });
+    tagItem('url', url.id, launch.id);
+    tagItem('paste', paste.id, launch.id);
+    tagItem('bundle', bundle.id, docs.id);
+
+    expect(keys(list({ scope: alice.id, tags: ['launch'] }))).toEqual(['paste:notes', 'url:tagged']);
+    expect(keys(list({ scope: alice.id, tags: ['launch', 'docs'] }))).toEqual(['bundle:kit', 'paste:notes', 'url:tagged']);
+    expect(keys(list({ scope: alice.id, tags: [] }))).toHaveLength(4);
+  });
+
+  it('counts the matches per type, whatever type is shown', () => {
+    createTestUrl({ slug: 'one', creatorId: alice.id, longUrl: 'https://example.com/report' });
+    createTestUrl({ slug: 'two', creatorId: alice.id });
+    createTestPaste(alice.id, { slug: 'p', title: 'report notes' });
+    createTestFile(alice.id, { slug: 'f' });
+
+    expect(list({ scope: alice.id, type: 'paste' }).counts).toEqual({ url: 2, bundle: 0, paste: 1, file: 1 });
+    expect(list({ scope: alice.id, search: 'report' }).counts).toEqual({ url: 1, bundle: 0, paste: 1, file: 0 });
+  });
+
+  it('can be limited to some types (and counts only those)', () => {
+    createTestUrl({ slug: 'l', creatorId: alice.id });
+    createTestFile(alice.id, { slug: 'f' });
+    const result = list({ scope: alice.id, types: ['url', 'paste'] });
+    expect(keys(result)).toEqual(['url:l']);
+    expect(result.counts).toEqual({ url: 1, paste: 0 });
+    expect(keys(list({ scope: alice.id, types: ['url'], type: 'file' }))).toEqual([]);
+  });
+
+  it('sorts and pages across every type (not just links)', () => {
+    createTestUrl({ slug: 'few', creatorId: alice.id, clicks: 2 });
+    createTestPaste(alice.id, { slug: 'many', views: 50 });
+    createTestBundle({ slug: 'some', creatorId: alice.id, clicks: 10 });
+
+    expect(list({ scope: alice.id, sort: 'most-used' }).rows.map(r => r.slug)).toEqual(['many', 'some', 'few']);
+    expect(list({ scope: alice.id, sort: 'most-used', limit: 2, page: 2 }).rows.map(r => r.slug)).toEqual(['few']);
   });
 });

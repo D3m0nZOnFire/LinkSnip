@@ -1,2480 +1,361 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: null, styles: ['tagSelector', 'lineNumbers'] }) %>
-  <style>
-    /* ─── Page Layout ──────────────────────────────────────── */
-    .main-content {
-      max-width: 52rem;
-      margin: 0 auto;
-      padding: 4rem 1rem;
-    }
-
-    /* ─── Creator Card ─────────────────────────────────────── */
-    .creator-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 0.75rem;
-      overflow: hidden;
-      margin-bottom: 2rem;
-    }
-
-    /* ─── URL Zone ─────────────────────────────────────────── */
-    .creator-url-zone {
-      padding: 1.5rem 1.5rem 1.25rem;
-    }
-
-    .creator-url-label {
-      display: block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--muted-foreground);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 0.625rem;
-      user-select: none;
-    }
-
-    .creator-url-input {
-      width: 100%;
-      padding: 0.875rem 1rem;
-      background: var(--secondary);
-      border: 1.5px solid var(--border);
-      border-radius: 0.5rem;
-      color: var(--foreground);
-      font-size: 1rem;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      font-family: inherit;
-    }
-
-    .creator-url-input::placeholder { color: var(--muted-foreground); }
-
-    .creator-url-input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-
-    /* ─── Divider ──────────────────────────────────────────── */
-    .creator-divider {
-      height: 1px;
-      background: var(--border);
-    }
-
-    /* ─── Slug Input Zone ──────────────────────────────────── */
-    .creator-slug-input-wrapper {
-      display: flex;
-      align-items: center;
-      background: var(--secondary);
-      border: 1.5px solid var(--border);
-      border-radius: 0.5rem;
-      overflow: hidden;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .creator-slug-input-wrapper:focus-within {
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-
-    .creator-slug-input-wrapper.slug-error {
-      border-color: var(--destructive);
-    }
-
-    .creator-slug-prefix {
-      padding: 0.875rem 0 0.875rem 1rem;
-      color: var(--muted-foreground);
-      font-size: 1rem;
-      flex-shrink: 0;
-      user-select: none;
-      white-space: nowrap;
-    }
-
-    .creator-slug-input {
-      flex: 1;
-      padding: 0.875rem 1rem 0.875rem 0.25rem;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--foreground);
-      font-size: 1rem;
-      font-family: inherit;
-      min-width: 0;
-    }
-
-    .creator-slug-input::placeholder { color: var(--muted-foreground); }
-
-    .slug-error-hint {
-      display: none;
-      font-size: 0.8125rem;
-      color: var(--destructive);
-      margin-top: 0.375rem;
-    }
-
-    /* ─── Chips Bar ────────────────────────────────────────── */
-    .creator-chips-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      padding: 1rem 1.5rem;
-      align-items: center;
-    }
-
-    .creator-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.4rem 0.875rem;
-      background: transparent;
-      border: 1px solid var(--border);
-      border-radius: 9999px;
-      color: var(--muted-foreground);
-      font-size: 0.8125rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: border-color 0.15s, color 0.15s, background 0.15s;
-      font-family: inherit;
-      white-space: nowrap;
-      line-height: 1;
-    }
-
-    .creator-chip svg {
-      width: 13px;
-      height: 13px;
-      flex-shrink: 0;
-    }
-
-    .creator-chip:hover:not(.chip-locked) {
-      border-color: var(--primary);
-      color: var(--foreground);
-    }
-
-    .creator-chip.chip-active {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-
-    /* Value is set — persists even when panel is closed */
-    .creator-chip.chip-set {
-      border-color: var(--primary);
-      color: var(--primary);
-      background: var(--status-active-bg);
-    }
-
-    /* Feature not available to this role */
-    .creator-chip.chip-locked,
-    .mode-pill.chip-locked {
-      opacity: 0.35;
-      cursor: not-allowed;
-      pointer-events: none;
-    }
-
-    /* ─── Panels ───────────────────────────────────────────── */
-    .creator-panel {
-      padding: 1.25rem 1.5rem;
-      border-top: 1px solid var(--border);
-      animation: panelFadeIn 0.15s ease;
-    }
-
-    @keyframes panelFadeIn {
-      from { opacity: 0; transform: translateY(-6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .creator-panel small {
-      display: block;
-      margin-top: 0.625rem;
-      font-size: 0.8125rem;
-      color: var(--muted-foreground);
-    }
-
-    .creator-panel small a {
-      color: var(--primary);
-      text-decoration: underline;
-    }
-
-    /* Radio cards (anonymous expiry) */
-    .panel-radios {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-
-    .panel-radio-option { flex: 1; min-width: 80px; }
-
-    .panel-radio-option input[type="radio"] { display: none; }
-
-    .panel-radio-label {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.2rem;
-      padding: 0.75rem 0.5rem;
-      background: var(--secondary);
-      border: 1.5px solid var(--border);
-      border-radius: 0.5rem;
-      cursor: pointer;
-      transition: all 0.15s;
-      text-align: center;
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--muted-foreground);
-    }
-
-    .panel-radio-label:hover {
-      border-color: var(--primary);
-      color: var(--foreground);
-    }
-
-    .panel-radio-option input[type="radio"]:checked + .panel-radio-label {
-      border-color: var(--primary);
-      background: var(--status-active-bg);
-      color: var(--primary);
-    }
-
-    .panel-radio-sublabel {
-      font-size: 0.6875rem;
-      font-weight: 400;
-      opacity: 0.7;
-    }
-
-    /* Inline input row (registered expiry, max uses) */
-    .panel-input-row {
-      display: flex;
-      align-items: center;
-      gap: 0.625rem;
-    }
-
-    .panel-number-input {
-      width: 7rem;
-      padding: 0.625rem 0.875rem;
-      background: var(--secondary);
-      border: 1.5px solid var(--border);
-      border-radius: 0.5rem;
-      color: var(--foreground);
-      font-size: 0.9375rem;
-      font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .panel-number-input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-
-    .panel-number-input::placeholder { color: var(--muted-foreground); }
-
-    .panel-input-suffix {
-      color: var(--muted-foreground);
-      font-size: 0.875rem;
-      flex-shrink: 0;
-    }
-
-    .panel-clear-btn {
-      margin-left: auto;
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 0.375rem;
-      color: var(--muted-foreground);
-      font-size: 0.8125rem;
-      padding: 0.375rem 0.75rem;
-      cursor: pointer;
-      transition: all 0.15s;
-      font-family: inherit;
-    }
-
-    .panel-clear-btn:hover {
-      border-color: var(--destructive);
-      color: var(--destructive);
-    }
-
-    /* Password input wrapper */
-    .panel-password-wrapper {
-      position: relative;
-    }
-
-    .panel-password-wrapper input {
-      width: 100%;
-      padding: 0.625rem 2.75rem 0.625rem 0.875rem;
-      background: var(--secondary);
-      border: 1.5px solid var(--border);
-      border-radius: 0.5rem;
-      color: var(--foreground);
-      font-size: 0.9375rem;
-      font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .panel-password-wrapper input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-
-    .panel-password-wrapper input::placeholder { color: var(--muted-foreground); }
-
-    .panel-eye-btn {
-      position: absolute;
-      right: 0.75rem;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: var(--muted-foreground);
-      cursor: pointer;
-      padding: 0.25rem;
-      display: flex;
-      align-items: center;
-      transition: color 0.15s;
-    }
-
-    .panel-eye-btn:hover { color: var(--foreground); }
-    .panel-eye-btn svg { width: 16px; height: 16px; }
-
-    /* Schedule grid */
-    .panel-schedule-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-
-    .panel-schedule-grid label {
-      display: block;
-      font-size: 0.8125rem;
-      font-weight: 500;
-      color: var(--foreground);
-      margin-bottom: 0.375rem;
-    }
-
-    .panel-datetime-input {
-      width: 100%;
-      padding: 0.625rem 0.875rem;
-      background: var(--secondary);
-      border: 1.5px solid var(--border);
-      border-radius: 0.5rem;
-      color: var(--foreground);
-      font-size: 0.9375rem;
-      font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      box-sizing: border-box;
-      color-scheme: dark;
-    }
-
-    .panel-datetime-input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-
-    .panel-datetime-input::-webkit-calendar-picker-indicator {
-      cursor: pointer;
-    }
-
-    html[data-theme="light"] .panel-datetime-input {
-      color-scheme: light;
-    }
-
-    /* ─── Upsell (anonymous only) ──────────────────────────── */
-    .creator-upsell {
-      display: flex;
-      align-items: center;
-      gap: 0.625rem;
-      padding: 0.75rem 1.5rem;
-      border-top: 1px solid var(--border);
-      font-size: 0.8125rem;
-      color: var(--muted-foreground);
-      background: var(--secondary);
-    }
-
-    .creator-upsell svg {
-      width: 14px;
-      height: 14px;
-      flex-shrink: 0;
-      color: var(--primary);
-    }
-
-    .creator-upsell a {
-      color: var(--primary);
-      text-decoration: underline;
-      font-weight: 500;
-    }
-
-    /* ─── Submit Zone ──────────────────────────────────────── */
-    .creator-submit-zone {
-      padding: 1rem 1.5rem 1.5rem;
-    }
-
-    .creator-submit-btn {
-      width: 100%;
-      padding: 0.875rem 1.5rem;
-      background: var(--primary);
-      color: var(--primary-foreground);
-      border: none;
-      border-radius: 0.5rem;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      font-family: inherit;
-    }
-
-    .creator-submit-btn:hover { opacity: 0.9; }
-    .creator-submit-btn:active { transform: scale(0.995); }
-    .creator-submit-btn svg { width: 18px; height: 18px; }
-
-    .creator-rate-info {
-      margin-top: 0.75rem;
-      text-align: center;
-      font-size: 0.8125rem;
-      color: var(--muted-foreground);
-    }
-
-    .creator-rate-info strong { color: var(--primary); }
-
-    /* ─── Hero ─────────────────────────────────────────────── */
-    .hero {
-      margin-bottom: 2.5rem;
-      text-align: center;
-    }
-
-    .hero h2 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      line-height: 1.2;
-    }
-
-    .hero .highlight { color: var(--primary); }
-
-    .hero p {
-      color: var(--muted-foreground);
-      font-size: 1.125rem;
-      max-width: 38rem;
-      margin: 0 auto;
-    }
-
-    /* ─── Feedback blocks ──────────────────────────────────── */
-    .creator-error {
-      margin-bottom: 1.25rem;
-      padding: 0.875rem 1rem;
-      background: var(--status-error-bg);
-      border: 1px solid var(--status-error-border);
-      border-radius: 0.5rem;
-      color: var(--destructive);
-      font-size: 0.9375rem;
-    }
-
-    .creator-success {
-      margin-bottom: 1.25rem;
-      padding: 1.25rem;
-      background: var(--status-active-bg);
-      border: 1px solid var(--status-active-border);
-      border-radius: 0.5rem;
-    }
-
-    .creator-success-label {
-      font-size: 0.8125rem;
-      font-weight: 600;
-      color: var(--muted-foreground);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.625rem;
-    }
-
-    .creator-success-row {
-      display: flex;
-      gap: 0.625rem;
-      align-items: center;
-    }
-
-    .creator-success-url {
-      flex: 1;
-      padding: 0.625rem 0.875rem;
-      background: var(--secondary);
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      font-family: var(--font-mono);
-      font-size: 0.875rem;
-      word-break: break-all;
-      color: var(--primary);
-      font-weight: 600;
-    }
-
-    .creator-copy-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.625rem 1rem;
-      background: var(--primary);
-      color: var(--primary-foreground);
-      border: none;
-      border-radius: 0.5rem;
-      font-size: 0.875rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s;
-      font-family: inherit;
-      flex-shrink: 0;
-    }
-
-    .creator-copy-btn:hover { opacity: 0.9; }
-    .creator-copy-btn svg { width: 15px; height: 15px; }
-
-    /* ─── Features ─────────────────────────────────────────── */
-    .features {
-      margin-top: 4rem;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.25rem;
-    }
-
-    .feature-card {
-      padding: 1.5rem;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      transition: transform 0.2s;
-    }
-
-    .feature-card:hover { transform: translateY(-2px); }
-
-    .feature-icon {
-      width: 2.75rem;
-      height: 2.75rem;
-      border-radius: 0.5rem;
-      background: var(--status-active-bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 0.875rem;
-      font-size: 1.25rem;
-    }
-
-    .feature-card h3 { font-weight: 600; margin-bottom: 0.375rem; font-size: 0.9375rem; }
-    .feature-card p  { font-size: 0.875rem; color: var(--muted-foreground); }
-
-    /* ─── Mode Toggle (logged-in users only) ───────────────── */
-    .creator-mode-toggle {
-      display: flex;
-      gap: 0.375rem;
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .mode-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.4rem 0.875rem;
-      background: transparent;
-      border: 1px solid var(--border);
-      border-radius: 9999px;
-      color: var(--muted-foreground);
-      font-size: 0.8125rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: border-color 0.15s, color 0.15s, background 0.15s;
-      font-family: inherit;
-      line-height: 1;
-    }
-
-    .mode-pill:hover { border-color: var(--primary); color: var(--foreground); }
-
-    .mode-pill.active {
-      border-color: var(--primary);
-      color: var(--primary);
-      background: var(--status-active-bg);
-    }
-
-    .mode-pill svg { width: 13px; height: 13px; flex-shrink: 0; }
-
-    /* ─── Bundle Section ────────────────────────────────────── */
-    .bundle-section {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .bundle-title-input {
-      width: 100%;
-      padding: 0.875rem 1rem;
-      background: var(--secondary);
-      border: 1.5px solid var(--border);
-      border-radius: 0.5rem;
-      color: var(--foreground);
-      font-size: 1rem;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      font-family: inherit;
-      margin-bottom: 1rem;
-    }
-
-    .bundle-title-input::placeholder { color: var(--muted-foreground); }
-
-    .bundle-title-input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-
-    .bundle-links-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--muted-foreground);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 0.625rem;
-      display: block;
-    }
-
-    .bundle-url-row {
-      display: flex;
-      gap: 0.5rem;
-      align-items: flex-start;
-      margin-bottom: 0.5rem;
-    }
-
-    .bundle-row-num {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: var(--secondary);
-      color: var(--muted-foreground);
-      font-size: 0.75rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      margin-top: 0.625rem;
-    }
-
-    .bundle-row-inputs {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-    }
-
-    .bundle-row-url {
-      width: 100%;
-      padding: 0.625rem 0.875rem;
-      background: var(--secondary);
-      border: 1.5px solid var(--border);
-      border-radius: 0.5rem;
-      color: var(--foreground);
-      font-size: 0.9rem;
-      font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .bundle-row-url::placeholder { color: var(--muted-foreground); }
-
-    .bundle-row-url:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-
-    .bundle-row-label {
-      width: 100%;
-      padding: 0.5rem 0.875rem;
-      background: var(--secondary);
-      border: 1.5px solid var(--border);
-      border-radius: 0.5rem;
-      color: var(--foreground);
-      font-size: 0.8125rem;
-      font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .bundle-row-label::placeholder { color: var(--muted-foreground); }
-
-    .bundle-row-label:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-
-    .bundle-row-remove {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 0.375rem;
-      color: var(--muted-foreground);
-      cursor: pointer;
-      padding: 0.375rem;
-      display: flex;
-      align-items: center;
-      margin-top: 0.5rem;
-      flex-shrink: 0;
-      transition: border-color 0.15s, color 0.15s;
-    }
-
-    .bundle-row-remove:hover { border-color: var(--destructive); color: var(--destructive); }
-    .bundle-row-remove svg { width: 14px; height: 14px; }
-
-    .bundle-add-btn {
-      width: 100%;
-      margin-top: 0.5rem;
-      padding: 0.625rem;
-      background: transparent;
-      border: 1px dashed var(--border);
-      border-radius: 0.5rem;
-      color: var(--muted-foreground);
-      font-size: 0.875rem;
-      font-family: inherit;
-      cursor: pointer;
-      transition: border-color 0.15s, color 0.15s;
-    }
-
-    .bundle-add-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .bundle-add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    /* ─── Responsive ───────────────────────────────────────── */
-    @media (max-width: 640px) {
-      .hero h2 { font-size: 1.875rem; }
-      .features { grid-template-columns: 1fr; }
-      .creator-success-row { flex-direction: column; align-items: stretch; }
-      .creator-copy-btn { justify-content: center; }
-
-      .creator-url-zone,
-      .creator-chips-bar,
-      .creator-panel,
-      .creator-upsell,
-      .creator-submit-zone { padding-left: 1rem; padding-right: 1rem; }
-
-      .creator-slug-zone { padding-left: 1rem; padding-right: 1rem; }
-
-      .panel-schedule-grid { grid-template-columns: 1fr; }
-
-      .creator-mode-toggle,
-      .bundle-section { padding-left: 1rem; padding-right: 1rem; }
-    }
-
-    .paste-textarea {
-      width: 100%;
-      min-height: 16rem;
-      font-family: var(--font-mono);
-      font-size: 0.875rem;
-      line-height: 1.5;
-      resize: vertical;
-      background: var(--card);
-      color: var(--foreground);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md, 0.5rem);
-      padding: 0.75rem;
-    }
-    .paste-textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-      .create-in-team { display: flex; align-items: center; gap: 0.6rem; padding: 1.25rem 1.5rem 0; margin: 0; color: var(--muted-foreground); font-size: 0.875rem; }
-    @media (max-width: 640px) { .create-in-team { padding: 1rem 1rem 0; } }
-    .create-in-team select { padding: 0.4rem 0.6rem; background: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius-md); font: inherit; max-width: 60vw; }
-  </style>
+  <%- include('partials/head', { title: user ? 'Create' : null, styles: ['forms', 'tagSelector', 'lineNumbers', 'create'] }) %>
 </head>
-<% const shell = user ? 'app' : 'public'; %>
+<%
+  const shell = user ? 'app' : 'public';
+  const createTeams = locals.writableTeams || [];
+  const lockedTitle = user ? 'Not available for your account' : 'Log in to use this';
+  const today = new Date().toISOString().split('T')[0];
+  const hourly = locals.limits || {};
+  // "Up to N links per hour" for each mode, or nothing when the role has no limit
+  const rate = (limit, noun) => (limit === null || limit === undefined) ? '' : `Up to ${limit.toLocaleString('en-US')} ${noun} per hour`;
+  const rates = {
+    url: rate(hourly.urlsPerHour, 'links'),
+    paste: rate(hourly.pastesPerHour, 'pastes'),
+    bundle: rate(hourly.bundlesPerHour, 'bundles'),
+    file: rate(hourly.uploadsPerHour, 'uploads')
+  };
+  // An option chip: data-chip names its panel; data-format says how a value reads on the chip
+  const chip = ({ id, chip, icon, label, format, allowed = true }) => `
+    <button type="button" class="creator-chip${allowed ? '' : ' chip-locked'}" id="${id}" data-chip="${chip}" data-default="${label}"${format ? ` data-format="${format}"` : ''}${allowed ? ' aria-expanded="false"' : ` disabled title="${lockedTitle}"`}>
+      ${include('partials/icon', { icon })}<span class="chip-label">${label}</span>
+    </button>`;
+-%>
 <%- include('partials/layout-start', { shell, currentPage: 'home' }) %>
 
-  <main class="main-content">
+  <main class="main-content create-page">
 
-    <!-- Hero -->
+    <% if (user) { %>
+    <div class="header-section create-header">
+      <div>
+        <h2>Create</h2>
+        <p>A short link, a paste, a bundle of links<%= features.files ? ' or a file' : '' %>.</p>
+      </div>
+    </div>
+    <% } else { %>
     <div class="hero">
-      <h2>
-        Shorten Your Links,<br>
-        <span class="highlight">Track Your Impact</span>
-      </h2>
-      <% if (locals.branding && branding.tagline) { %>
-      <p><%= branding.tagline %></p>
-      <% } %>
+      <h2>Shorten Your Links,<br><span class="highlight">Track Your Impact</span></h2>
+      <% if (locals.branding && branding.tagline) { %><p><%= branding.tagline %></p><% } %>
+    </div>
+    <% } %>
+
+    <div class="creator-error" id="creatorError" role="alert"<%= error ? '' : ' hidden' %>><%= error || '' %></div>
+
+    <div class="creator-success" id="creatorSuccess"<%= success ? '' : ' hidden' %>>
+      <div class="creator-success-label" id="creatorSuccessLabel">Your short link is ready</div>
+      <div class="creator-success-row">
+        <code class="creator-success-url" id="creatorSuccessUrl"><%= success ? success.shortUrl : '' %></code>
+        <button type="button" class="btn btn-small" id="creatorCopy"><%- include('partials/icon', { icon: 'copy' }) %> Copy</button>
+      </div>
     </div>
 
-    <!-- Error block -->
-    <% if (error) { %>
-      <div class="creator-error"><%= error %></div>
-    <% } %>
+    <form action="/create" method="POST" class="creator-card" id="creatorForm">
 
-    <!-- Success block -->
-    <% if (success) { %>
-      <div class="creator-success">
-        <div class="creator-success-label">Your short link is ready</div>
-        <div class="creator-success-row">
-          <code class="creator-success-url" id="shortUrlDisplay"><%= success.shortUrl %></code>
-          <button class="creator-copy-btn" onclick="copyShortUrl()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            Copy
-          </button>
-        </div>
-      </div>
-    <% } %>
-
-    <!-- ═══════════════════════════════════════════════════════
-         CREATOR FORM
-         ═══════════════════════════════════════════════════ -->
-    <form action="/create" method="POST" class="creator-card">
-
-      <!-- ── Mode Toggle ──────────────────────────────────── -->
-      <div class="creator-mode-toggle" id="modeToggle">
-        <button type="button" class="mode-pill active" id="pillUrl" onclick="setMode('url')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-          </svg>
-          Short URL
-        </button>
+      <!-- What to create -->
+      <div class="creator-mode-toggle" role="group" aria-label="What to create">
+        <button type="button" class="mode-pill active" id="pillUrl" data-mode="url" aria-pressed="true"><%- include('partials/icon', { icon: 'link' }) %> Link</button>
         <% if (can.createPastes) { %>
-        <button type="button" class="mode-pill" id="pillPaste" onclick="setMode('paste')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="8" y1="13" x2="16" y2="13"></line>
-            <line x1="8" y1="17" x2="14" y2="17"></line>
-          </svg>
-          Text
-        </button>
+        <button type="button" class="mode-pill" id="pillPaste" data-mode="paste" aria-pressed="false"><%- include('partials/icon', { icon: 'paste' }) %> Text</button>
         <% } %>
-        <% if (user) { %>
-        <% if (can.createBundles) { %>
-        <button type="button" class="mode-pill" id="pillBundle" onclick="setMode('bundle')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-          </svg>
-          Bundle
-        </button>
+        <% if (user && can.createBundles) { %>
+        <button type="button" class="mode-pill" id="pillBundle" data-mode="bundle" aria-pressed="false"><%- include('partials/icon', { icon: 'bundle' }) %> Bundle</button>
         <% } %>
-        <% if (features.files) { %>
-        <button type="button"
-          class="mode-pill<% if (!canUploadFiles) { %> chip-locked<% } %>"
-          id="pillFile"
-          <% if (canUploadFiles) { %>onclick="setMode('file')"<% } %>
-          <% if (!canUploadFiles) { %>title="Your account can't upload files"<% } %>
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-            <polyline points="13 2 13 9 20 9"></polyline>
-          </svg>
-          File
-        </button>
-        <% } %>
+        <% if (user && features.files) { %>
+        <button type="button" class="mode-pill<%= canUploadFiles ? '' : ' chip-locked' %>" id="pillFile" data-mode="file" aria-pressed="false"<%- canUploadFiles ? '' : ' disabled title="Your account can\'t upload files"' %>><%- include('partials/icon', { icon: 'file' }) %> File</button>
         <% } %>
       </div>
 
-      <% const createTeams = locals.writableTeams || []; %>
       <% if (user && createTeams.length) { %>
-      <!-- ── Create in a team (sent with every kind of item) ── -->
-      <label class="create-in-team" for="createInTeam">
-        Create in
-        <select name="teamId" id="createInTeam">
+      <!-- Create in a team (sent with every kind of item) -->
+      <div class="create-in-team">
+        <label for="createInTeam">Create in</label>
+        <select name="teamId" id="createInTeam" class="form-input">
           <option value="">Personal</option>
           <% createTeams.forEach(team => { %>
             <option value="<%= team.id %>"<%= locals.selectedTeamId === team.id ? ' selected' : '' %>><%= team.name %></option>
           <% }) %>
         </select>
-      </label>
+      </div>
       <% } %>
 
-      <!-- ── Bundle Section (hidden by default) ────────────── -->
-      <% if (user) { %>
-      <div class="bundle-section" id="bundleSection" style="display:none;">
-        <input
-          type="text"
-          id="bundleTitleInput"
-          class="bundle-title-input"
-          placeholder="Bundle title..."
-          maxlength="100"
-        >
-        <span class="bundle-links-label">Links</span>
-        <div id="bundleUrlList"></div>
-        <button type="button" class="bundle-add-btn" id="bundleAddBtn" onclick="bundleAddRow()">+ Add Link</button>
+      <!-- ── Link ─────────────────────────────────────────── -->
+      <div class="creator-section" data-section="url">
+        <div class="creator-zone">
+          <label for="longUrl" class="creator-label">Destination</label>
+          <input type="url" id="longUrl" name="longUrl" class="creator-input creator-input-lg" placeholder="https://example.com/your/long/url"
+            value="<%= prefillUrl %>" autocomplete="off" required>
+        </div>
+        <div class="creator-zone">
+          <label for="customSlug" class="creator-label">Short link <span class="creator-label-note">optional</span></label>
+          <div class="creator-slug" id="slugWrapper">
+            <span class="creator-slug-prefix"><span class="slug-host" id="slugDomain"></span>/s/</span>
+            <input type="text" id="customSlug" name="customSlug" class="creator-slug-input" placeholder="auto-generated" maxlength="20" autocomplete="off" aria-describedby="slugError">
+          </div>
+          <p class="field-error" id="slugError" hidden>Letters, numbers, - and _ only (20 at most)</p>
+        </div>
+
+        <div class="creator-chips-bar">
+          <%- chip({ id: 'chip-expiry', chip: 'expiry', icon: 'clock', label: user ? 'No expiry' : '30 days', format: 'days' }) %>
+          <%- chip({ id: 'chip-maxuses', chip: 'maxuses', icon: 'hash', label: 'No click limit', format: 'max' }) %>
+          <%- chip({ id: 'chip-password', chip: 'password', icon: 'lock', label: 'Password', format: 'password', allowed: can.passwordProtection }) %>
+          <%- chip({ id: 'chip-schedule', chip: 'schedule', icon: 'calendar', label: 'Schedule', format: 'schedule', allowed: can.scheduling }) %>
+          <%- chip({ id: 'chip-tags', chip: 'tags', icon: 'tag', label: 'Tags', format: 'tags', allowed: can.tags }) %>
+        </div>
+
+        <div class="creator-panel" data-panel="expiry" hidden>
+          <% if (!user) { %>
+          <div class="panel-radios">
+            <% [7, 14, 30].forEach(days => { %>
+            <label class="panel-radio">
+              <input type="radio" name="expirationDays" value="<%= days %>"<%= days === 30 ? ' checked' : '' %>>
+              <span><%= days %> days<%- days === 30 ? ' <small>recommended</small>' : '' %></span>
+            </label>
+            <% }) %>
+          </div>
+          <p class="field-help">Links made without an account expire. <a href="/register">Create an account</a> for permanent links.</p>
+          <% } else { %>
+          <div class="panel-input-row">
+            <input type="number" id="expirationDaysInput" name="expirationDays" class="form-input panel-number" placeholder="e.g. 30" min="1">
+            <span class="panel-suffix">days</span>
+            <button type="button" class="btn btn-small btn-ghost" data-clear>Clear</button>
+          </div>
+          <p class="field-help">Leave empty for a link that never expires.</p>
+          <% } %>
+        </div>
+
+        <div class="creator-panel" data-panel="maxuses" hidden>
+          <div class="panel-input-row">
+            <input type="number" id="maxUsesInput" name="maxUses" class="form-input panel-number" placeholder="e.g. 100" min="1">
+            <span class="panel-suffix">clicks</span>
+            <button type="button" class="btn btn-small btn-ghost" data-clear>Clear</button>
+          </div>
+          <p class="field-help">The link stops working after this many clicks.</p>
+        </div>
+
+        <% if (can.passwordProtection) { %>
+        <div class="creator-panel" data-panel="password" hidden>
+          <input type="password" id="passwordInput" name="password" class="form-input" placeholder="Enter a password…" autocomplete="new-password" data-toggle-password>
+          <p class="field-help">Visitors enter it before they are sent on.</p>
+        </div>
+        <% } %>
+
+        <% if (can.scheduling) { %>
+        <div class="creator-panel" data-panel="schedule" hidden>
+          <input type="hidden" name="activateDateTime" id="activateDateTimeUtc">
+          <input type="hidden" name="deactivateDateTime" id="deactivateDateTimeUtc">
+          <div class="panel-schedule-grid">
+            <label>Active from <input type="datetime-local" id="activateDateTimeInput" class="form-input" data-utc="activateDateTimeUtc"></label>
+            <label>Active until <input type="datetime-local" id="deactivateDateTimeInput" class="form-input" data-utc="deactivateDateTimeUtc"></label>
+          </div>
+          <p class="field-help">Both optional. Times are in your timezone.</p>
+        </div>
+        <% } %>
+
         <% if (can.tags) { %>
-        <span class="bundle-links-label" style="margin-top: 1rem;">Tags</span>
-        <div id="bundleTagSelectorMount"></div>
-        <input type="hidden" id="bundleTags" value="">
+        <div class="creator-panel" data-panel="tags" hidden>
+          <div id="tagSelectorCreate" data-tag-selector="tags"></div>
+          <input type="hidden" id="tags" name="tags" value="">
+          <p class="field-help">Type to find a tag or make a new one; Enter or comma adds it.</p>
+        </div>
+        <% } %>
+
+        <% if (!user) { %>
+        <p class="creator-upsell"><%- include('partials/icon', { icon: 'info' }) %> Password, scheduling and tags need an account. <a href="/register">Register</a> or <a href="/login">log in</a>.</p>
+        <% } %>
+      </div>
+
+      <% if (can.createPastes) { %>
+      <!-- ── Text (paste) ─────────────────────────────────── -->
+      <div class="creator-section" data-section="paste" hidden>
+        <div class="creator-zone">
+          <label for="pasteContent" class="visually-hidden">Text</label>
+          <textarea id="pasteContent" class="creator-input paste-textarea" rows="12" placeholder="Paste your text here…" spellcheck="false" data-line-numbers></textarea>
+          <div class="creator-two">
+            <input type="text" id="pasteTitle" class="creator-input" placeholder="Title (optional)" maxlength="200" aria-label="Title">
+            <input type="text" id="pasteLanguage" class="creator-input" placeholder="Language label, e.g. javascript (optional)" maxlength="30" autocomplete="off" aria-label="Language label">
+          </div>
+        </div>
+
+        <div class="creator-chips-bar">
+          <%- chip({ id: 'pchip-expires', chip: 'expires', icon: 'clock', label: user ? 'No expiry' : 'Expiry', format: 'date' }) %>
+          <%- chip({ id: 'pchip-maxviews', chip: 'maxviews', icon: 'eye', label: 'No view limit', format: 'max' }) %>
+          <%- chip({ id: 'pchip-password', chip: 'password', icon: 'lock', label: 'Password', format: 'password', allowed: can.passwordProtection }) %>
+          <%- chip({ id: 'pchip-schedule', chip: 'schedule', icon: 'calendar', label: 'Schedule', format: 'schedule', allowed: can.scheduling }) %>
+          <%- chip({ id: 'pchip-tags', chip: 'tags', icon: 'tag', label: 'Tags', format: 'tags', allowed: can.tags }) %>
+        </div>
+
+        <div class="creator-panel" data-panel="expires" hidden>
+          <div class="panel-input-row">
+            <input type="date" id="pasteExpiresAt" class="form-input" min="<%= today %>" aria-label="Expires on">
+            <button type="button" class="btn btn-small btn-ghost" data-clear>Clear</button>
+          </div>
+          <p class="field-help"><%= user ? 'Leave empty for a paste that never expires.' : 'Pastes made without an account expire within 30 days.' %></p>
+        </div>
+        <div class="creator-panel" data-panel="maxviews" hidden>
+          <div class="panel-input-row">
+            <input type="number" id="pasteMaxViews" class="form-input panel-number" placeholder="e.g. 100" min="1" aria-label="View limit">
+            <span class="panel-suffix">views</span>
+            <button type="button" class="btn btn-small btn-ghost" data-clear>Clear</button>
+          </div>
+          <p class="field-help">The paste stops opening after this many views.</p>
+        </div>
+        <% if (can.passwordProtection) { %>
+        <div class="creator-panel" data-panel="password" hidden>
+          <input type="password" id="pastePassword" class="form-input" placeholder="Enter a password…" autocomplete="new-password" aria-label="Password" data-toggle-password>
+          <p class="field-help">Visitors enter it before they can read the paste.</p>
+        </div>
+        <% } %>
+        <% if (can.scheduling) { %>
+        <div class="creator-panel" data-panel="schedule" hidden>
+          <div class="panel-schedule-grid">
+            <label>Available from <input type="datetime-local" id="pasteActivateAt" class="form-input"></label>
+            <label>Available until <input type="datetime-local" id="pasteDeactivateAt" class="form-input"></label>
+          </div>
+          <p class="field-help">Both optional. Times are in your timezone.</p>
+        </div>
+        <% } %>
+        <% if (can.tags) { %>
+        <div class="creator-panel" data-panel="tags" hidden>
+          <div id="pasteTagSelector" data-tag-selector="pasteTags"></div>
+          <input type="hidden" id="pasteTags" value="">
+        </div>
         <% } %>
       </div>
       <% } %>
 
-      <!-- ── File Section (hidden by default, roles with uploadFiles only) ── -->
-      <% if (user && canUploadFiles) { %>
-      <div id="fileSection" style="display:none;">
+      <% if (user && can.createBundles) { %>
+      <!-- ── Bundle ───────────────────────────────────────── -->
+      <div class="creator-section" data-section="bundle" hidden>
+        <div class="creator-zone">
+          <label for="bundleTitleInput" class="creator-label">Title</label>
+          <input type="text" id="bundleTitleInput" class="creator-input" placeholder="e.g. Launch kit" maxlength="100">
+        </div>
+        <div class="creator-zone">
+          <span class="creator-label">Links</span>
+          <div id="bundleUrlList" class="bundle-rows"></div>
+          <button type="button" class="btn btn-small btn-secondary" id="bundleAddBtn"><%- include('partials/icon', { icon: 'plus' }) %> Add link</button>
+        </div>
+        <% if (can.tags) { %>
+        <div class="creator-zone">
+          <span class="creator-label">Tags</span>
+          <div id="bundleTagSelector" data-tag-selector="bundleTags"></div>
+          <input type="hidden" id="bundleTags" value="">
+        </div>
+        <% } %>
+      </div>
+      <% } %>
 
-        <!-- Drop zone -->
-        <div class="bundle-section">
+      <% if (user && canUploadFiles) { %>
+      <!-- ── File ─────────────────────────────────────────── -->
+      <div class="creator-section" data-section="file" hidden>
+        <div class="creator-zone">
           <div class="file-drop-zone" id="fileDropZone">
-            <input type="file" id="fileInput" tabindex="-1">
-            <div class="file-drop-icon">
-              <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-            </div>
-            <div class="file-drop-label"><strong>Click to browse</strong> or drag &amp; drop a file here</div>
+            <input type="file" id="fileInput" aria-label="File">
+            <div class="file-drop-icon"><%- include('partials/icon', { icon: 'upload' }) %></div>
+            <div class="file-drop-label"><strong>Click to browse</strong> or drop a file here</div>
           </div>
-          <div id="fileSelectedInfo" class="file-selected-info" style="display:none;">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-              <polyline points="13 2 13 9 20 9"></polyline>
-            </svg>
+          <div id="fileSelectedInfo" class="file-selected-info" hidden>
+            <%- include('partials/icon', { icon: 'file' }) %>
             <span class="file-selected-name" id="fileSelectedName"></span>
             <span class="file-selected-size" id="fileSelectedSize"></span>
           </div>
           <div class="upload-progress-wrap" id="fileProgressWrap">
-            <div class="upload-progress-bar-track">
-              <div class="upload-progress-bar-fill" id="fileProgressFill"></div>
-            </div>
+            <div class="upload-progress-bar-track"><div class="upload-progress-bar-fill" id="fileProgressFill"></div></div>
             <div class="upload-progress-label" id="fileProgressLabel">Uploading…</div>
           </div>
         </div>
 
-        <!-- File option chips -->
         <div class="creator-chips-bar">
-          <button type="button" class="creator-chip" id="fchip-expires" onclick="toggleFileChip('expires')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span class="chip-label">No expiry</span>
-          </button>
-          <button type="button" class="creator-chip" id="fchip-maxdl" onclick="toggleFileChip('maxdl')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            <span class="chip-label">Unlimited</span>
-          </button>
-          <button type="button" class="creator-chip" id="fchip-password" onclick="toggleFileChip('password')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-            <span class="chip-label">Password</span>
-          </button>
-          <button type="button" class="creator-chip" id="fchip-tags" onclick="toggleFileChip('tags')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-              <line x1="7" y1="7" x2="7.01" y2="7"></line>
-            </svg>
-            <span class="chip-label">Tags</span>
-          </button>
-          <button type="button" class="creator-chip" id="fchip-schedule" onclick="toggleFileChip('schedule')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <span class="chip-label">Schedule</span>
-          </button>
-          <button type="button" class="creator-chip" id="fchip-share" onclick="toggleFileChip('share')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <span class="chip-label">Public</span>
-          </button>
+          <%- chip({ id: 'fchip-expires', chip: 'expires', icon: 'clock', label: 'No expiry', format: 'date' }) %>
+          <%- chip({ id: 'fchip-maxdl', chip: 'maxdl', icon: 'download', label: 'No download limit', format: 'max' }) %>
+          <%- chip({ id: 'fchip-password', chip: 'password', icon: 'lock', label: 'Password', format: 'password', allowed: can.passwordProtection }) %>
+          <%- chip({ id: 'fchip-schedule', chip: 'schedule', icon: 'calendar', label: 'Schedule', format: 'schedule', allowed: can.scheduling }) %>
+          <%- chip({ id: 'fchip-tags', chip: 'tags', icon: 'tag', label: 'Tags', format: 'tags', allowed: can.tags }) %>
+          <%- chip({ id: 'fchip-share', chip: 'share', icon: 'teams', label: 'Anyone with the link' }) %>
         </div>
 
-        <!-- File option panels -->
-        <div class="creator-panel" id="fpanel-expires" hidden>
+        <div class="creator-panel" data-panel="expires" hidden>
           <div class="panel-input-row">
-            <input type="date" id="fileExpiresAt" class="panel-datetime-input" style="flex:1;" min="<%= new Date().toISOString().split('T')[0] %>">
-            <button type="button" class="panel-clear-btn" onclick="clearFileField('fileExpiresAt', 'expires', 'No expiry')">Clear</button>
+            <input type="date" id="fileExpiresAt" class="form-input" min="<%= today %>" aria-label="Expires on">
+            <button type="button" class="btn btn-small btn-ghost" data-clear>Clear</button>
           </div>
-          <small>Leave empty for a file that never expires.</small>
+          <p class="field-help">Leave empty for a file that never expires.</p>
         </div>
-
-        <div class="creator-panel" id="fpanel-maxdl" hidden>
+        <div class="creator-panel" data-panel="maxdl" hidden>
           <div class="panel-input-row">
-            <input type="number" id="fileMaxDownloads" class="panel-number-input" placeholder="e.g. 10" min="1">
-            <span class="panel-input-suffix">downloads</span>
-            <button type="button" class="panel-clear-btn" onclick="clearFileField('fileMaxDownloads', 'maxdl', 'Unlimited')">Clear</button>
+            <input type="number" id="fileMaxDownloads" class="form-input panel-number" placeholder="e.g. 10" min="1" aria-label="Download limit">
+            <span class="panel-suffix">downloads</span>
+            <button type="button" class="btn btn-small btn-ghost" data-clear>Clear</button>
           </div>
-          <small>The file stops being accessible after this many downloads. Leave empty for unlimited.</small>
+          <p class="field-help">The file stops downloading after this many downloads.</p>
         </div>
-
-        <div class="creator-panel" id="fpanel-password" hidden>
-          <div class="panel-password-wrapper">
-            <input type="password" id="filePassword" placeholder="Enter a password…" autocomplete="new-password">
-            <button type="button" class="panel-eye-btn" onclick="toggleFilePw()">
-              <svg id="filePwEye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </button>
+        <% if (can.passwordProtection) { %>
+        <div class="creator-panel" data-panel="password" hidden>
+          <input type="password" id="filePassword" class="form-input" placeholder="Enter a password…" autocomplete="new-password" aria-label="Password" data-toggle-password>
+          <p class="field-help">Visitors enter it before they can download.</p>
+        </div>
+        <% } %>
+        <% if (can.scheduling) { %>
+        <div class="creator-panel" data-panel="schedule" hidden>
+          <div class="panel-schedule-grid">
+            <label>Available from <input type="datetime-local" id="fileActivateAt" class="form-input"></label>
+            <label>Available until <input type="datetime-local" id="fileDeactivateAt" class="form-input"></label>
           </div>
-          <small>Visitors must enter this password before downloading. Leave empty for no protection.</small>
+          <p class="field-help">Both optional. Times are in your timezone.</p>
         </div>
-
-        <div class="creator-panel" id="fpanel-tags" hidden>
-          <div id="fileTagSelectorMount"></div>
+        <% } %>
+        <% if (can.tags) { %>
+        <div class="creator-panel" data-panel="tags" hidden>
+          <div id="fileTagSelector" data-tag-selector="fileTags"></div>
           <input type="hidden" id="fileTags" value="">
-          <small>Type to search existing tags or create new ones. Press Enter or comma to add.</small>
-        </div>
-
-        <div class="creator-panel" id="fpanel-schedule" hidden>
-          <div class="panel-schedule-grid">
-            <div>
-              <label for="fileActivateAt">Available from</label>
-              <input type="datetime-local" id="fileActivateAt" class="panel-datetime-input">
-            </div>
-            <div>
-              <label for="fileDeactivateAt">Available until</label>
-              <input type="datetime-local" id="fileDeactivateAt" class="panel-datetime-input">
-            </div>
-          </div>
-          <small>Both fields are optional. Times are in your local timezone.</small>
-        </div>
-
-        <div class="creator-panel" id="fpanel-share" hidden>
-          <div class="user-chips-input-wrap" id="fileShareChips" onclick="document.getElementById('fileShareTyper').focus()">
-            <input type="text" id="fileShareTyper" class="user-chips-text-input" placeholder="Type a username and press Enter…" autocomplete="off">
-          </div>
-          <input type="hidden" id="fileAllowedUsers" value="[]">
-          <div id="fileShareError" style="font-size:0.75rem;color:var(--status-error-text);margin-top:0.25rem;display:none;"></div>
-          <small>Leave empty to make the file publicly accessible to anyone with the link.</small>
-        </div>
-
-      </div>
-      <% } %>
-
-      <!-- ── Paste Section (hidden by default) ─────────────── -->
-      <div id="pasteSection" style="display:none;">
-        <div class="bundle-section">
-          <textarea id="pasteContent" class="paste-textarea" rows="12" placeholder="Paste your text here…" spellcheck="false" data-line-numbers></textarea>
-          <input type="text" id="pasteTitle" class="bundle-title-input" placeholder="Title (optional)" maxlength="200" style="margin-top:0.75rem;">
-          <input type="text" id="pasteLanguage" class="bundle-title-input" placeholder="Language label, e.g. javascript (optional)" maxlength="30" autocomplete="off" style="margin-top:0.5rem;">
-        </div>
-
-        <!-- Paste option chips -->
-        <div class="creator-chips-bar">
-          <button type="button" class="creator-chip" id="pchip-expires" onclick="togglePasteChip('expires')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span class="chip-label">Expiry</span>
-          </button>
-          <button type="button" class="creator-chip" id="pchip-maxviews" onclick="togglePasteChip('maxviews')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-            <span class="chip-label">Unlimited views</span>
-          </button>
-          <% if (user) { %>
-          <button type="button" class="creator-chip" id="pchip-password" onclick="togglePasteChip('password')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-            <span class="chip-label">Password</span>
-          </button>
-          <button type="button" class="creator-chip" id="pchip-tags" onclick="togglePasteChip('tags')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-              <line x1="7" y1="7" x2="7.01" y2="7"></line>
-            </svg>
-            <span class="chip-label">Tags</span>
-          </button>
-          <button type="button" class="creator-chip" id="pchip-schedule" onclick="togglePasteChip('schedule')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <span class="chip-label">Schedule</span>
-          </button>
-          <% } %>
-        </div>
-
-        <!-- Paste option panels -->
-        <div class="creator-panel" id="ppanel-expires" hidden>
-          <div class="panel-input-row">
-            <input type="date" id="pasteExpiresAt" class="panel-datetime-input" style="flex:1;" min="<%= new Date().toISOString().split('T')[0] %>">
-            <button type="button" class="panel-clear-btn" onclick="clearPasteField('pasteExpiresAt', 'expires', 'Expiry')">Clear</button>
-          </div>
-          <small>
-            <% if (user) { %>Leave empty for a paste that never expires.<% } else { %>Anonymous pastes expire within 30 days. Register for permanent pastes.<% } %>
-          </small>
-        </div>
-
-        <div class="creator-panel" id="ppanel-maxviews" hidden>
-          <div class="panel-input-row">
-            <input type="number" id="pasteMaxViews" class="panel-number-input" placeholder="e.g. 100" min="1">
-            <span class="panel-input-suffix">views</span>
-            <button type="button" class="panel-clear-btn" onclick="clearPasteField('pasteMaxViews', 'maxviews', 'Unlimited views')">Clear</button>
-          </div>
-          <small>The paste stops being accessible after this many views. Leave empty for unlimited.</small>
-        </div>
-
-        <% if (user) { %>
-        <div class="creator-panel" id="ppanel-password" hidden>
-          <div class="panel-password-wrapper">
-            <input type="password" id="pastePassword" placeholder="Enter a password…" autocomplete="new-password">
-            <button type="button" class="panel-eye-btn" onclick="togglePastePw()">
-              <svg id="pastePwEye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </button>
-          </div>
-          <small>Visitors must enter this password before viewing. Leave empty for no protection.</small>
-        </div>
-
-        <div class="creator-panel" id="ppanel-tags" hidden>
-          <div id="pasteTagSelectorMount"></div>
-          <input type="hidden" id="pasteTags" value="">
-          <small>Type to search existing tags or create new ones. Press Enter or comma to add.</small>
-        </div>
-
-        <div class="creator-panel" id="ppanel-schedule" hidden>
-          <div class="panel-schedule-grid">
-            <div>
-              <label for="pasteActivateAt">Available from</label>
-              <input type="datetime-local" id="pasteActivateAt" class="panel-datetime-input">
-            </div>
-            <div>
-              <label for="pasteDeactivateAt">Available until</label>
-              <input type="datetime-local" id="pasteDeactivateAt" class="panel-datetime-input">
-            </div>
-          </div>
-          <small>Both fields are optional. Times are in your local timezone.</small>
         </div>
         <% } %>
-      </div>
-
-      <!-- ── Zone 1: URL Input ─────────────────────────────── -->
-      <div class="creator-url-zone">
-        <label for="longUrl" class="creator-url-label">Destination URL</label>
-        <input
-          type="url"
-          id="longUrl"
-          name="longUrl"
-          class="creator-url-input"
-          placeholder="https://example.com/your/long/url"
-          value="<%= prefillUrl %>"
-          autocomplete="off"
-          required
-        >
-      </div>
-
-      <!-- ── Zone 2: Slug ───────────────────────────────────── -->
-      <div class="creator-divider"></div>
-
-      <div class="creator-url-zone" style="padding-top: 1.25rem;">
-        <label for="customSlug" class="creator-url-label">Short URL Slug (Optional)</label>
-        <div class="creator-slug-input-wrapper" id="slugWrapper">
-          <span class="creator-slug-prefix" id="slugDomain"></span>
-          <input
-            type="text"
-            id="customSlug"
-            name="customSlug"
-            class="creator-slug-input"
-            placeholder="auto-generated"
-            maxlength="20"
-            autocomplete="off"
-          >
-        </div>
-        <div class="slug-error-hint" id="slugErrorBar"></div>
-      </div>
-
-      <!-- ── Zone 3: Chips ─────────────────────────────────── -->
-      <div class="creator-divider"></div>
-
-      <div class="creator-chips-bar">
-
-        <!-- Chips: expiry and max uses for everyone; the rest follow the role's
-             permissions (see roles.json). Locked chips stay visible but disabled. -->
-        <% const lockedTitle = user ? "Not available for your account" : "Log in to use this"; %>
-
-        <!-- Chip: Expiry -->
-        <button type="button" class="creator-chip" id="chip-expiry" data-chip="expiry">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          <span class="chip-label">
-            <% if (!user) { %>30 days<% } else { %>No expiry<% } %>
-          </span>
-        </button>
-
-        <!-- Chip: Max Uses -->
-        <button type="button" class="creator-chip" id="chip-maxuses" data-chip="maxuses">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" y1="9" x2="20" y2="9"></line>
-            <line x1="4" y1="15" x2="20" y2="15"></line>
-            <line x1="10" y1="3" x2="8" y2="21"></line>
-            <line x1="16" y1="3" x2="14" y2="21"></line>
-          </svg>
-          <span class="chip-label">Unlimited</span>
-        </button>
-
-        <!-- Chip: Password -->
-        <button type="button"
-          class="creator-chip<% if (!can.passwordProtection) { %> chip-locked<% } %>"
-          id="chip-password"
-          data-chip="password"
-          <% if (!can.passwordProtection) { %>disabled title="<%= lockedTitle %>"<% } %>
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-          <span class="chip-label">Password</span>
-        </button>
-
-        <!-- Chip: Schedule -->
-        <button type="button"
-          class="creator-chip<% if (!can.scheduling) { %> chip-locked<% } %>"
-          id="chip-schedule"
-          data-chip="schedule"
-          <% if (!can.scheduling) { %>disabled title="<%= lockedTitle %>"<% } %>
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-          <span class="chip-label">Schedule</span>
-        </button>
-
-        <!-- Chip: Tags -->
-        <button type="button"
-          class="creator-chip<% if (!can.tags) { %> chip-locked<% } %>"
-          id="chip-tags"
-          data-chip="tags"
-          <% if (!can.tags) { %>disabled title="<%= lockedTitle %>"<% } %>
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-            <line x1="7" y1="7" x2="7.01" y2="7"></line>
-          </svg>
-          <span class="chip-label">Tags</span>
-        </button>
-
-
-      </div><!-- /chips-bar -->
-
-      <!-- ── Zone 4: Option Panels ─────────────────────────── -->
-
-      <!-- Panel: Expiry -->
-      <div class="creator-panel" id="panel-expiry" hidden>
-        <% if (!user) { %>
-          <!-- Anonymous: radio card selection -->
-          <div class="panel-radios">
-            <div class="panel-radio-option">
-              <input type="radio" name="expirationDays" value="7" id="panelExp7">
-              <label class="panel-radio-label" for="panelExp7">
-                7 days
-              </label>
-            </div>
-            <div class="panel-radio-option">
-              <input type="radio" name="expirationDays" value="14" id="panelExp14">
-              <label class="panel-radio-label" for="panelExp14">
-                14 days
-              </label>
-            </div>
-            <div class="panel-radio-option">
-              <input type="radio" name="expirationDays" value="30" id="panelExp30" checked>
-              <label class="panel-radio-label" for="panelExp30">
-                30 days
-                <span class="panel-radio-sublabel">recommended</span>
-              </label>
-            </div>
+        <div class="creator-panel" data-panel="share" hidden>
+          <div class="user-chips-input-wrap" id="fileShareChips">
+            <input type="text" id="fileShareTyper" class="user-chips-text-input" placeholder="Type a username and press Enter…" autocomplete="off" aria-label="Share with">
           </div>
-          <small>
-            Anonymous links expire automatically.
-            <a href="/register">Create a free account</a> for permanent links.
-          </small>
-        <% } else { %>
-          <!-- Registered: free number input -->
-          <div class="panel-input-row">
-            <input
-              type="number"
-              id="expirationDaysInput"
-              name="expirationDays"
-              class="panel-number-input"
-              placeholder="e.g. 30"
-              min="1"
-            >
-            <span class="panel-input-suffix">days</span>
-            <button type="button" class="panel-clear-btn" onclick="clearPanelField('expirationDaysInput', 'expiry', 'No expiry')">Clear</button>
-          </div>
-          <small>Leave empty for a permanent link that never expires.</small>
-        <% } %>
-      </div>
-
-      <!-- Panel: Max Uses -->
-      <div class="creator-panel" id="panel-maxuses" hidden>
-        <div class="panel-input-row">
-          <input
-            type="number"
-            id="maxUsesInput"
-            name="maxUses"
-            class="panel-number-input"
-            placeholder="e.g. 100"
-            min="1"
-          >
-          <span class="panel-input-suffix">clicks</span>
-          <button type="button" class="panel-clear-btn" onclick="clearPanelField('maxUsesInput', 'maxuses', 'Unlimited')">Clear</button>
+          <p class="field-error" id="fileShareError" role="alert" hidden></p>
+          <p class="field-help">Only the people listed can open it. Leave empty for anyone with the link.</p>
         </div>
-        <small>The link stops working after this many clicks. Leave empty for unlimited.</small>
-      </div>
-
-      <!-- Panel: Password (registered+ only) -->
-      <% if (user) { %>
-      <div class="creator-panel" id="panel-password" hidden>
-        <div class="panel-password-wrapper">
-          <input
-            type="password"
-            id="passwordInput"
-            name="password"
-            placeholder="Enter a password..."
-            autocomplete="new-password"
-          >
-          <button type="button" class="panel-eye-btn" id="passwordEyeBtn" onclick="togglePasswordVisibility()">
-            <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-          </button>
-        </div>
-        <small>Visitors must enter this password before being redirected. Leave empty for no protection.</small>
       </div>
       <% } %>
 
-      <!-- Panel: Schedule (registered+ only) -->
-      <% if (user) { %>
-      <div class="creator-panel" id="panel-schedule" hidden>
-        <!-- Hidden inputs carry the UTC-converted values to the server -->
-        <input type="hidden" name="activateDateTime"   id="activateDateTimeUtc">
-        <input type="hidden" name="deactivateDateTime" id="deactivateDateTimeUtc">
-        <div class="panel-schedule-grid">
-          <div>
-            <label for="activateDateTimeInput">Activate at</label>
-            <input
-              type="datetime-local"
-              id="activateDateTimeInput"
-              class="panel-datetime-input"
-            >
-          </div>
-          <div>
-            <label for="deactivateDateTimeInput">Deactivate at</label>
-            <input
-              type="datetime-local"
-              id="deactivateDateTimeInput"
-              class="panel-datetime-input"
-            >
-          </div>
-        </div>
-        <small>Both fields are optional. Times are in your local timezone.</small>
-      </div>
-      <% } %>
-
-      <!-- Panel: Tags (registered+ only) -->
-      <% if (user) { %>
-      <div class="creator-panel" id="panel-tags" hidden>
-        <div id="tagSelectorCreate"></div>
-        <input type="hidden" id="tags" name="tags" value="">
-        <small>Type to search existing tags or create new ones. Press Enter or comma to add.</small>
-      </div>
-      <% } %>
-
-      <%# ── FUTURE PANEL SLOT ──────────────────────────────────
-           Add new panels here matching the chip id:
-           <div class="creator-panel" id="panel-domain" hidden>
-             ...
-           </div>
-           ── %>
-
-      <!-- ── Anonymous upsell hint ────────────────────────── -->
-      <% if (!user) { %>
-      <div class="creator-upsell">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        Password, scheduling and tags require a free account.
-        <a href="/register">Register</a> or <a href="/login">log in</a>.
-      </div>
-      <% } %>
-
-      <!-- ── Submit ─────────────────────────────────────────── -->
+      <!-- Submit -->
       <div class="creator-submit-zone">
-        <button type="submit" class="creator-submit-btn" id="creatorSubmitBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
-          <span id="submitBtnText">Create Short URL</span>
+        <button type="submit" class="btn creator-submit-btn" id="creatorSubmitBtn">
+          <%- include('partials/icon', { icon: 'arrowRight' }) %>
+          <span id="submitBtnText" data-url="Create short link" data-paste="Create paste" data-bundle="Create bundle" data-file="Upload file">Create short link</span>
         </button>
-
-        <div class="creator-rate-info">
-          <% if (!user) { %>
-            <strong>10 URLs/hour</strong> for guests &nbsp;·&nbsp; <strong>100 URLs/hour</strong> after registering
-          <% } else if (!user.isAdmin) { %>
-            Rate limit: <strong>100 URLs per hour</strong>
-          <% } %>
-        </div>
+        <p class="creator-rate-info" id="creatorRate"<% for (const [mode, text] of Object.entries(rates)) { %> data-<%= mode %>="<%= text %>"<% } %>><%= rates.url %></p>
       </div>
+    </form>
 
-    </form><!-- /creator-card -->
-
-    <!-- Features -->
+    <% if (!user) { %>
     <div class="features">
       <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3>Lightning Fast</h3>
-        <p>Create and manage links instantly with our optimised platform.</p>
+        <div class="feature-icon"><%- include('partials/icon', { icon: 'arrowRight' }) %></div>
+        <h3>Fast</h3>
+        <p>Make short links, pastes and bundles in seconds.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <h3>Track Analytics</h3>
-        <p>Monitor clicks, devices, countries and referrers in real time.</p>
+        <div class="feature-icon"><%- include('partials/icon', { icon: 'chart' }) %></div>
+        <h3>Analytics</h3>
+        <p>Clicks, devices, countries and referrers, without storing visitor IP addresses.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🔒</div>
-        <h3>Full Control</h3>
-        <p>Set expiry dates, usage limits, passwords and custom slugs.</p>
+        <div class="feature-icon"><%- include('partials/icon', { icon: 'lock' }) %></div>
+        <h3>Control</h3>
+        <p>Expiry dates, usage limits, passwords and custom slugs.</p>
       </div>
     </div>
-
-  </main><!-- /main-content -->
-
-
-  <!-- ═══════════════════════════════════════════════════════
-       SCRIPTS
-       ═══════════════════════════════════════════════════ -->
-  <script>
-    // The "Create in" team (links send it as a form field), added to the paste, bundle and file requests
-    function withTeam(body) {
-      const select = document.getElementById('createInTeam');
-      if (select && select.value) body.teamId = select.value;
-      return body;
-    }
-  </script>
-  <script>
-  (function () {
-    'use strict';
-
-    // Interactive chips, from the role's permissions
-    const activeChips = ['expiry', 'maxuses']
-      <% if (can.passwordProtection) { %>.concat('password')<% } %>
-      <% if (can.scheduling) { %>.concat('schedule')<% } %>
-      <% if (can.tags) { %>.concat('tags')<% } %>;
-
-    let openChip = null;
-
-    // ─── Chip toggle ──────────────────────────────────────
-    function initChips() {
-      activeChips.forEach(id => {
-        const chip  = document.getElementById('chip-' + id);
-        const panel = document.getElementById('panel-' + id);
-        if (!chip || !panel) return;
-
-        chip.addEventListener('click', () => {
-          if (openChip === id) {
-            closeChip(id);
-          } else {
-            if (openChip) closeChip(openChip);
-            openChip = id;
-            panel.hidden = false;
-            chip.classList.add('chip-active');
-            // Focus first focusable non-radio input
-            const first = panel.querySelector('input:not([type="radio"]):not([type="hidden"]), select');
-            if (first) setTimeout(() => first.focus(), 50);
-          }
-        });
-      });
-    }
-
-    function closeChip(id) {
-      const chip  = document.getElementById('chip-' + id);
-      const panel = document.getElementById('panel-' + id);
-      if (chip)  chip.classList.remove('chip-active');
-      if (panel) panel.hidden = true;
-      openChip = null;
-    }
-
-    // ─── Chip label / set state ───────────────────────────
-    function setChip(id, text, isSet) {
-      const chip = document.getElementById('chip-' + id);
-      if (!chip) return;
-      chip.querySelector('.chip-label').textContent = text;
-      chip.classList.toggle('chip-set', isSet);
-    }
-
-    // ─── Value watchers ───────────────────────────────────
-    function initWatchers() {
-
-      // Expiry — anonymous (radios)
-      <% if (!user) { %>
-      document.querySelectorAll('input[name="expirationDays"]').forEach(r => {
-        r.addEventListener('change', () => {
-          setChip('expiry', r.value + ' days', true);
-        });
-      });
-      <% } %>
-
-      // Expiry — registered (number input)
-      <% if (user) { %>
-      const expiryInput = document.getElementById('expirationDaysInput');
-      if (expiryInput) {
-        expiryInput.addEventListener('input', () => {
-          const v = expiryInput.value.trim();
-          setChip('expiry', v ? v + ' days' : 'No expiry', !!v);
-        });
-      }
-      <% } %>
-
-      // Max Uses
-      const maxInput = document.getElementById('maxUsesInput');
-      if (maxInput) {
-        maxInput.addEventListener('input', () => {
-          const v = maxInput.value.trim();
-          setChip('maxuses', v ? 'Max ' + v : 'Unlimited', !!v);
-        });
-      }
-
-      // Password
-      <% if (user) { %>
-      const pwInput = document.getElementById('passwordInput');
-      if (pwInput) {
-        pwInput.addEventListener('input', () => {
-          const v = pwInput.value;
-          setChip('password', v ? 'Protected ✓' : 'Password', !!v);
-        });
-      }
-
-      // Schedule
-      const actInput  = document.getElementById('activateDateTimeInput');
-      const deactInput = document.getElementById('deactivateDateTimeInput');
-      if (actInput && deactInput) {
-        function updateScheduleChip() {
-          const a = actInput.value;
-          const d = deactInput.value;
-          let label = 'Schedule';
-          let isSet = false;
-          if (a && d) { label = 'Scheduled'; isSet = true; }
-          else if (a)  { label = 'Starts set'; isSet = true; }
-          else if (d)  { label = 'Ends set';   isSet = true; }
-          setChip('schedule', label, isSet);
-        }
-        actInput.addEventListener('change', updateScheduleChip);
-        deactInput.addEventListener('change', updateScheduleChip);
-      }
-      <% } %>
-    }
-
-    // ─── Clear helper (called by panel clear buttons) ─────
-    window.clearPanelField = function (inputId, chipId, defaultLabel) {
-      const input = document.getElementById(inputId);
-      if (input) {
-        input.value = '';
-        input.dispatchEvent(new Event('input'));
-      }
-      setChip(chipId, defaultLabel, false);
-    };
-
-    // ─── Slug preview & validation ────────────────────────
-    const SLUG_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const SLUG_RE    = /^[A-Za-z0-9_-]{1,20}$/;
-
-    function hashSlug(url) {
-      if (!url) return null;
-      let h = 5381;
-      for (let i = 0; i < url.length; i++) {
-        h = ((h << 5) + h) ^ url.charCodeAt(i);
-        h |= 0;
-      }
-      let out = '';
-      for (let i = 0; i < 5; i++) {
-        out += SLUG_CHARS[Math.abs((h >> (i * 5)) ^ (i * 2654435761)) % SLUG_CHARS.length];
-      }
-      return out;
-    }
-
-    function initSlugPreview() {
-      const urlInput   = document.getElementById('longUrl');
-      const slugInput  = document.getElementById('customSlug');
-      const slugWrapper = document.getElementById('slugWrapper');
-      const errorBar   = document.getElementById('slugErrorBar');
-      const domainSpan = document.getElementById('slugDomain');
-
-      domainSpan.textContent = window.location.host + '/s/';
-
-      // Set placeholder once when URL field loses focus (not on every keystroke)
-      urlInput.addEventListener('blur', () => {
-        if (!slugInput.value) {
-          slugInput.placeholder = hashSlug(urlInput.value) || 'auto-generated';
-        }
-      });
-
-      // If a URL is already prefilled (e.g. after a failed submit), set placeholder immediately
-      if (urlInput.value) {
-        slugInput.placeholder = hashSlug(urlInput.value) || 'auto-generated';
-      }
-
-      // Inline validation
-      slugInput.addEventListener('input', () => {
-        const val = slugInput.value;
-        if (val && !SLUG_RE.test(val)) {
-          slugWrapper.classList.add('slug-error');
-          errorBar.textContent = 'Letters, numbers, hyphens and underscores only (max 20 chars)';
-          errorBar.style.display = 'block';
-        } else {
-          slugWrapper.classList.remove('slug-error');
-          errorBar.style.display = 'none';
-        }
-      });
-    }
-
-    // ─── Password visibility toggle ───────────────────────
-    window.togglePasswordVisibility = function () {
-      const input = document.getElementById('passwordInput');
-      const icon  = document.getElementById('eyeIcon');
-      if (!input) return;
-      const isHidden = input.type === 'password';
-      input.type = isHidden ? 'text' : 'password';
-      icon.innerHTML = isHidden
-        ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`
-        : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`;
-    };
-
-    // ─── Copy short URL ───────────────────────────────────
-    window.copyShortUrl = function () {
-      const el = document.getElementById('shortUrlDisplay');
-      if (!el) return;
-      navigator.clipboard.writeText(el.textContent.trim()).then(() => {
-        const btn = el.nextElementSibling;
-        const original = btn.innerHTML;
-        btn.textContent = 'Copied!';
-        setTimeout(() => { btn.innerHTML = original; }, 1800);
-      });
-    };
-
-    // ─── Local datetime → UTC ISO string ─────────────────
-    // Uses the Date constructor with individual parts so the browser
-    // always treats the value as local time, regardless of engine.
-    function localDatetimeToUtc(localStr) {
-      if (!localStr) return '';
-      const [datePart, timePart] = localStr.split('T');
-      const [y, mo, d]  = datePart.split('-').map(Number);
-      const [h, mi]     = timePart.split(':').map(Number);
-      return new Date(y, mo - 1, d, h, mi, 0, 0).toISOString();
-    }
-
-    // ─── Mode Toggle (url / paste / bundle / file) ───────
-    // Always present — the Text (paste) mode is available to anonymous users too.
-    let bundleMode = false;
-    let fileMode = false;
-    let pasteMode = false;
-
-    // Elements that belong exclusively to URL mode
-    const URL_MODE_SELECTORS = [
-      '.creator-url-zone',
-      '.creator-slug-input-wrapper',
-      '.creator-chips-bar',
-      '.creator-panel',
-      '.creator-upsell',
-    ];
-
-    window.setMode = function setMode(mode) {
-      bundleMode = (mode === 'bundle');
-      fileMode   = (mode === 'file');
-      pasteMode  = (mode === 'paste');
-      const isUrl = (mode === 'url');
-
-      // Toggle pills
-      document.getElementById('pillUrl').classList.toggle('active', isUrl);
-      const pillPaste = document.getElementById('pillPaste');
-      if (pillPaste) pillPaste.classList.toggle('active', pasteMode);
-      const pillBundle = document.getElementById('pillBundle');
-      if (pillBundle) pillBundle.classList.toggle('active', bundleMode);
-      const pillFile = document.getElementById('pillFile');
-      if (pillFile) pillFile.classList.toggle('active', fileMode);
-
-      // Toggle sections
-      const bundleSection = document.getElementById('bundleSection');
-      if (bundleSection) bundleSection.style.display = bundleMode ? 'block' : 'none';
-      const fileSection = document.getElementById('fileSection');
-      if (fileSection) fileSection.style.display = fileMode ? 'block' : 'none';
-      const pasteSection = document.getElementById('pasteSection');
-      if (pasteSection) pasteSection.style.display = pasteMode ? 'block' : 'none';
-
-      // Show/hide URL-mode elements (skip anything inside #fileSection / #pasteSection)
-      const form = document.querySelector('form.creator-card');
-      const hideUrl = bundleMode || fileMode || pasteMode;
-      URL_MODE_SELECTORS.forEach(sel => {
-        form.querySelectorAll(sel).forEach(el => {
-          if (el.closest('#fileSection') || el.closest('#pasteSection')) return;
-          el.style.display = hideUrl ? 'none' : '';
-        });
-      });
-      const dividers = form.querySelectorAll('.creator-divider');
-      dividers.forEach(el => { el.style.display = hideUrl ? 'none' : ''; });
-
-      // Change submit button text
-      if (bundleMode) document.getElementById('submitBtnText').textContent = 'Create Bundle';
-      else if (fileMode) document.getElementById('submitBtnText').textContent = 'Upload File';
-      else if (pasteMode) document.getElementById('submitBtnText').textContent = 'Create Paste';
-      else document.getElementById('submitBtnText').textContent = 'Create Short URL';
-
-      // Required attribute on longUrl input
-      const longUrlInput = document.getElementById('longUrl');
-      if (longUrlInput) longUrlInput.required = isUrl;
-    }
-
-    // ─── Creator error helpers (shared by all modes) ─────
-    function showCreatorError(msg) {
-      let el = document.querySelector('.creator-error');
-      if (!el) {
-        el = document.createElement('div');
-        el.className = 'creator-error';
-        document.querySelector('form.creator-card').before(el);
-      }
-      el.textContent = msg;
-      el.style.display = 'block';
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
-    function hideCreatorError() {
-      const el = document.querySelector('.creator-error');
-      if (el) el.style.display = 'none';
-    }
-
-    // ─── Paste option chips / watchers / submit ───────────
-    let openPasteChip = null;
-    window.togglePasteChip = function (id) {
-      const chip  = document.getElementById('pchip-' + id);
-      const panel = document.getElementById('ppanel-' + id);
-      if (!chip || !panel) return;
-      if (openPasteChip === id) {
-        chip.classList.remove('chip-active');
-        panel.hidden = true;
-        openPasteChip = null;
-      } else {
-        if (openPasteChip) {
-          document.getElementById('pchip-' + openPasteChip).classList.remove('chip-active');
-          document.getElementById('ppanel-' + openPasteChip).hidden = true;
-        }
-        chip.classList.add('chip-active');
-        panel.hidden = false;
-        openPasteChip = id;
-      }
-    };
-
-    function setPasteChip(id, text, isSet) {
-      const chip = document.getElementById('pchip-' + id);
-      if (!chip) return;
-      chip.querySelector('.chip-label').textContent = text;
-      chip.classList.toggle('chip-set', isSet);
-    }
-
-    window.clearPasteField = function (inputId, chipId, defaultLabel) {
-      const input = document.getElementById(inputId);
-      if (input) input.value = '';
-      setPasteChip(chipId, defaultLabel, false);
-    };
-
-    window.togglePastePw = function () {
-      const input = document.getElementById('pastePassword');
-      if (input) input.type = input.type === 'password' ? 'text' : 'password';
-    };
-
-    function initPasteWatchers() {
-      const exp = document.getElementById('pasteExpiresAt');
-      if (exp) exp.addEventListener('change', () => {
-        if (exp.value) {
-          const d = new Date(exp.value);
-          setPasteChip('expires', d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), true);
-        } else setPasteChip('expires', 'Expiry', false);
-      });
-      const mv = document.getElementById('pasteMaxViews');
-      if (mv) mv.addEventListener('input', () => {
-        const v = mv.value.trim();
-        setPasteChip('maxviews', v ? 'Max ' + v : 'Unlimited views', !!v);
-      });
-      const pw = document.getElementById('pastePassword');
-      if (pw) pw.addEventListener('input', () => {
-        setPasteChip('password', pw.value ? 'Protected ✓' : 'Password', !!pw.value);
-      });
-      const pa = document.getElementById('pasteActivateAt');
-      const pd = document.getElementById('pasteDeactivateAt');
-      if (pa && pd) {
-        const upd = () => {
-          if (pa.value && pd.value) setPasteChip('schedule', 'Scheduled', true);
-          else if (pa.value) setPasteChip('schedule', 'Starts set', true);
-          else if (pd.value) setPasteChip('schedule', 'Ends set', true);
-          else setPasteChip('schedule', 'Schedule', false);
-        };
-        pa.addEventListener('change', upd);
-        pd.addEventListener('change', upd);
-      }
-    }
-
-    function submitPaste(e) {
-      if (e) e.preventDefault();
-      const contentEl = document.getElementById('pasteContent');
-      const content = contentEl ? contentEl.value : '';
-      if (!content.trim()) { showCreatorError('Paste content is required'); return; }
-      hideCreatorError();
-
-      const body = { content: content };
-      const titleEl = document.getElementById('pasteTitle');
-      if (titleEl && titleEl.value.trim()) body.title = titleEl.value.trim();
-      const langEl = document.getElementById('pasteLanguage');
-      if (langEl && langEl.value.trim()) body.language = langEl.value.trim();
-      const exp = document.getElementById('pasteExpiresAt');
-      if (exp && exp.value) body.expiresAt = exp.value + 'T23:59:00.000Z';
-      const mv = document.getElementById('pasteMaxViews');
-      if (mv && mv.value) body.maxViews = mv.value;
-      const pw = document.getElementById('pastePassword');
-      if (pw && pw.value) body.password = pw.value;
-      const pt = document.getElementById('pasteTags');
-      if (pt && pt.value) body.tags = pt.value;
-      const pa = document.getElementById('pasteActivateAt');
-      const pd = document.getElementById('pasteDeactivateAt');
-      if (pa && pa.value) body.activateDateTime = pa.value + ':00.000Z';
-      if (pd && pd.value) body.deactivateDateTime = pd.value + ':00.000Z';
-
-      const btnText = document.getElementById('submitBtnText');
-      const prev = btnText.textContent;
-      btnText.textContent = 'Creating…';
-
-      fetch('/api/pastes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(withTeam(body))
-      })
-        .then(r => r.json())
-        .then(data => {
-          btnText.textContent = prev;
-          if (data.success) showPasteSuccess(data.pasteUrl);
-          else showCreatorError(data.error || 'Failed to create paste');
-        })
-        .catch(() => { btnText.textContent = prev; showCreatorError('Request failed. Please try again.'); });
-    }
-
-    function showPasteSuccess(pasteUrl) {
-      let block = document.getElementById('pasteSuccessBlock');
-      if (!block) {
-        block = document.createElement('div');
-        block.id = 'pasteSuccessBlock';
-        block.className = 'creator-success';
-        document.querySelector('form.creator-card').before(block);
-      }
-      block.innerHTML = `
-        <div class="creator-success-label">Your paste is ready</div>
-        <div class="creator-success-row">
-          <code class="creator-success-url" id="pasteUrlDisplay">${pasteUrl}</code>
-          <button class="creator-copy-btn" type="button" onclick="copyPasteUrl()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            Copy
-          </button>
-        </div>
-      `;
-      block.style.display = 'block';
-      block.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    window.copyPasteUrl = function () {
-      const el = document.getElementById('pasteUrlDisplay');
-      if (!el) return;
-      navigator.clipboard.writeText(el.textContent.trim()).then(() => {
-        const btn = el.nextElementSibling;
-        const original = btn.innerHTML;
-        btn.textContent = 'Copied!';
-        setTimeout(() => { btn.innerHTML = original; }, 1800);
-      });
-    };
-
-    <% if (user) { %>
-    const MAX_BUNDLE_ITEMS = 20;
-
-    window.bundleAddRow = function bundleAddRow() {
-      const list = document.getElementById('bundleUrlList');
-      if (list.children.length >= MAX_BUNDLE_ITEMS) return;
-
-      const index = list.children.length;
-      const row = document.createElement('div');
-      row.className = 'bundle-url-row';
-      row.innerHTML = `
-        <div class="bundle-row-num">${index + 1}</div>
-        <div class="bundle-row-inputs">
-          <input type="url" class="bundle-row-url" placeholder="https://example.com">
-          <input type="text" class="bundle-row-label" placeholder="Label (optional)" maxlength="100">
-        </div>
-        <button type="button" class="bundle-row-remove" onclick="bundleRemoveRow(this)" title="Remove">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
-      `;
-      list.appendChild(row);
-      bundleUpdateNums();
-
-      const addBtn = document.getElementById('bundleAddBtn');
-      if (list.children.length >= MAX_BUNDLE_ITEMS) {
-        addBtn.disabled = true;
-      }
-    }
-
-    window.bundleRemoveRow = function (btn) {
-      const list = document.getElementById('bundleUrlList');
-      if (list.children.length <= 2) return; // minimum 2
-      btn.closest('.bundle-url-row').remove();
-      bundleUpdateNums();
-      document.getElementById('bundleAddBtn').disabled = false;
-    };
-
-    function bundleUpdateNums() {
-      document.getElementById('bundleUrlList').querySelectorAll('.bundle-row-num').forEach((el, i) => {
-        el.textContent = i + 1;
-      });
-    }
-
-    async function submitBundle(e) {
-      e.preventDefault();
-
-      const title = document.getElementById('bundleTitleInput').value.trim();
-      if (!title) {
-        showCreatorError('Bundle title is required.');
-        return;
-      }
-
-      const rows = document.getElementById('bundleUrlList').querySelectorAll('.bundle-url-row');
-      const items = [];
-      for (const row of rows) {
-        const url = row.querySelector('.bundle-row-url').value.trim();
-        const label = row.querySelector('.bundle-row-label').value.trim();
-        if (!url) { showCreatorError('All link URLs are required.'); return; }
-        items.push({ url, label: label || null });
-      }
-
-      if (items.length < 2) { showCreatorError('At least 2 links are required.'); return; }
-      const bundleTags = document.getElementById('bundleTags');
-      const tags = bundleTags ? bundleTags.value : '';
-
-      const btn = document.getElementById('creatorSubmitBtn');
-      btn.disabled = true;
-      document.getElementById('submitBtnText').textContent = 'Creating...';
-
-      try {
-        const res = await fetch('/api/bundles', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(withTeam(tags ? { title, items, tags } : { title, items }))
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          hideCreatorError();
-          showBundleSuccess(data.bundleUrl);
-          // Reset bundle form
-          document.getElementById('bundleTitleInput').value = '';
-          document.getElementById('bundleUrlList').innerHTML = '';
-          document.getElementById('bundleAddBtn').disabled = false;
-          bundleAddRow(); bundleAddRow();
-          if (window.bundleTagSelector) window.bundleTagSelector.setValue('');
-        } else {
-          showCreatorError(data.error || 'Failed to create bundle.');
-        }
-      } catch {
-        showCreatorError('Network error. Please try again.');
-      } finally {
-        btn.disabled = false;
-        document.getElementById('submitBtnText').textContent = 'Create Bundle';
-      }
-    }
-
-    function showBundleSuccess(bundleUrl) {
-      // Reuse or create the success block above the form
-      let block = document.getElementById('bundleSuccessBlock');
-      if (!block) {
-        block = document.createElement('div');
-        block.id = 'bundleSuccessBlock';
-        block.className = 'creator-success';
-        document.querySelector('form.creator-card').before(block);
-      }
-      block.innerHTML = `
-        <div class="creator-success-label">Your bundle is ready</div>
-        <div class="creator-success-row">
-          <code class="creator-success-url" id="bundleUrlDisplay">${bundleUrl}</code>
-          <button class="creator-copy-btn" onclick="copyBundleUrl()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            Copy
-          </button>
-        </div>
-      `;
-      block.style.display = 'block';
-      block.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    window.copyBundleUrl = function () {
-      const el = document.getElementById('bundleUrlDisplay');
-      if (!el) return;
-      navigator.clipboard.writeText(el.textContent.trim()).then(() => {
-        const btn = el.nextElementSibling;
-        const original = btn.innerHTML;
-        btn.textContent = 'Copied!';
-        setTimeout(() => { btn.innerHTML = original; }, 1800);
-      });
-    };
-
-    // ─── File upload ──────────────────────────────────────
-    <% if (user && canUploadFiles) { %>
-
-    // Drag & drop wiring
-    (function () {
-      const zone = document.getElementById('fileDropZone');
-      const input = document.getElementById('fileInput');
-      if (!zone) return;
-
-      function showSelected(file) {
-        document.getElementById('fileSelectedName').textContent = file.name;
-        document.getElementById('fileSelectedSize').textContent = formatFileSize(file.size);
-        document.getElementById('fileSelectedInfo').style.display = 'flex';
-        zone.style.display = 'none';
-      }
-
-      input.addEventListener('change', () => {
-        if (input.files[0]) showSelected(input.files[0]);
-      });
-
-      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-      zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-      zone.addEventListener('drop', e => {
-        e.preventDefault();
-        zone.classList.remove('dragover');
-        const file = e.dataTransfer.files[0];
-        if (!file) return;
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        input.files = dt.files;
-        showSelected(file);
-      });
-    }());
-
-    function formatFileSize(bytes) {
-      if (bytes < 1024) return bytes + ' B';
-      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    }
-
-    // ── File option chips ─────────────────────────────
-    let openFileChip = null;
-
-    window.toggleFileChip = function (id) {
-      const chip  = document.getElementById('fchip-' + id);
-      const panel = document.getElementById('fpanel-' + id);
-      if (!chip || !panel) return;
-      if (openFileChip === id) {
-        chip.classList.remove('chip-active');
-        panel.hidden = true;
-        openFileChip = null;
-      } else {
-        if (openFileChip) {
-          document.getElementById('fchip-' + openFileChip).classList.remove('chip-active');
-          document.getElementById('fpanel-' + openFileChip).hidden = true;
-        }
-        openFileChip = id;
-        panel.hidden = false;
-        chip.classList.add('chip-active');
-        const first = panel.querySelector('input:not([type="hidden"]), select');
-        if (first) setTimeout(() => first.focus(), 50);
-      }
-    };
-
-    function setFileChip(id, text, isSet) {
-      const chip = document.getElementById('fchip-' + id);
-      if (!chip) return;
-      chip.querySelector('.chip-label').textContent = text;
-      chip.classList.toggle('chip-set', isSet);
-    }
-
-    window.clearFileField = function (inputId, chipId, defaultLabel) {
-      const input = document.getElementById(inputId);
-      if (input) { input.value = ''; input.dispatchEvent(new Event('input')); }
-      setFileChip(chipId, defaultLabel, false);
-    };
-
-    // File chip label watchers
-    (function () {
-      const expiresInput = document.getElementById('fileExpiresAt');
-      if (expiresInput) {
-        expiresInput.addEventListener('change', () => {
-          if (expiresInput.value) {
-            const d = new Date(expiresInput.value + 'T12:00:00');
-            setFileChip('expires', d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), true);
-          } else {
-            setFileChip('expires', 'No expiry', false);
-          }
-        });
-      }
-      const maxDlInput = document.getElementById('fileMaxDownloads');
-      if (maxDlInput) {
-        maxDlInput.addEventListener('input', () => {
-          const v = maxDlInput.value.trim();
-          setFileChip('maxdl', v ? 'Max ' + v : 'Unlimited', !!v);
-        });
-      }
-      const pwInput = document.getElementById('filePassword');
-      if (pwInput) {
-        pwInput.addEventListener('input', () => {
-          setFileChip('password', pwInput.value ? 'Protected ✓' : 'Password', !!pwInput.value);
-        });
-      }
-      const actAt   = document.getElementById('fileActivateAt');
-      const deactAt = document.getElementById('fileDeactivateAt');
-      if (actAt && deactAt) {
-        function updateFileScheduleChip() {
-          const a = actAt.value, d = deactAt.value;
-          if (a && d)      setFileChip('schedule', 'Scheduled', true);
-          else if (a)      setFileChip('schedule', 'Starts set', true);
-          else if (d)      setFileChip('schedule', 'Ends set', true);
-          else             setFileChip('schedule', 'Schedule', false);
-        }
-        actAt.addEventListener('change', updateFileScheduleChip);
-        deactAt.addEventListener('change', updateFileScheduleChip);
-      }
-    }());
-
-    window.toggleFilePw = function () {
-      const inp = document.getElementById('filePassword');
-      const eye = document.getElementById('filePwEye');
-      if (inp.type === 'password') {
-        inp.type = 'text';
-        eye.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>`;
-      } else {
-        inp.type = 'password';
-        eye.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>`;
-      }
-    };
-
-    // ── Share-with chip input ─────────────────────────────
-    (function () {
-      const typer = document.getElementById('fileShareTyper');
-      const hiddenInput = document.getElementById('fileAllowedUsers');
-      const errEl = document.getElementById('fileShareError');
-      if (!typer) return;
-
-      let allowedUsers = [];
-
-      function updateHidden() {
-        hiddenInput.value = JSON.stringify(allowedUsers.map(u => u.id));
-      }
-
-      function addChip(user) {
-        if (allowedUsers.find(u => u.id === user.id)) return;
-        allowedUsers.push(user);
-        updateHidden();
-        const count = allowedUsers.length;
-        setFileChip('share', count + ' user' + (count > 1 ? 's' : ''), true);
-
-        const chip = document.createElement('span');
-        chip.className = 'user-chip';
-        chip.dataset.uid = user.id;
-        chip.innerHTML = `@${user.username}<button type="button" aria-label="Remove">×</button>`;
-        chip.querySelector('button').addEventListener('click', () => {
-          allowedUsers = allowedUsers.filter(u => u.id !== user.id);
-          updateHidden();
-          chip.remove();
-          const remaining = allowedUsers.length;
-          setFileChip('share', remaining ? remaining + ' user' + (remaining > 1 ? 's' : '') : 'Public', !!remaining);
-        });
-        document.getElementById('fileShareChips').insertBefore(chip, typer);
-        typer.value = '';
-        errEl.style.display = 'none';
-      }
-
-      typer.addEventListener('keydown', async (e) => {
-        if (e.key !== 'Enter' && e.key !== ',') return;
-        e.preventDefault();
-        const username = typer.value.trim().replace(/^@/, '');
-        if (!username) return;
-
-        try {
-          const res = await fetch(`/api/users/lookup?username=${encodeURIComponent(username)}`);
-          const data = await res.json();
-          if (data.found) {
-            addChip({ id: data.id, username: data.username });
-          } else {
-            errEl.textContent = `User "@${username}" not found.`;
-            errEl.style.display = 'block';
-          }
-        } catch (_) {
-          errEl.textContent = 'Network error. Please try again.';
-          errEl.style.display = 'block';
-        }
-      });
-    }());
-
-    function submitFile(e) {
-      e.preventDefault();
-
-      const input = document.getElementById('fileInput');
-      if (!input.files[0]) {
-        showCreatorError('Please select a file to upload.');
-        return;
-      }
-
-      const allowedUsers = document.getElementById('fileAllowedUsers').value;
-      const sharingMode = JSON.parse(allowedUsers).length > 0 ? 'restricted' : 'public';
-
-      const formData = new FormData();
-      formData.append('file', input.files[0]);
-      const fileTeam = withTeam({}).teamId;
-      if (fileTeam) formData.append('teamId', fileTeam);
-      const expiresAt = document.getElementById('fileExpiresAt').value;
-      const maxDl     = document.getElementById('fileMaxDownloads').value;
-      const password  = document.getElementById('filePassword').value;
-      const tags      = document.getElementById('fileTags').value;
-      const activateAt   = document.getElementById('fileActivateAt').value;
-      const deactivateAt = document.getElementById('fileDeactivateAt').value;
-
-      if (expiresAt)     formData.append('expiresAt', expiresAt + 'T23:59:00.000Z');
-      if (maxDl)         formData.append('maxDownloads', maxDl);
-      if (password)      formData.append('password', password);
-      if (tags)          formData.append('tags', tags);
-      if (activateAt)    formData.append('activateAt', activateAt + ':00.000Z');
-      if (deactivateAt)  formData.append('deactivateAt', deactivateAt + ':00.000Z');
-      formData.append('allowedUsers', allowedUsers);
-      formData.append('sharingMode', sharingMode);
-
-      const btn = document.getElementById('creatorSubmitBtn');
-      btn.disabled = true;
-      document.getElementById('submitBtnText').textContent = 'Uploading…';
-
-      const progressWrap = document.getElementById('fileProgressWrap');
-      const progressFill = document.getElementById('fileProgressFill');
-      const progressLabel = document.getElementById('fileProgressLabel');
-      progressWrap.classList.add('visible');
-
-      const xhr = new XMLHttpRequest();
-
-      xhr.upload.addEventListener('progress', (ev) => {
-        if (!ev.lengthComputable) return;
-        const pct = Math.round((ev.loaded / ev.total) * 100);
-        progressFill.style.width = pct + '%';
-        progressLabel.textContent = pct + '% uploaded';
-      });
-
-      xhr.addEventListener('load', () => {
-        btn.disabled = false;
-        progressWrap.classList.remove('visible');
-        document.getElementById('submitBtnText').textContent = 'Upload File';
-
-        let data;
-        try { data = JSON.parse(xhr.responseText); } catch (_) { data = {}; }
-
-        if (xhr.status === 200 && data.success) {
-          hideCreatorError();
-          showFileSuccess(data.fileUrl);
-          // Reset
-          document.getElementById('fileInput').value = '';
-          document.getElementById('fileSelectedInfo').style.display = 'none';
-          document.getElementById('fileDropZone').style.display = '';
-          document.getElementById('fileExpiresAt').value = '';
-          document.getElementById('fileMaxDownloads').value = '';
-          document.getElementById('filePassword').value = '';
-          document.getElementById('fileTags').value = '';
-          document.getElementById('fileActivateAt').value = '';
-          document.getElementById('fileDeactivateAt').value = '';
-          document.getElementById('fileAllowedUsers').value = '[]';
-          document.getElementById('fileShareChips').querySelectorAll('.user-chip').forEach(c => c.remove());
-          progressFill.style.width = '0%';
-          // Reset chip labels
-          setFileChip('expires',  'No expiry', false);
-          setFileChip('maxdl',    'Unlimited', false);
-          setFileChip('password', 'Password',  false);
-          setFileChip('tags',     'Tags',      false);
-          setFileChip('schedule', 'Schedule',  false);
-          setFileChip('share',    'Public',    false);
-        } else {
-          showCreatorError(data.error || 'Upload failed. Please try again.');
-        }
-      });
-
-      xhr.addEventListener('error', () => {
-        btn.disabled = false;
-        progressWrap.classList.remove('visible');
-        document.getElementById('submitBtnText').textContent = 'Upload File';
-        showCreatorError('Network error. Please try again.');
-      });
-
-      xhr.open('POST', '/api/files/upload');
-      xhr.send(formData);
-    }
-
-    function showFileSuccess(fileUrl) {
-      let block = document.getElementById('fileSuccessBlock');
-      if (!block) {
-        block = document.createElement('div');
-        block.id = 'fileSuccessBlock';
-        block.className = 'creator-success';
-        document.querySelector('form.creator-card').before(block);
-      }
-      block.innerHTML = `
-        <div class="creator-success-label">Your file is ready to share</div>
-        <div class="creator-success-row">
-          <code class="creator-success-url" id="fileUrlDisplay">${fileUrl}</code>
-          <button class="creator-copy-btn" onclick="copyFileUrl()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            Copy
-          </button>
-        </div>
-      `;
-      block.style.display = 'block';
-      block.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    window.copyFileUrl = function () {
-      const el = document.getElementById('fileUrlDisplay');
-      if (!el) return;
-      navigator.clipboard.writeText(el.textContent.trim()).then(() => {
-        const btn = el.nextElementSibling;
-        const orig = btn.innerHTML;
-        btn.textContent = 'Copied!';
-        setTimeout(() => { btn.innerHTML = orig; }, 1800);
-      });
-    };
-
     <% } %>
-    <% } %>
+  </main>
 
-    // ─── Boot ─────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', () => {
-      initChips();
-      initWatchers();
-      initSlugPreview();
-      initPasteWatchers();
-
-      // Convert schedule datetime-local inputs to UTC before submit
-      const form = document.querySelector('form.creator-card');
-      form.addEventListener('submit', (e) => {
-        if (pasteMode) { submitPaste(e); return; }
-        <% if (user) { %>
-        if (bundleMode) { submitBundle(e); return; }
-        if (fileMode) { submitFile(e); return; }
-        <% } %>
-        const pairs = [
-          ['activateDateTimeInput',   'activateDateTimeUtc'],
-          ['deactivateDateTimeInput', 'deactivateDateTimeUtc'],
-        ];
-        pairs.forEach(([localId, utcId]) => {
-          const local = document.getElementById(localId);
-          const utc   = document.getElementById(utcId);
-          if (local && utc) utc.value = localDatetimeToUtc(local.value);
-        });
-      });
-
-      <% if (user) { %>
-      // Initialize bundle with 2 rows
-      bundleAddRow();
-      bundleAddRow();
-      <% } %>
-    });
-
-  }());
-  </script>
-
+  <script src="/js/main.js"></script>
   <script src="/js/tagSelector.js"></script>
   <script src="/js/lineNumbers.js"></script>
-  <script>
-    <% if (user && can.tags) { %>
-    document.addEventListener('DOMContentLoaded', function () {
-      const tagSelector = new TagSelector('tagSelectorCreate', {
-        placeholder: 'Add tags...',
-        onChange: function (selectedTags) {
-          document.getElementById('tags').value = selectedTags.join(',');
-          // Update tags chip label
-          const count = selectedTags.length;
-          const chip  = document.getElementById('chip-tags');
-          if (!chip) return;
-          chip.querySelector('.chip-label').textContent = count ? count + ' tag' + (count > 1 ? 's' : '') : 'Tags';
-          chip.classList.toggle('chip-set', count > 0);
-        }
-      });
-
-      <% if (canUploadFiles) { %>
-      // TagSelector for file section
-      const fileTagMount = document.getElementById('fileTagSelectorMount');
-      if (fileTagMount) {
-        // Create the container element that TagSelector expects
-        const tsContainer = document.createElement('div');
-        tsContainer.id = 'fileTagSelectorCreate';
-        fileTagMount.appendChild(tsContainer);
-
-        new TagSelector('fileTagSelectorCreate', {
-          placeholder: 'Add tags…',
-          onChange: function (selectedTags) {
-            document.getElementById('fileTags').value = selectedTags.join(',');
-          }
-        });
-      }
-      <% } %>
-
-      // TagSelector for bundle section
-      const bundleTagMount = document.getElementById('bundleTagSelectorMount');
-      if (bundleTagMount) {
-        const bundleTsContainer = document.createElement('div');
-        bundleTsContainer.id = 'bundleTagSelectorCreate';
-        bundleTagMount.appendChild(bundleTsContainer);
-
-        window.bundleTagSelector = new TagSelector('bundleTagSelectorCreate', {
-          placeholder: 'Add tags…',
-          onChange: function (selectedTags) {
-            document.getElementById('bundleTags').value = selectedTags.join(',');
-          }
-        });
-      }
-
-      // TagSelector for paste section
-      const pasteTagMount = document.getElementById('pasteTagSelectorMount');
-      if (pasteTagMount) {
-        const pasteTsContainer = document.createElement('div');
-        pasteTsContainer.id = 'pasteTagSelectorCreate';
-        pasteTagMount.appendChild(pasteTsContainer);
-
-        new TagSelector('pasteTagSelectorCreate', {
-          placeholder: 'Add tags…',
-          onChange: function (selectedTags) {
-            document.getElementById('pasteTags').value = selectedTags.join(',');
-            const chip = document.getElementById('pchip-tags');
-            if (!chip) return;
-            const count = selectedTags.length;
-            chip.querySelector('.chip-label').textContent = count ? count + ' tag' + (count > 1 ? 's' : '') : 'Tags';
-            chip.classList.toggle('chip-set', count > 0);
-          }
-        });
-      }
-    });
-    <% } %>
-  </script>
-<%- include('partials/layout-end', { shell: shell }) %>
+  <script src="/js/create.js"></script>
+<%- include('partials/layout-end', { shell }) %>
 </html>

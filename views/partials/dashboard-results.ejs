@@ -1,0 +1,139 @@
+<%# Dashboard results: type pills, the rows, paging. Rendered inside dashboard.ejs and on its own for the live
+    search (GET /dashboard?partial=1, public/js/dashboard.js swaps it in). Locals from DashboardController. %>
+<%
+  const TYPE_LABELS = { all: 'All', url: 'Links', bundle: 'Bundles', paste: 'Pastes', file: 'Files' };
+  const NOUNS = { url: 'link', bundle: 'bundle', paste: 'paste', file: 'file' };
+  const USES = { url: ['click', 'clicks'], bundle: ['open', 'opens'], paste: ['view', 'views'], file: ['download', 'downloads'] };
+  const { rows, total, page, totalPages, counts } = result;
+  const filtered = !!(filters.search || filters.tag);
+  // The dashboard's address with some filters changed (page back to 1 unless given)
+  const link = (changes) => {
+    const merged = { team: currentTeam ? currentTeam.id : '', ...filters, page: 1, ...changes };
+    const params = new URLSearchParams();
+    for (const key of ['team', 'search', 'type', 'tag', 'sort', 'limit', 'page']) {
+      const value = merged[key];
+      if (value === '' || value === null || value === undefined) continue;
+      if ((key === 'type' && value === 'all') || (key === 'sort' && value === 'newest') || (key === 'limit' && value === 50) || (key === 'page' && value === 1)) continue;
+      params.set(key, value);
+    }
+    const query = params.toString();
+    return `/dashboard${query ? `?${query}` : ''}`;
+  };
+  const day = (value) => {
+    if (!value) return '';
+    const date = new Date(String(value).includes('T') ? value : `${String(value).replace(' ', 'T')}Z`);
+    return isNaN(date) ? '' : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  };
+  const bytes = (n) => {
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let value = Number(n || 0); let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+    return `${value.toFixed(unit && value < 10 ? 1 : 0)} ${units[unit]}`;
+  };
+  const allCount = Object.values(counts).reduce((sum, n) => sum + n, 0);
+-%>
+<nav class="type-pills" aria-label="Type">
+  <% ['all', ...types].forEach(t => { %>
+  <a href="<%= link({ type: t }) %>" class="type-pill" data-type-pill="<%= t %>" data-nav<%- filters.type === t ? ' aria-current="page"' : '' %>>
+    <%= TYPE_LABELS[t] %>
+    <span class="pill-count"><%= t === 'all' ? allCount : counts[t] %></span>
+  </a>
+  <% }) %>
+</nav>
+
+<% if (!rows.length) { %>
+  <% if (filtered || filters.type !== 'all') { %>
+  <div class="empty-state">
+    <p>No items match these filters.</p>
+    <a href="<%= currentTeam ? `/dashboard?team=${currentTeam.id}` : '/dashboard' %>" class="btn btn-small btn-secondary" data-nav>Clear filters</a>
+  </div>
+  <% } else { %>
+  <div class="empty-state">
+    <p>Nothing here yet</p>
+    <% if (!currentTeam || currentTeam.role !== 'viewer') { %>
+    <a href="/<%= currentTeam ? `?team=${currentTeam.id}` : '' %>" class="btn btn-small">Create a link, paste or bundle</a>
+    <% } %>
+  </div>
+  <% } %>
+<% } else { %>
+<div class="item-list dash-list" id="itemList">
+  <% rows.forEach(item => {
+       const uses = USES[item.type];
+       const name = item.type === 'url' ? item.path : item.label;
+  %>
+  <div class="item-row" data-type="<%= item.type %>" data-id="<%= item.id %>" data-name="<%= name %>">
+    <div class="item-main">
+      <% if (item.canEdit) { %><input type="checkbox" class="item-select" aria-label="Select <%= item.path %>" hidden><% } %>
+      <span class="item-type" title="<%= TYPE_LABELS[item.type].slice(0, -1) %>"><%- include('icon', { icon: item.type === 'url' ? 'link' : item.type }) %></span>
+      <div class="item-text">
+        <div class="item-title">
+          <a href="<%= item.path %>" class="item-slug" target="_blank" rel="noopener"><%= item.path %></a>
+          <% if (item.type === 'url') { %>
+            <a href="<%= item.label %>" class="item-label" target="_blank" rel="noopener noreferrer" title="<%= item.label %>"><%= item.label %></a>
+          <% } else { %>
+            <span class="item-label" title="<%= item.label %>"><%= item.label %></span>
+          <% } %>
+        </div>
+        <div class="item-meta">
+          <% if (currentTeam && item.ownerUsername) { %><span class="team-creator">by <strong><%= item.ownerUsername %></strong></span><% } %>
+          <span><%= item.uses.toLocaleString('en-US') %><%= item.usageLimit ? ` / ${item.usageLimit.toLocaleString('en-US')}` : '' %> <%= item.uses === 1 && !item.usageLimit ? uses[0] : uses[1] %></span>
+          <% if (item.type === 'file') { %><span><%= bytes(item.size) %></span><% } %>
+          <span title="Created">created <%= day(item.createdAt) %></span>
+          <% if (item.accessStatus === 'scheduled' && item.activateAt) { %><span>starts <%= day(item.activateAt) %></span><% } %>
+          <% if (item.accessStatus === 'active' && item.expiresAt) { %><span>expires <%= day(item.expiresAt) %></span><% } %>
+          <% if (item.accessStatus === 'active' && item.deactivateAt) { %><span>until <%= day(item.deactivateAt) %></span><% } %>
+          <% if (item.shareCount) { %><span><%= item.shareCount %> share link<%= item.shareCount === 1 ? '' : 's' %></span><% } %>
+          <% if (item.reportCount) { %><span class="item-reports"><%= item.reportCount %> report<%= item.reportCount === 1 ? '' : 's' %></span><% } %>
+        </div>
+        <%- include('tag-chips', { tags: item.tags }) %>
+      </div>
+      <div class="item-badges">
+        <% if (item.hasPassword) { %><span class="item-lock" title="Password-protected"><%- include('icon', { icon: 'lock' }) %><span class="visually-hidden">Password-protected</span></span><% } %>
+        <%- include('deletion-badge', { days: item.deletesInDays, noun: NOUNS[item.type] }) %>
+        <%- include('status-badge', { status: item.accessStatus }) %>
+      </div>
+    </div>
+    <div class="item-actions">
+      <button type="button" class="icon-btn" data-action="copy" data-copy="<%= baseUrl %><%= item.path %>" title="Copy short link" aria-label="Copy short link"><%- include('icon', { icon: 'copy' }) %></button>
+      <% if (can.analytics) { %><a href="/analytics/<%= item.type %>/<%= item.id %>" class="icon-btn" title="Analytics" aria-label="Analytics"><%- include('icon', { icon: 'chart' }) %></a><% } %>
+      <div class="row-menu">
+        <button type="button" class="icon-btn" aria-haspopup="menu" aria-expanded="false" title="More" aria-label="More actions for <%= item.path %>" data-menu-toggle><%- include('icon', { icon: 'more' }) %></button>
+        <div class="menu" role="menu" hidden>
+          <% if (item.infoPath) { %><a href="<%= item.infoPath %>" role="menuitem" target="_blank" rel="noopener"><%- include('icon', { icon: 'info' }) %> Info page</a><% } %>
+          <% if (features.qrCodes) { %><button type="button" role="menuitem" data-action="qr" data-slug="<%= item.slug %>"><%- include('icon', { icon: 'qr' }) %> QR code</button><% } %>
+          <% if (item.canMoveIn) { %><button type="button" role="menuitem" data-move-in data-type="<%= item.type %>" data-id="<%= item.id %>"><%- include('icon', { icon: 'userPlus' }) %> Move to a team</button><% } %>
+          <% if (item.canMoveOut) { %><button type="button" role="menuitem" data-move-out data-type="<%= item.type %>" data-id="<%= item.id %>"><%- include('icon', { icon: 'userMinus' }) %> Move out of the team</button><% } %>
+          <% if (item.canEdit) { %>
+            <% if (item.type === 'paste') { %>
+            <a href="/pastes/<%= item.id %>/edit" role="menuitem" data-action="edit"><%- include('icon', { icon: 'edit' }) %> Edit</a>
+            <% } else { %>
+            <button type="button" role="menuitem" data-action="edit"><%- include('icon', { icon: 'edit' }) %> Edit</button>
+            <% } %>
+            <button type="button" role="menuitem" class="danger" data-action="delete"><%- include('icon', { icon: 'trash' }) %> Delete</button>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% }) %>
+</div>
+<% } %>
+
+<% if (total > 0) { %>
+<div class="items-footer">
+  <div class="page-size">
+    <label for="pageSize">Per page</label>
+    <select class="form-input" id="pageSize" form="dashFilters" name="limit">
+      <% pageSizes.forEach(size => { %><option value="<%= size %>"<%= filters.limit === size ? ' selected' : '' %>><%= size %></option><% }) %>
+    </select>
+    <span class="results-count"><%= total.toLocaleString('en-US') %> item<%= total === 1 ? '' : 's' %></span>
+  </div>
+  <% if (totalPages > 1) { %>
+  <nav class="pager" aria-label="Pages">
+    <% if (page > 1) { %><a href="<%= link({ page: page - 1 }) %>" class="btn btn-small btn-secondary" data-nav>Previous</a><% } %>
+    <span>Page <%= page %> of <%= totalPages %></span>
+    <% if (page < totalPages) { %><a href="<%= link({ page: page + 1 }) %>" class="btn btn-small btn-secondary" data-nav>Next</a><% } %>
+  </nav>
+  <% } %>
+</div>
+<% } %>

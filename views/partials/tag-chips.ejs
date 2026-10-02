@@ -1,10 +1,6 @@
-<%# An item's tags as colored chips: include('partials/tag-chips', { tags }) %>
+<%# An item's tags as colored chips: include('partials/tag-chips', { tags }). The color is the tag's own (a hex). %>
 <% if (tags && tags.length > 0) { %>
-  <div style="margin-top: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap;">
-    <% tags.forEach(tag => { %>
-      <span style="display: inline-block; padding: 0.125rem 0.5rem; background-color: <%= tag.color %>20; color: <%= tag.color %>; border: 1px solid <%= tag.color %>40; border-radius: 4px; font-size: 0.75rem;">
-        <%= tag.name %>
-      </span>
-    <% }); %>
+  <div class="tag-chips">
+    <% tags.forEach(tag => { %><span class="tag-chip" style="--tag-color: <%= /^#[0-9a-f]{3,8}$/i.test(tag.color || '') ? tag.color : '#888888' %>"><%= tag.name %></span><% }); %>
   </div>
 <% } %>

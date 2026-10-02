@@ -1,14 +1,14 @@
 <% const pendingInvites = locals.teamInvites || []; %>
 <% if (pendingInvites.length) { %>
-<section class="team-invites" aria-label="Team invites" style="margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+<section class="team-invites" aria-label="Team invites">
   <% pendingInvites.forEach(invite => { %>
-    <div class="team-invite" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; padding: 0.875rem 1rem; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: var(--radius-md);">
+    <div class="team-invite">
       <span>
         <strong><%= invite.invitedBy || 'Someone' %></strong> invited you to the team <strong><%= invite.teamName %></strong> as <%= invite.role %>.
       </span>
-      <span style="display: flex; gap: 0.5rem;">
-        <button type="button" class="btn btn-small" style="color: var(--primary-foreground);" data-invite-id="<%= invite.id %>" data-action="accept">Accept</button>
-        <button type="button" class="btn btn-small" style="background: var(--secondary); color: var(--foreground); border: 1px solid var(--border);" data-invite-id="<%= invite.id %>" data-action="decline">Decline</button>
+      <span class="team-invite-actions">
+        <button type="button" class="btn btn-small" data-invite-id="<%= invite.id %>" data-action="accept">Accept</button>
+        <button type="button" class="btn btn-small btn-secondary" data-invite-id="<%= invite.id %>" data-action="decline">Decline</button>
       </span>
     </div>
   <% }) %>

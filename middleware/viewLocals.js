@@ -27,7 +27,8 @@ function appLocals() {
 
 /**
  * Per request (res.locals): `features.<name>` (settings.json switches), `can.<permission>` (role and
- * feature), `registrationOpen`, and the teams the user can create items in ("Create in").
+ * feature), `registrationOpen`, the teams the user can create items in ("Create in"), and the hourly creation
+ * `limits` the create page states (null = none).
  */
 function viewLocals(req, res, next) {
   const features = configService.getSettings().features;
@@ -39,6 +40,8 @@ function viewLocals(req, res, next) {
   }));
   res.locals.canUploadFiles = res.locals.can.uploadFiles;
   res.locals.writableTeams = req.user ? teamService.writableTeams(req.user) : [];
+  res.locals.limits = Object.fromEntries(['urlsPerHour', 'pastesPerHour', 'bundlesPerHour', 'uploadsPerHour']
+    .map(name => [name, RoleService.limit(req.user || null, name)]));
   next();
 }
 

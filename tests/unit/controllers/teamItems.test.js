@@ -204,33 +204,34 @@ describe('team dashboard (/dashboard?team=:id)', () => {
   }
   const dashboard = (user, query = {}) => call(DashboardController.getUserDashboard, user, { query });
   const bySlug = (rows) => Object.fromEntries(rows.map(r => [r.slug, r]));
+  const links = (data) => data.result.rows.filter(r => r.type === 'url');
 
   it('lists the team\'s items with what the user may do to each', async () => {
     seed();
     const data = (await dashboard(people.member, { team: String(team.id) }))._viewData;
 
     expect(data.currentTeam).toEqual({ id: team.id, name: 'Acme', role: 'member' });
-    const rows = bySlug(data.urls);
+    const rows = bySlug(links(data));
     expect(Object.keys(rows).sort()).toEqual(['ours', 'theirs']);
-    expect(rows.ours).toEqual(expect.objectContaining({ canEdit: true, canMoveOut: false, creatorUsername: 'member' }));
+    expect(rows.ours).toEqual(expect.objectContaining({ canEdit: true, canMoveOut: false, ownerUsername: 'member' }));
     expect(rows.theirs.canEdit).toBe(false);
   });
 
   it('team owners may edit and move out everything; viewers nothing', async () => {
     seed();
-    const asOwner = bySlug((await dashboard(people.owner, { team: team.id }))._viewData.urls);
+    const asOwner = bySlug(links((await dashboard(people.owner, { team: team.id }))._viewData));
     expect(asOwner.ours).toEqual(expect.objectContaining({ canEdit: true, canMoveOut: true }));
-    const asViewer = bySlug((await dashboard(people.viewer, { team: team.id }))._viewData.urls);
+    const asViewer = bySlug(links((await dashboard(people.viewer, { team: team.id }))._viewData));
     expect(asViewer.ours.canEdit).toBe(false);
   });
 
   it('the personal dashboard leaves team items out, and offers the user\'s teams', async () => {
     seed();
     const data = (await dashboard(people.member))._viewData;
-    expect(data.urls.map(u => u.slug)).toEqual(['mine']);
+    expect(links(data).map(u => u.slug)).toEqual(['mine']);
     expect(data.currentTeam).toBeNull();
     expect(data.dashboardTeams).toEqual([expect.objectContaining({ id: team.id, name: 'Acme', role: 'member' })]);
-    expect(data.urls[0]).toEqual(expect.objectContaining({ canEdit: true, canMoveIn: true }));
+    expect(links(data)[0]).toEqual(expect.objectContaining({ canEdit: true, canMoveIn: true }));
   });
 
   it('a team the user isn\'t in is a 404', async () => {
@@ -244,7 +245,7 @@ describe('team dashboard (/dashboard?team=:id)', () => {
     seed();
     teamsOff();
     const data = (await dashboard(people.member, { team: team.id }))._viewData;
-    expect(data.urls.map(u => u.slug)).toEqual(['mine']);
+    expect(links(data).map(u => u.slug)).toEqual(['mine']);
     expect(data.currentTeam).toBeNull();
     expect(data.dashboardTeams).toEqual([]);
   });

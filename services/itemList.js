@@ -3,9 +3,11 @@ const { CONTENT_TYPES, enabledTypes } = require('./contentTypes');
 const { statusSql } = require('./accessService');
 const { deletesInDays } = require('./retentionService');
 const Tag = require('../models/Tag');
+const { scopeCondition } = require('./itemScope');
 
 /**
- * Admin → Items: links, bundles, pastes and files in one list (/admin/items).
+ * Links, bundles, pastes and files in one list: Admin → Items (/admin/items, every item) and the dashboard
+ * (one user's personal items or a team's, through `scope`).
  *
  * Search syntax (one or more groups separated by |; tokens within a group are ANDed, groups are ORed):
  *   text              slug, destination / title / file name, or owner name contains it
@@ -175,11 +177,22 @@ function groupConditions(type, group, globalStatus, now) {
 }
 
 // SELECT for one type, rows in the shape every type shares
-function typeQuery(type, { groups, status, dateFrom, dateTo, now }) {
+function typeQuery(type, { groups, status, dateFrom, dateTo, now, scope, tags }) {
   const info = CONTENT_TYPES[type];
   const access = statusSql(type, { alias: 't', now });
   const params = [...access.params];
   const where = [];
+
+  if (scope !== undefined && scope !== null) {
+    const owned = scopeCondition(type, scope, { alias: 't' });
+    where.push(`(${owned.sql})`);
+    params.push(...owned.params);
+  }
+  if (tags.length) {
+    where.push(`EXISTS (SELECT 1 FROM taggables tg JOIN tags g ON g.id = tg.tagId
+      WHERE tg.targetType = '${type}' AND tg.targetId = t.id AND g.name IN (${tags.map(() => '?').join(', ')}))`);
+    params.push(...tags);
+  }
 
   if (dateFrom && dateFrom.trim()) { where.push('DATE(t.createdAt) >= ?'); params.push(dateFrom.trim()); }
   if (dateTo && dateTo.trim()) { where.push('DATE(t.createdAt) <= ?'); params.push(dateTo.trim()); }
@@ -207,21 +220,40 @@ function typeQuery(type, { groups, status, dateFrom, dateTo, now }) {
   return { sql, params };
 }
 
+// The types' SELECTs joined into one
+function unionOf(typeList, options) {
+  const parts = typeList.map(t => typeQuery(t, options));
+  return { union: parts.map(p => p.sql).join('\nUNION ALL\n'), params: parts.flatMap(p => p.params) };
+}
+
 /**
  * @param {object} options - { type: 'all' | 'url' | …, search, status, hasReports ('yes'|'no'), sort, dateFrom, dateTo,
- *   page, limit (null = all) }
- * @returns {{ rows, total, page, totalPages, limit }}
+ *   page, limit (null = all), scope (services/itemScope.js: a user ID, { userId } or { teamId }; none = every item),
+ *   tags (tag names; items with any of them), types (only these of the enabled types) }
+ * @returns {{ rows, total, page, totalPages, limit, counts }} counts: matches per enabled type, whatever `type` shows
  */
-function list({ type = 'all', search = '', status = '', hasReports = '', sort = 'newest', dateFrom = '', dateTo = '', page = 1, limit = 50 } = {}) {
-  const shown = (type === 'all' || !type) ? types() : types().filter(t => t === type);
-  if (!shown.length) return { rows: [], total: 0, page: 1, totalPages: 1, limit };
-
+function list({
+  type = 'all', search = '', status = '', hasReports = '', sort = 'newest', dateFrom = '', dateTo = '', page = 1,
+  limit = 50, scope = null, tags = [], types: only = null
+} = {}) {
+  const listed = only ? types().filter(t => only.includes(t)) : types();
   const groups = parseSearch(search);
-  const options = { groups, status: effectiveStatus(groups, status), dateFrom, dateTo, now: new Date().toISOString() };
-  const parts = shown.map(t => typeQuery(t, options));
-  const union = parts.map(p => p.sql).join('\nUNION ALL\n');
-  const params = parts.flatMap(p => p.params);
+  const options = {
+    groups, status: effectiveStatus(groups, status), dateFrom, dateTo, now: new Date().toISOString(), scope,
+    tags: [...new Set((tags || []).map(name => String(name).trim().toLowerCase()).filter(Boolean))]
+  };
   const reports = hasReports === 'yes' ? 'WHERE reportCount > 0' : hasReports === 'no' ? 'WHERE reportCount = 0' : '';
+
+  const counts = Object.fromEntries(listed.map(t => [t, 0]));
+  if (listed.length) {
+    const all = unionOf(listed, options);
+    db.prepare(`SELECT type, COUNT(*) AS n FROM (${all.union}) items ${reports} GROUP BY type`).all(...all.params)
+      .forEach(({ type: t, n }) => { counts[t] = n; });
+  }
+
+  const shown = (type === 'all' || !type) ? listed : listed.filter(t => t === type);
+  if (!shown.length) return { rows: [], total: 0, page: 1, totalPages: 1, limit, counts };
+  const { union, params } = unionOf(shown, options);
 
   const total = db.prepare(`SELECT COUNT(*) AS n FROM (${union}) items ${reports}`).get(...params).n;
   const totalPages = limit ? Math.max(1, Math.ceil(total / limit)) : 1;
@@ -245,7 +277,7 @@ function list({ type = 'all', search = '', status = '', hasReports = '', sort = 
     };
   });
 
-  return { rows, total, page: current, totalPages, limit };
+  return { rows, total, page: current, totalPages, limit, counts };
 }
 
 module.exports = { list, parseSearch, effectiveStatus, types, STATUS_FILTERS };

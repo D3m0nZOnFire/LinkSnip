@@ -26,7 +26,11 @@ it('is absent without teams', async () => {
   expect(await render({})).not.toContain('id="createInTeam"');
 });
 
-it('sends the team with pastes, bundles and files too', async () => {
-  const html = await render({ writableTeams: [{ id: 3, name: 'Acme', role: 'member' }] });
-  expect((html.match(/withTeam\(/g) || []).length).toBeGreaterThanOrEqual(3);
+it('sends the team with pastes, bundles and files too', () => {
+  // Links post the form (the select is a form field); the other types are sent by public/js/create.js
+  const script = require('fs').readFileSync(path.join(__dirname, '../../../public/js/create.js'), 'utf8');
+  const sends = (fn) => script.slice(script.indexOf(`function ${fn}(`), script.indexOf('\n  }\n', script.indexOf(`function ${fn}(`)));
+  expect(sends('submitPaste')).toContain('body.teamId = teamId()');
+  expect(sends('submitBundle')).toContain('body.teamId = teamId()');
+  expect(sends('submitFile')).toContain("data.append('teamId', teamId())");
 });

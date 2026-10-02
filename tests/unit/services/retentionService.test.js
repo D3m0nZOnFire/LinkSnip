@@ -100,13 +100,13 @@ describe('list rows carry deletesInDays from the setting', () => {
 
   it('dashboard', () => {
     createTestUrl({ slug: 'old', creatorId: admin.id, expiresAt: expiredDaysAgo(25) });
-    expect(row(render(DashboardController.getUserDashboard).urls, 'old').deletesInDays).toBe(15);
+    expect(row(render(DashboardController.getUserDashboard).result.rows, 'old').deletesInDays).toBe(15);
   });
 
   it('dashboard pastes', () => {
     createTestPaste(admin.id, { slug: 'old-paste', expiresAt: expiredDaysAgo(25) });
     createTestPaste(admin.id, { slug: 'new-paste' });
-    const pastes = render(DashboardController.getUserDashboard).pastes;
+    const pastes = render(DashboardController.getUserDashboard).result.rows.filter(r => r.type === 'paste');
     expect(row(pastes, 'old-paste').deletesInDays).toBe(15);
     expect(row(pastes, 'new-paste').deletesInDays).toBeNull();
   });
@@ -114,7 +114,7 @@ describe('list rows carry deletesInDays from the setting', () => {
   it('Admin → Items: pastes', () => {
     createTestPaste(admin.id, { slug: 'old-paste', expiresAt: expiredDaysAgo(25) });
     createTestPaste(null, { slug: 'anon-paste', expiresAt: expiredDaysAgo(25) });
-    const pastes = require('../../../services/adminItems').list({ type: 'paste' }).rows;
+    const pastes = require('../../../services/itemList').list({ type: 'paste' }).rows;
     expect(row(pastes, 'old-paste').deletesInDays).toBe(15);
     expect(row(pastes, 'anon-paste').deletesInDays).toBeNull();
   });
@@ -122,7 +122,7 @@ describe('list rows carry deletesInDays from the setting', () => {
   it('Admin → Items: links', () => {
     createTestUrl({ slug: 'old', creatorId: admin.id, expiresAt: expiredDaysAgo(25) });
     createTestUrl({ slug: 'anon', expiresAt: expiredDaysAgo(25) });
-    const urls = require('../../../services/adminItems').list({ type: 'url' }).rows;
+    const urls = require('../../../services/itemList').list({ type: 'url' }).rows;
     expect(row(urls, 'old').deletesInDays).toBe(15);
     expect(row(urls, 'anon').deletesInDays).toBeNull();
   });

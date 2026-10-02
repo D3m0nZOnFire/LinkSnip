@@ -1,1466 +1,255 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Dashboard', styles: ['tables', 'forms', 'modals', 'tagSelector'] }) %>
+  <%- include('partials/head', { title: currentTeam ? currentTeam.name : 'Dashboard', styles: ['forms', 'modals', 'items', 'tagSelector', 'dashboard'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'app', currentPage: 'dashboard' }) %>
-
-  <!-- Main Content -->
-  <main class="main-content-wide">
-    <!-- Shared Analytics Section -->
-
-    <!-- Header Section -->
+<%
+  const canCreate = !currentTeam || currentTeam.role !== 'viewer';
+  const showFiles = types.includes('file');
+-%>
+  <main class="main-content-wide items-page dash-page">
     <div class="header-section">
       <div>
-        <h2 style="overflow-wrap:anywhere;"><%= currentTeam ? currentTeam.name : 'Your Dashboard' %></h2>
-        <p id="dashHeaderCount">
-          <span class="count"><%= pagination.totalUrls %></span> link<%= pagination.totalUrls !== 1 ? 's' : '' %><% if (bundles.length > 0) { %> &nbsp;·&nbsp; <span class="count"><%= bundles.length %></span> bundle<%= bundles.length !== 1 ? 's' : '' %><% } %><% if (showFiles && fileCount > 0) { %> &nbsp;·&nbsp; <span class="count"><%= fileCount %></span> file<%= fileCount !== 1 ? 's' : '' %><% } %>
-        </p>
+        <h2 class="dash-title"><%= currentTeam ? currentTeam.name : 'Dashboard' %></h2>
+        <p><%= currentTeam ? `Team items · you are ${currentTeam.role === 'owner' ? 'an' : 'a'} ${currentTeam.role}` : 'Your links, bundles, pastes and files' %></p>
       </div>
-      <div style="display:flex; gap:0.75rem; align-items:center;">
+      <div class="dash-header-actions">
         <% if (dashboardTeams.length) { %>
-          <select id="dashboardScope" class="form-input" aria-label="Show items of" style="width:auto; padding:0.5rem 0.75rem;" onchange="window.location.href = this.value ? '/dashboard?team=' + this.value : '/dashboard'">
+          <label class="visually-hidden" for="dashboardScope">Show items of</label>
+          <select id="dashboardScope" class="form-input">
             <option value=""<%= currentTeam ? '' : ' selected' %>>Personal</option>
             <% dashboardTeams.forEach(team => { %>
               <option value="<%= team.id %>"<%= currentTeam && currentTeam.id === team.id ? ' selected' : '' %>><%= team.name %></option>
             <% }) %>
           </select>
         <% } %>
-        <% if (urls.some(url => url.canEdit)) { %>
-          <button id="toggleSelectBtn" class="btn" style="background-color:var(--secondary); color:var(--foreground);" onclick="toggleSelectionMode()">Select</button>
+        <% if (result.rows.some(item => item.canEdit)) { %>
+          <button type="button" class="btn btn-secondary" id="selectModeBtn" aria-pressed="false">Select</button>
         <% } %>
-        <% if (!currentTeam || currentTeam.role !== 'viewer') { %>
-        <a href="/<%= currentTeam ? `?team=${currentTeam.id}` : '' %>" class="btn" style="color: var(--primary-foreground);">Create New</a>
+        <% if (canCreate) { %>
+          <a href="/<%= currentTeam ? `?team=${currentTeam.id}` : '' %>" class="btn"><%- include('partials/icon', { icon: 'plus' }) %> Create</a>
         <% } %>
       </div>
     </div>
 
     <%- include('partials/team-invites', { teamInvites: locals.teamInvites || [] }) %>
 
-    <!-- Type Filter Pills -->
-    <div style="display:flex; flex-wrap:wrap; gap:0.375rem; margin-bottom:1.25rem;">
-      <button type="button" class="dash-filter-pill active" id="pill-all" onclick="setDashFilter('all')">All</button>
-      <button type="button" class="dash-filter-pill" id="pill-links" onclick="setDashFilter('links')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-        </svg>
-        Links
-      </button>
-      <button type="button" class="dash-filter-pill" id="pill-bundles" onclick="setDashFilter('bundles')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;">
-          <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-        </svg>
-        Bundles<% if (bundles.length > 0) { %> (<%= bundles.length %>)<% } %>
-      </button>
-      <% if (showFiles) { %>
-      <button type="button" class="dash-filter-pill" id="pill-files" onclick="setDashFilter('files')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;">
-          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-          <polyline points="13 2 13 9 20 9"></polyline>
-        </svg>
-        Files<span id="pill-files-count"><% if (fileCount > 0) { %> (<%= fileCount %>)<% } %></span>
-      </button>
+    <form class="dash-toolbar" id="dashFilters" method="GET" action="/dashboard" role="search">
+      <% if (currentTeam) { %><input type="hidden" name="team" value="<%= currentTeam.id %>"><% } %>
+      <input type="hidden" name="type" value="<%= filters.type === 'all' ? '' : filters.type %>">
+      <div class="dash-search">
+        <%- include('partials/icon', { icon: 'search' }) %>
+        <label class="visually-hidden" for="dashSearch">Search</label>
+        <input type="search" class="form-input" id="dashSearch" name="search" value="<%= filters.search %>"
+          placeholder="Search slugs, destinations, titles…" autocomplete="off" spellcheck="false">
+      </div>
+      <% if (tagOptions.length) { %>
+        <label class="visually-hidden" for="dashTag">Tag</label>
+        <select class="form-input" id="dashTag" name="tag">
+          <option value="">All tags</option>
+          <% tagOptions.forEach(tag => { %><option value="<%= tag.name %>"<%= filters.tag === tag.name ? ' selected' : '' %>><%= tag.name %></option><% }) %>
+        </select>
       <% } %>
-      <button type="button" class="dash-filter-pill" id="pill-pastes" onclick="setDashFilter('pastes')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="8" y1="13" x2="16" y2="13"></line>
-          <line x1="8" y1="17" x2="14" y2="17"></line>
-        </svg>
-        Pastes<span id="pill-pastes-count"><% if (pasteCount > 0) { %> (<%= pasteCount %>)<% } %></span>
-      </button>
-    </div>
-
-    <style>
-      .dash-filter-pill {
-        display: inline-flex; align-items: center; gap: 0.3rem;
-        padding: 0.375rem 0.875rem;
-        background: transparent;
-        border: 1px solid var(--border);
-        border-radius: 9999px;
-        color: var(--muted-foreground);
-        font-size: 0.8125rem; font-weight: 500;
-        cursor: pointer; font-family: inherit; line-height: 1;
-        transition: border-color 0.15s, color 0.15s, background 0.15s;
-      }
-      .dash-filter-pill:hover { border-color: var(--primary); color: var(--foreground); }
-      .dash-filter-pill.active { border-color: var(--primary); color: var(--primary); background: var(--status-active-bg); }
-      .team-creator { margin-left: 0.5rem; color: var(--muted-foreground); font-size: 0.75rem; white-space: nowrap; }
-    </style>
-
-    <!-- Pagination Controls -->
-    <% if (pagination.totalUrls > 0) { %>
-      <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-          <!-- Items per page selector -->
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <label for="itemsPerPage" style="color: var(--muted-foreground); font-size: 0.875rem;">Show:</label>
-            <select id="itemsPerPage" style="padding: 0.5rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem; cursor: pointer;">
-              <option value="50" <%= pagination.limit == 50 ? 'selected' : '' %>>50</option>
-              <option value="100" <%= pagination.limit == 100 ? 'selected' : '' %>>100</option>
-              <option value="150" <%= pagination.limit == 150 ? 'selected' : '' %>>150</option>
-              <option value="200" <%= pagination.limit == 200 ? 'selected' : '' %>>200</option>
-              <option value="all" <%= pagination.limit === 'all' ? 'selected' : '' %>>All</option>
-            </select>
-            <span style="color: var(--muted-foreground); font-size: 0.875rem;">
-              <% if (pagination.limit === 'all') { %>
-                Showing all <%= pagination.totalUrls %> link<%= pagination.totalUrls !== 1 ? 's' : '' %><% if (bundles.length > 0) { %> &middot; <%= bundles.length %> bundle<%= bundles.length !== 1 ? 's' : '' %><% } %>
-              <% } else { %>
-                Showing <%= Math.min((pagination.currentPage - 1) * pagination.limit + 1, pagination.totalUrls) %>-<%= Math.min(pagination.currentPage * pagination.limit, pagination.totalUrls) %> of <%= pagination.totalUrls %> link<%= pagination.totalUrls !== 1 ? 's' : '' %><% if (bundles.length > 0) { %> &middot; <%= bundles.length %> bundle<%= bundles.length !== 1 ? 's' : '' %><% } %>
-              <% } %>
-            </span>
-          </div>
-
-          <!-- Page navigation -->
-          <% if (pagination.limit !== 'all' && pagination.totalPages > 1) { %>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <button
-                id="prevPage"
-                class="btn"
-                style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground);"
-                <%= !pagination.hasPrev ? 'disabled' : '' %>
-              >
-                Previous
-              </button>
-              <span style="color: var(--muted-foreground); font-size: 0.875rem;">
-                Page <%= pagination.currentPage %> of <%= pagination.totalPages %>
-              </span>
-              <button
-                id="nextPage"
-                class="btn"
-                style="padding: 0.5rem 1rem; color: var(--primary-foreground);"
-                <%= !pagination.hasNext ? 'disabled' : '' %>
-              >
-                Next
-              </button>
-            </div>
-          <% } %>
-        </div>
-      </div>
-    <% } %>
-
-    <!-- Search & Sort Bar -->
-    <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
-      <form id="dashboardFilterForm" method="GET" action="/dashboard" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end;">
-        <input type="hidden" name="limit" value="<%= pagination.limit %>">
-        <% if (currentTeam) { %><input type="hidden" name="team" value="<%= currentTeam.id %>"><% } %>
-        <div style="flex:2; min-width:220px;">
-          <label for="dashSearchInput" style="display:block; margin-bottom:0.4rem; font-size:0.875rem; color:var(--muted-foreground);">Search</label>
-          <input type="text" id="dashSearchInput" name="search" value="<%= filters.search %>" placeholder="Search slug or URL..." style="width:100%; padding:0.5rem 0.75rem; background-color:var(--secondary); color:var(--foreground); border:1px solid var(--border); border-radius:0.375rem;">
-        </div>
-        <div style="min-width:150px;">
-          <label for="dashSortSelect" style="display:block; margin-bottom:0.4rem; font-size:0.875rem; color:var(--muted-foreground);">Sort By</label>
-          <select id="dashSortSelect" name="sort" style="width:100%; padding:0.5rem 0.75rem; background-color:var(--secondary); color:var(--foreground); border:1px solid var(--border); border-radius:0.375rem; cursor:pointer;">
-            <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest First</option>
-            <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest First</option>
-            <option value="most-clicks" <%= filters.sort === 'most-clicks' ? 'selected' : '' %>>Most Clicks</option>
-            <option value="least-clicks" <%= filters.sort === 'least-clicks' ? 'selected' : '' %>>Least Clicks</option>
-          </select>
-        </div>
-        <div style="display:flex; gap:0.5rem; align-items:flex-end;">
-          <button type="submit" class="btn" style="color:var(--primary-foreground);">Apply</button>
-          <% if (filters.search || (filters.sort && filters.sort !== 'newest')) { %>
-            <a href="/dashboard?limit=<%= pagination.limit %><%= currentTeam ? `&team=${currentTeam.id}` : '' %>" class="btn" style="background-color:var(--secondary); color:var(--foreground);">Clear</a>
-          <% } %>
-        </div>
-      </form>
-    </div>
-
-    <!-- Tag Filter Section (every row type) -->
-    <%
-      const tagNames = (item) => (item.tags || []).map(t => t.name).join(',');
-      const allTags = new Map();
-      [...urls, ...bundles, ...files, ...pastes].forEach(item => {
-        (item.tags || []).forEach(tag => { if (!allTags.has(tag.name)) allTags.set(tag.name, tag); });
-      });
-    %>
-    <% if (allTags.size > 0) { %>
-      <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
-        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-          <span style="font-weight: 500; color: var(--muted-foreground);">Filter by tags:</span>
-          <button class="tag-filter-btn" data-tag="all" style="padding: 0.25rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 4px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s;">
-            Clear All
-          </button>
-          <% Array.from(allTags.values()).forEach(tag => { %>
-            <button class="tag-filter-btn" data-tag="<%= tag.name %>" style="padding: 0.25rem 0.75rem; background-color: <%= tag.color %>20; color: <%= tag.color %>; border: 1px solid <%= tag.color %>40; border-radius: 4px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; opacity: 0.6;">
-              <%= tag.name %>
-            </button>
-          <% }); %>
-        </div>
-        <div id="activeFilters" style="margin-top: 0.75rem; display: none; font-size: 0.875rem; color: var(--muted-foreground);">
-          <span style="font-weight: 500;">Active filters:</span> <span id="filterCount">0</span> tag(s) selected
-        </div>
-      </div>
-    <% } %>
-
-    <!-- Empty State or Unified List -->
-    <% if (urls.length === 0 && bundles.length === 0 && files.length === 0 && pastes.length === 0) { %>
-      <div class="empty-state">
-        <p>Nothing here yet</p>
-        <a href="/" class="btn btn-small">Create your first link</a>
-      </div>
-    <% } else { %>
-      <div id="itemList" class="url-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
-        <% urls.forEach(url => { %>
-          <%
-            // Status from accessService (same as what visitors get)
-            const status = url.accessStatus;
-          %>
-          <div class="url-item url-row" data-type="link" data-created-at="<%= url.createdAt %>" data-tags="<%= tagNames(url) %>" data-url-id="<%= url.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
-            <!-- Collapsed View (Always Visible) -->
-            <div class="url-item-header" style="padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer;" onclick="toggleUrlDetails(this)">
-              <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 1rem;">
-                <!-- Selection Checkbox (visible in selection mode only) -->
-                <input type="checkbox" class="url-select-checkbox" style="display:none; flex-shrink:0; width:18px; height:18px; cursor:pointer; accent-color:var(--primary);" onclick="event.stopPropagation();" onchange="toggleUrlSelection(<%= url.id %>, this)">
-                <!-- Expand/Collapse Icon -->
-                <svg class="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; transition: transform 0.2s;">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-
-                <!-- Type Icon: chain-link -->
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; color:var(--muted-foreground);">
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                </svg>
-
-                <!-- Short URL -->
-                <div style="min-width: 120px; flex-shrink: 0; display: flex; align-items: center; gap: 0.5rem;">
-                  <a href="<%= baseUrl %>/s/<%= url.slug %>" target="_blank" class="url-link" onclick="event.stopPropagation();" style="font-weight: 500; color: var(--primary);">
-                    /s/<%= url.slug %>
-                  </a>
-                  <% if (currentTeam && url.creatorUsername) { %><span class="team-creator">by <strong><%= url.creatorUsername %></strong></span><% } %>
-                  <% if (features.analyticsShareLinks && url.shareCount > 0) { %>
-                  <span
-                    style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.125rem 0.5rem; background-color: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 4px; font-size: 0.75rem; font-weight: 500;"
-                    title="<%= url.shareCount %> active analytics share link<%= url.shareCount === 1 ? '' : 's' %>">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="9" cy="7" r="4"></circle>
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                    <%= url.shareCount %>
-                  </span>
-                  <% } %>
-                </div>
-
-                <!-- Long URL (Truncated) with Tags -->
-                <div style="flex: 1; min-width: 0;">
-                  <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    <a href="<%= url.longUrl %>" target="_blank" onclick="event.stopPropagation();" style="color: var(--foreground); text-decoration: none;" title="<%= url.longUrl %>">
-                      <%= url.longUrl %>
-                    </a>
-                  </div>
-                  <%- include('partials/tag-chips', { tags: url.tags }) %>
-                </div>
-
-                <!-- Clicks Badge -->
-                <div style="flex-shrink: 0; padding: 0.25rem 0.75rem; background-color: var(--secondary); border-radius: 0.375rem; font-size: 0.875rem;">
-                  <%= url.clicks %> clicks
-                </div>
-
-                <!-- Status Badge -->
-                <div style="flex-shrink: 0;">
-                  <%- include('partials/status-badge', { status }) %>
-                </div>
-
-                <!-- Deletion Warning Badge -->
-                <%- include('partials/deletion-badge', { days: url.deletesInDays, noun: 'link' }) %>
-
-                <!-- Reports Badge -->
-                <% if (url.reportCount > 0) { %>
-                  <div style="flex-shrink: 0;">
-                    <span class="badge" style="background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border);">
-                      <%= url.reportCount %> reports
-                    </span>
-                  </div>
-                <% } %>
-
-                <!-- Password Protection Badge -->
-                <% if (url.password) { %>
-                  <div style="flex-shrink: 0;" title="Password Protected">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                  </div>
-                <% } %>
-
-                <!-- Quick Actions -->
-                <div style="flex-shrink: 0; display: flex; gap: 0.25rem; align-items: center; margin-left: 0.5rem;">
-                  <button class="icon-btn" onclick="event.stopPropagation(); window.open('/info/<%= url.slug %>', '_blank');" title="View Info">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="16" x2="12" y2="12"></line>
-                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
-                  </button>
-                  <% if (can.analytics) { %>
-                  <button class="icon-btn" onclick="event.stopPropagation(); window.location.href='/analytics/url/<%= url.id %>';" title="Analytics">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M3 3v18h18"></path>
-                      <path d="M18 17V9"></path>
-                      <path d="M13 17V5"></path>
-                      <path d="M8 17v-3"></path>
-                    </svg>
-                  </button>
-                  <% } %>
-                  <% if (features.qrCodes) { %>
-                  <button class="icon-btn" onclick="event.stopPropagation(); showQRCode(<%= url.id %>, '<%= url.slug %>');" title="QR Code">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M3 11V3h8v8H3zm2-2h4V5H5v4zm-2 12v-8h8v8H3zm2-2h4v-4H5v4zM13 3h8v8h-8V3zm2 2v4h4V5h-4zm-2 16v-2h2v-2h2v2h2v-2h2v4h-4v2h-4v-2h-2zm2-4v-2h2v2h-2zm4 0v-2h2v2h-2zm-4-4V9h2v2h-2zm2 0h2v2h-2v-2zm2-2V9h2v2h-2z"/>
-                    </svg>
-                  </button>
-                  <% } %>
-                  <% if (url.canEdit) { %>
-                  <button class="icon-btn" onclick="event.stopPropagation(); editUrl(<%= url.id %>);" title="Edit">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                  </button>
-                  <button class="icon-btn danger" onclick="event.stopPropagation(); deleteUrl(<%= url.id %>);" title="Delete">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                  </button>
-                  <% } %>
-                </div>
-              </div>
-            </div>
-
-            <!-- Expanded Details (Hidden by Default) -->
-            <div class="url-item-details" style="display: none; padding: 0 1rem 1rem 1rem; border-top: 1px solid var(--border);">
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding-top: 1rem;">
-                <!-- Max Uses -->
-                <div>
-                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Max Uses</div>
-                  <div style="font-weight: 500;"><%= url.maxUses || 'Unlimited' %></div>
-                </div>
-
-                <!-- Expiration -->
-                <div>
-                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Expires</div>
-                  <div style="font-weight: 500;"><%= url.expiresAt ? new Date(url.expiresAt).toLocaleDateString('en-GB') : 'Never' %></div>
-                </div>
-
-                <!-- Created -->
-                <div>
-                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Created</div>
-                  <div style="font-weight: 500;"><%= new Date(url.createdAt).toLocaleDateString('en-GB') %></div>
-                </div>
-
-                <!-- Password Protection Status -->
-                <div>
-                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Password Protection</div>
-                  <div style="font-weight: 500;">
-                    <% if (url.password) { %>
-                      <span style="color: #fbbf24; display: inline-flex; align-items: center; gap: 0.25rem;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                        Protected
-                      </span>
-                    <% } else { %>
-                      <span style="color: var(--muted-foreground);">None</span>
-                    <% } %>
-                  </div>
-                </div>
-
-                <!-- Scheduling Status -->
-                <% if (url.activateAt || url.deactivateAt) { %>
-                <div>
-                  <div style="color: var(--muted-foreground); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Schedule</div>
-                  <div style="font-weight: 500;">
-                    <%
-                      const now = new Date();
-                      const activateDate = url.activateAt ? new Date(url.activateAt) : null;
-                      const deactivateDate = url.deactivateAt ? new Date(url.deactivateAt) : null;
-                      let statusColor = 'var(--primary)';
-                      let statusText = 'Active';
-                      let statusIcon = '✓';
-
-                      if (activateDate && activateDate > now) {
-                        statusColor = '#fbbf24';
-                        statusText = 'Scheduled';
-                        statusIcon = '⏰';
-                      } else if (deactivateDate && deactivateDate < now) {
-                        statusColor = 'var(--status-error-text)';
-                        statusText = 'Expired';
-                        statusIcon = '⏱️';
-                      }
-                    %>
-                    <span style="color: <%= statusColor %>; display: inline-flex; align-items: center; gap: 0.25rem;">
-                      <%= statusIcon %> <%= statusText %>
-                    </span>
-                    <div style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem;">
-                      <% if (url.activateAt) { %>
-                        Starts: <%= new Date(url.activateAt).toLocaleString('en-GB', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false}) %><br>
-                      <% } %>
-                      <% if (url.deactivateAt) { %>
-                        Ends: <%= new Date(url.deactivateAt).toLocaleString('en-GB', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false}) %>
-                      <% } %>
-                    </div>
-                  </div>
-                </div>
-                <% } %>
-              </div>
-
-              <!-- Actions -->
-              <div style="display: flex; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); flex-wrap: wrap;">
-                <a href="/info/<%= url.slug %>" class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                  </svg>
-                  Info
-                </a>
-                <% if (can.analytics) { %>
-                <a href="/analytics/url/<%= url.id %>" class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 3v18h18"></path>
-                    <path d="M18 17V9"></path>
-                    <path d="M13 17V5"></path>
-                    <path d="M8 17v-3"></path>
-                  </svg>
-                  Analytics
-                </a>
-                <% } %>
-                <% if (features.qrCodes) { %>
-                <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="showQRCode(<%= url.id %>, '<%= url.slug %>')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 11V3h8v8H3zm2-2h4V5H5v4zm-2 12v-8h8v8H3zm2-2h4v-4H5v4zM13 3h8v8h-8V3zm2 2v4h4V5h-4zm-2 16v-2h2v-2h2v2h2v-2h2v4h-4v2h-4v-2h-2zm2-4v-2h2v2h-2zm4 0v-2h2v2h-2zm-4-4V9h2v2h-2zm2 0h2v2h-2v-2zm2-2V9h2v2h-2z"/>
-                  </svg>
-                  QR Code
-                </button>
-                <% } %>
-                <%- include('partials/team-move-button', { type: 'url', id: url.id, item: url }) %>
-                <% if (url.canEdit) { %>
-                <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="editUrl(<%= url.id %>)">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                  </svg>
-                  Edit
-                </button>
-                <button class="btn" style="padding: 0.5rem 1rem; background-color: var(--status-error-bg); color: var(--status-error-text); border: 1px solid var(--status-error-border); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.5rem;" onclick="deleteUrl(<%= url.id %>)">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
-                  Delete
-                </button>
-                <% } %>
-              </div>
-            </div>
-          </div>
-        <% }); %>
-
-        <!-- Bundle Rows (inside same container for unified date sort) -->
-        <% bundles.forEach(bundle => { %>
-          <div class="url-item" data-type="bundle" data-created-at="<%= bundle.createdAt %>" data-tags="<%= tagNames(bundle) %>" id="bundle-<%= bundle.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
-            <div style="padding: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-
-              <!-- Type Icon: layers/bundle -->
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted-foreground); flex-shrink: 0;">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-              </svg>
-
-              <!-- Title and URL -->
-              <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 600; color: var(--foreground); font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  <%= bundle.title %>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--muted-foreground);">
-                  <a href="<%= baseUrl %>/b/<%= bundle.slug %>" target="_blank" style="color: var(--primary); text-decoration: none;">
-                    /b/<%= bundle.slug %>
-                  </a>
-                  <% if (currentTeam && bundle.creatorUsername) { %><span class="team-creator">by <strong><%= bundle.creatorUsername %></strong></span><% } %>
-                </div>
-                <%- include('partials/tag-chips', { tags: bundle.tags }) %>
-              </div>
-
-              <!-- Badges -->
-              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                <div style="flex-shrink: 0; padding: 0.25rem 0.75rem; background-color: var(--secondary); border-radius: 0.375rem; font-size: 0.875rem; color: var(--muted-foreground);">
-                  <%= bundle.itemCount %> link<%= bundle.itemCount !== 1 ? 's' : '' %>
-                </div>
-                <div style="flex-shrink: 0; padding: 0.25rem 0.75rem; background-color: var(--secondary); border-radius: 0.375rem; font-size: 0.875rem;">
-                  <%= bundle.clicks %> clicks
-                </div>
-                <div style="flex-shrink: 0;">
-                  <%- include('partials/status-badge', { status: bundle.accessStatus }) %>
-                </div>
-                <% if (bundle.password) { %>
-                  <div style="flex-shrink: 0;" title="Password Protected">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                  </div>
-                <% } %>
-              </div>
-
-              <!-- Actions -->
-              <div style="display: flex; gap: 0.4rem; flex-shrink: 0;">
-                <a href="<%= baseUrl %>/b/<%= bundle.slug %>" target="_blank" class="icon-btn" title="Open bundle">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                  </svg>
-                </a>
-                <% if (can.analytics) { %>
-                <a href="/analytics/bundle/<%= bundle.id %>" class="icon-btn" title="Analytics">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 3v18h18"></path>
-                    <path d="M18 17V9"></path>
-                    <path d="M13 17V5"></path>
-                    <path d="M8 17v-3"></path>
-                  </svg>
-                </a>
-                <% } %>
-                <%- include('partials/team-move-button', { type: 'bundle', id: bundle.id, item: bundle }) %>
-                <% if (bundle.canEdit) { %>
-                <button class="icon-btn" title="Edit bundle" onclick="editBundle(<%= bundle.id %>)">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                  </svg>
-                </button>
-                <button class="icon-btn danger" title="Delete bundle" onclick="confirmDeleteBundle(<%= bundle.id %>, '<%= bundle.title.replace(/'/g, "\\'") %>')">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
-                </button>
-                <% } %>
-              </div>
-
-            </div>
-          </div>
+      <label class="visually-hidden" for="dashSort">Sort</label>
+      <select class="form-input" id="dashSort" name="sort">
+        <% [['newest', 'Newest'], ['oldest', 'Oldest'], ['most-used', 'Most used'], ['least-used', 'Least used']].forEach(([value, label]) => { %>
+          <option value="<%= value %>"<%= filters.sort === value ? ' selected' : '' %>><%= label %></option>
         <% }) %>
+      </select>
+      <noscript><button type="submit" class="btn btn-small btn-secondary">Search</button></noscript>
+    </form>
 
-        <!-- File Rows (roles with uploadFiles, same flat style as bundles) -->
-        <% if (showFiles) { %>
-          <% files.forEach(file => { %>
-            <%
-              const fmtSize = file.size < 1024 ? file.size + ' B'
-                : file.size < 1048576 ? (file.size / 1024).toFixed(1) + ' KB'
-                : (file.size / 1048576).toFixed(1) + ' MB';
-            %>
-            <div class="url-item" data-type="file" data-created-at="<%= file.createdAt %>" data-tags="<%= tagNames(file) %>" id="file-item-<%= file.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
-              <div style="padding: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-
-                <!-- Type Icon: file-corner-fold -->
-                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted-foreground); flex-shrink: 0;">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                  <polyline stroke-linecap="round" stroke-linejoin="round" stroke-width="2" points="13 2 13 9 20 9"></polyline>
-                </svg>
-
-                <!-- Name and short link -->
-                <div style="flex: 1; min-width: 0;">
-                  <div style="font-weight: 600; color: var(--foreground); font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    <%= file.originalName %>
-                  </div>
-                  <div style="font-size: 0.8rem; color: var(--muted-foreground);">
-                    <a href="<%= baseUrl %>/f/<%= file.slug %>" target="_blank" style="color: var(--primary); text-decoration: none;">
-                      /f/<%= file.slug %>
-                    </a>
-                    <% if (currentTeam && file.ownerUsername) { %><span class="team-creator">by <strong><%= file.ownerUsername %></strong></span><% } %>
-                  </div>
-                  <%- include('partials/tag-chips', { tags: file.tags }) %>
-                </div>
-
-                <!-- Badges -->
-                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                  <div style="flex-shrink: 0; padding: 0.25rem 0.75rem; background-color: var(--secondary); border-radius: 0.375rem; font-size: 0.875rem; color: var(--muted-foreground);">
-                    <%= fmtSize %>
-                  </div>
-                  <div style="flex-shrink: 0; padding: 0.25rem 0.75rem; background-color: var(--secondary); border-radius: 0.375rem; font-size: 0.875rem;">
-                    <%= file.downloads %> dl
-                  </div>
-                  <div style="flex-shrink: 0;">
-                    <%- include('partials/status-badge', { status: file.accessStatus }) %>
-                  </div>
-                  <% if (file.password) { %>
-                    <div style="flex-shrink: 0;" title="Password Protected">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                      </svg>
-                    </div>
-                  <% } %>
-                </div>
-
-                <!-- Actions -->
-                <div style="display: flex; gap: 0.4rem; flex-shrink: 0;">
-                  <button class="icon-btn" title="Copy link" onclick="copyFileLink('<%= baseUrl %>/f/<%= file.slug %>', this)">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <rect x="9" y="9" width="13" height="13" rx="2"/>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                    </svg>
-                  </button>
-                  <% if (can.analytics) { %>
-                  <a class="icon-btn" title="Analytics" href="/analytics/file/<%= file.id %>">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M3 3v18h18"></path>
-                      <path d="M18 17V9"></path>
-                      <path d="M13 17V5"></path>
-                      <path d="M8 17v-3"></path>
-                    </svg>
-                  </a>
-                  <% } %>
-                  <%- include('partials/team-move-button', { type: 'file', id: file.id, item: file }) %>
-                  <% if (file.canEdit) { %>
-                  <button class="icon-btn" title="Edit" onclick="openFileEdit(<%= file.id %>)">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                    </svg>
-                  </button>
-                  <button class="icon-btn danger" title="Delete" onclick="deleteFile(<%= file.id %>, '<%= file.originalName.replace(/\\/g, '\\\\').replace(/'/g, "\\'") %>')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                  </button>
-                  <% } %>
-                </div>
-
-              </div>
-            </div>
-          <% }); %>
-        <% } %>
-
-        <!-- Paste Rows (all logged-in users, same flat style as bundles/files) -->
-        <% pastes.forEach(paste => { %>
-          <%
-            const pasteName = (paste.title && paste.title.trim()) ? paste.title : '(untitled paste)';
-          %>
-          <div class="url-item" data-type="paste" data-created-at="<%= paste.createdAt %>" data-tags="<%= tagNames(paste) %>" id="paste-item-<%= paste.id %>" style="background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden;">
-            <div style="padding: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-
-              <!-- Type Icon: document -->
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--muted-foreground); flex-shrink: 0;">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline stroke-linecap="round" stroke-linejoin="round" stroke-width="2" points="14 2 14 8 20 8"></polyline>
-              </svg>
-
-              <!-- Title and short link -->
-              <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 600; color: var(--foreground); font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  <%= pasteName %>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--muted-foreground);">
-                  <a href="<%= baseUrl %>/p/<%= paste.slug %>" target="_blank" style="color: var(--primary); text-decoration: none;">
-                    /p/<%= paste.slug %>
-                  </a>
-                  <% if (currentTeam && paste.ownerUsername) { %><span class="team-creator">by <strong><%= paste.ownerUsername %></strong></span><% } %>
-                </div>
-                <%- include('partials/tag-chips', { tags: paste.tags }) %>
-              </div>
-
-              <!-- Badges -->
-              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                <div style="flex-shrink: 0; padding: 0.25rem 0.75rem; background-color: var(--secondary); border-radius: 0.375rem; font-size: 0.875rem; color: var(--muted-foreground);">
-                  <%= paste.content.length %> chars
-                </div>
-                <div style="flex-shrink: 0; padding: 0.25rem 0.75rem; background-color: var(--secondary); border-radius: 0.375rem; font-size: 0.875rem;">
-                  <%= paste.views %> view<%= paste.views === 1 ? '' : 's' %>
-                </div>
-                <% if (paste.language) { %>
-                  <div style="flex-shrink: 0; padding: 0.25rem 0.75rem; background-color: var(--secondary); border-radius: 0.375rem; font-size: 0.875rem; color: var(--muted-foreground);">
-                    <%= paste.language %>
-                  </div>
-                <% } %>
-                <div style="flex-shrink: 0;">
-                  <%- include('partials/status-badge', { status: paste.accessStatus }) %>
-                </div>
-                <%- include('partials/deletion-badge', { days: paste.deletesInDays, noun: 'paste' }) %>
-                <% if (paste.password) { %>
-                  <div style="flex-shrink: 0;" title="Password Protected">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                  </div>
-                <% } %>
-              </div>
-
-              <!-- Actions -->
-              <div style="display: flex; gap: 0.4rem; flex-shrink: 0;">
-                <button class="icon-btn" title="View Info" onclick="window.open('/p-info/<%= paste.slug %>', '_blank')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                  </svg>
-                </button>
-                <% if (can.analytics) { %>
-                <a class="icon-btn" title="Analytics" href="/analytics/paste/<%= paste.id %>">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 3v18h18"></path>
-                    <path d="M18 17V9"></path>
-                    <path d="M13 17V5"></path>
-                    <path d="M8 17v-3"></path>
-                  </svg>
-                </a>
-                <% } %>
-                <% if (features.qrCodes) { %>
-                <button class="icon-btn" title="QR Code" onclick="showPasteQRCode('<%= paste.slug %>')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 11V3h8v8H3zm2-2h4V5H5v4zm-2 12v-8h8v8H3zm2-2h4v-4H5v4zM13 3h8v8h-8V3zm2 2v4h4V5h-4zm-2 16v-2h2v-2h2v2h2v-2h2v4h-4v2h-4v-2h-2zm2-4v-2h2v2h-2zm4 0v-2h2v2h-2zm-4-4V9h2v2h-2zm2 0h2v2h-2v-2zm2-2V9h2v2h-2z"/>
-                  </svg>
-                </button>
-                <% } %>
-                <%- include('partials/team-move-button', { type: 'paste', id: paste.id, item: paste }) %>
-                <% if (paste.canEdit) { %>
-                <a class="icon-btn" title="Edit" href="/pastes/<%= paste.id %>/edit">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                </a>
-                <button class="icon-btn danger" title="Delete" onclick="deletePaste(<%= paste.id %>, '<%= pasteName.replace(/\\/g, '\\\\').replace(/'/g, "\\'") %>')">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
-                </button>
-                <% } %>
-              </div>
-
-            </div>
-          </div>
-        <% }); %>
-      </div>
-    <% } %>
-
-    <!-- Empty state when Bundles filter active but no bundles -->
-    <div id="noBundlesMsg" style="display:none;" class="empty-state">
-      <p>No bundles yet</p>
-      <a href="/" class="btn btn-small">Create your first bundle</a>
+    <div id="dashResults" aria-live="polite">
+      <%- include('partials/dashboard-results') %>
     </div>
-
-    <!-- Empty state when Files filter active but no files -->
-    <% if (showFiles) { %>
-    <div id="noFilesMsg" style="display:none;" class="empty-state">
-      <p>No files yet</p>
-      <a href="/" class="btn btn-small">Upload your first file</a>
-    </div>
-    <% } %>
-
-    <!-- Empty state when Pastes filter active but no pastes -->
-    <div id="noPastesMsg" style="display:none;" class="empty-state">
-      <p>No pastes yet</p>
-      <a href="/" class="btn btn-small">Create your first paste</a>
-    </div>
-
   </main>
 
-  <!-- Bundle Edit Modal -->
-  <div class="modal-overlay" id="editBundleModal">
-    <div class="modal" style="max-width: 600px;">
-      <div class="modal-header">
-        <h2>Edit Bundle</h2>
-        <button class="modal-close" onclick="closeModal('editBundleModal')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div id="editBundleLoading" style="text-align: center; padding: 2rem; color: var(--muted-foreground);">Loading...</div>
-        <div id="editBundleContent" style="display: none;">
-          <div class="form-group">
-            <label class="form-label">Title *</label>
-            <input type="text" id="editBundleTitle" class="form-input" placeholder="Bundle title" maxlength="100">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Description</label>
-            <textarea id="editBundleDescription" class="form-input" placeholder="Optional description" rows="2" style="resize: vertical;"></textarea>
-          </div>
-          <div style="margin: 1.25rem 0 0.75rem;">
-            <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--foreground);">Links</div>
-            <div id="editBundleItemsList" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
-            <button type="button" onclick="addEditBundleItem()" class="btn" style="margin-top: 0.5rem; width: 100%;">+ Add Link</button>
-          </div>
-          <% if (can.tags) { %>
-          <div class="form-group">
-            <label class="form-label">Tags</label>
-            <div id="editBundleTagSelector"></div>
-          </div>
-          <% } %>
-          <input type="hidden" id="editBundleId">
-        </div>
-      </div>
-      <div class="modal-footer" id="editBundleModalFooter" style="display: none;">
-        <button class="btn" onclick="closeModal('editBundleModal')">Cancel</button>
-        <button class="btn btn-primary" onclick="saveBundleChanges()">Save Changes</button>
-      </div>
-    </div>
+  <!-- Select mode: bulk delete -->
+  <div class="bulk-bar" id="bulkBar" hidden>
+    <span id="bulkCount">0 selected</span>
+    <button type="button" class="btn btn-small btn-secondary" id="bulkAll">Select all</button>
+    <button type="button" class="btn btn-small btn-danger" id="bulkDelete" disabled>Delete</button>
+    <button type="button" class="btn btn-small btn-ghost" id="bulkCancel">Cancel</button>
   </div>
 
-  <!-- Bundle Delete Confirm Modal -->
-  <div class="modal-overlay" id="confirmDeleteBundleModal">
-    <div class="modal" style="max-width: 420px;">
+  <!-- QR code -->
+  <div id="qrModal" class="modal-overlay">
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="qrTitle">
       <div class="modal-header">
-        <h2>Delete Bundle</h2>
-        <button class="modal-close" onclick="closeModal('confirmDeleteBundleModal')">&times;</button>
+        <h3 id="qrTitle">QR code</h3>
+        <button type="button" class="modal-close" data-close-modal="qrModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
-      <div class="modal-body">
-        <p>Are you sure you want to delete <strong id="deleteBundleTitleSpan"></strong>? This cannot be undone.</p>
+      <div class="modal-body qr-body">
+        <img id="qrImage" alt="QR code" width="240" height="240">
+        <p class="field-help" id="qrTarget"></p>
       </div>
       <div class="modal-footer">
-        <button class="btn" onclick="closeModal('confirmDeleteBundleModal')">Cancel</button>
-        <button class="btn btn-danger" id="confirmBundleDeleteBtn">Delete</button>
+        <a id="qrDownload" class="btn" href="#"><%- include('partials/icon', { icon: 'download' }) %> Download PNG</a>
       </div>
     </div>
   </div>
 
-  <!-- Bulk Actions Bar (fixed at bottom, shown in selection mode) -->
-  <div id="bulkActionsBar" style="display:none; position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:2px solid var(--primary); padding:0.875rem 1.5rem; z-index:200; box-shadow:0 -4px 12px rgba(0,0,0,0.3);">
-    <div style="display:flex; align-items:center; gap:1rem; max-width:1400px; margin:0 auto; flex-wrap:wrap;">
-      <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.875rem; color:var(--muted-foreground);">
-        <input type="checkbox" id="selectAllCheckbox" style="width:16px; height:16px; accent-color:var(--primary);" onchange="selectAll(this.checked)">
-        Select All
-      </label>
-      <span id="selectedCount" style="font-weight:600; color:var(--primary);">0 selected</span>
-      <div style="flex:1;"></div>
-      <button class="btn btn-danger" onclick="bulkDelete()" id="bulkDeleteBtn" disabled>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.375rem;">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-        Delete Selected
-      </button>
-      <button class="btn" style="background:var(--secondary); color:var(--foreground);" onclick="exitSelectionMode()">Cancel</button>
-    </div>
-  </div>
-
-  <!-- Edit URL Modal -->
+  <!-- Edit a link -->
   <div id="editUrlModal" class="modal-overlay">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editUrlTitle">
       <div class="modal-header">
-        <h3>Edit URL</h3>
-        <button class="modal-close" onclick="closeModal('editUrlModal')">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <h3 id="editUrlTitle">Edit link</h3>
+        <button type="button" class="modal-close" data-close-modal="editUrlModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
-      
-      <div class="modal-body">
-        <div class="modal-info">
-          <strong>Current Stats:</strong>
-          <span id="currentClicks">0</span> clicks |
-          Created: <span id="currentCreated">-</span>
-        </div>
-
-        <div id="currentPasswordStatus" class="modal-info" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background-color: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 0.375rem;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-          <strong style="color: #fbbf24;">This URL is currently password protected</strong>
-        </div>
-
+      <form class="modal-body" id="editUrlForm" novalidate>
+        <p class="field-help" id="editUrlMeta"></p>
+        <p class="field-help edit-password-note" id="editUrlPasswordNote" hidden><%- include('partials/icon', { icon: 'lock' }) %> This link is password-protected.</p>
         <div class="form-group">
-          <label for="editLongUrl" class="form-label">Long URL</label>
-          <input 
-            type="url" 
-            id="editLongUrl" 
-            class="form-input"
-            placeholder="https://example.com"
-            required
-          >
+          <label for="editLongUrl" class="form-label">Destination</label>
+          <input type="url" id="editLongUrl" class="form-input" placeholder="https://example.com" required>
         </div>
-
         <div class="form-group">
-          <label for="editCustomSlug" class="form-label">Custom Slug</label>
-          <input 
-            type="text" 
-            id="editCustomSlug" 
-            class="form-input"
-            placeholder="my-custom-slug"
-            pattern="[A-Za-z0-9_-]{1,20}"
-          >
-          <div class="form-hint">1-20 characters (A-Z, a-z, 0-9, -, _)</div>
+          <label for="editCustomSlug" class="form-label">Slug</label>
+          <input type="text" id="editCustomSlug" class="form-input" pattern="[A-Za-z0-9_-]{1,20}">
+          <p class="field-help">1–20 characters: letters, numbers, - and _</p>
         </div>
-
+        <% if (can.tags) { %>
         <div class="form-group">
-          <label for="editTags" class="form-label">Tags (Optional)</label>
-          <div id="tagSelectorEdit"></div>
-          <input type="hidden" id="editTags" value="">
-          <small style="color: var(--muted-foreground); font-size: 0.875rem;">Type to search existing tags or create new ones. Press Enter or click to add.</small>
+          <label class="form-label">Tags</label>
+          <div id="editUrlTags"></div>
         </div>
-
-        <div class="form-group">
-          <label for="editPassword" class="form-label">Password Protection (Optional)</label>
-          <input
-            type="password"
-            id="editPassword"
-            class="form-input"
-            placeholder="Leave empty to keep current password"
-            autocomplete="new-password"
-            data-toggle-password
-          >
-          <small style="color: var(--muted-foreground); font-size: 0.875rem;">
-            Enter a new password to update it, or leave empty to keep current setting.
-          </small>
-          <div class="form-group" style="margin-top: 0.5rem;">
-            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">
-              <input type="checkbox" id="removePassword" style="width: auto; margin: 0;">
-              Remove password protection
-            </label>
+        <% } %>
+        <div class="form-group" id="editUrlPasswordGroup">
+          <% if (can.passwordProtection) { %>
+          <label for="editPassword" class="form-label">New password (optional)</label>
+          <input type="password" id="editPassword" class="form-input" autocomplete="new-password" placeholder="Leave empty to keep it" data-toggle-password>
+          <% } %>
+          <label class="checkbox-line" id="removePasswordLine"><input type="checkbox" id="removePassword"> Remove the password</label>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editMaxUses" class="form-label">Click limit</label>
+            <input type="number" id="editMaxUses" class="form-input" min="1" placeholder="No limit">
+          </div>
+          <div class="form-group">
+            <label for="editExpirationDays" class="form-label">Days until it expires</label>
+            <input type="number" id="editExpirationDays" class="form-input" min="1" placeholder="Never">
           </div>
         </div>
-
-        <div class="form-grid">
+        <% if (can.scheduling) { %>
+        <div class="form-row">
           <div class="form-group">
-            <label for="editMaxUses" class="form-label">Max Uses</label>
-            <input
-              type="number"
-              id="editMaxUses"
-              class="form-input"
-              placeholder="Unlimited"
-              min="1"
-            >
+            <label for="editActivateDateTime" class="form-label">Active from (UTC)</label>
+            <input type="datetime-local" id="editActivateDateTime" class="form-input">
           </div>
-
           <div class="form-group">
-            <label for="editExpirationDays" class="form-label">Days Until Expiration</label>
-            <input
-              type="number"
-              id="editExpirationDays"
-              class="form-input"
-              placeholder="Never expire"
-              min="1"
-            >
+            <label for="editDeactivateDateTime" class="form-label">Active until (UTC)</label>
+            <input type="datetime-local" id="editDeactivateDateTime" class="form-input">
           </div>
         </div>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="editActivateDateTime" class="form-label">Activate At (Optional)</label>
-            <input
-              type="datetime-local"
-              id="editActivateDateTime"
-              class="form-input"
-            >
-            <small style="color: var(--muted-foreground); font-size: 0.875rem;">
-              Link will not work before this time
-            </small>
-          </div>
-
-          <div class="form-group">
-            <label for="editDeactivateDateTime" class="form-label">Deactivate At (Optional)</label>
-            <input
-              type="datetime-local"
-              id="editDeactivateDateTime"
-              class="form-input"
-            >
-            <small style="color: var(--muted-foreground); font-size: 0.875rem;">
-              Link will stop working after this time
-            </small>
-          </div>
-        </div>
-      </div>
-      
+        <% } %>
+      </form>
       <div class="modal-footer">
-        <button class="btn" style="background-color: var(--secondary); color: var(--foreground);" id="cancelEditBtn">
-          Cancel
-        </button>
-        <button class="btn" id="saveUrlBtn" style="color: var(--primary-foreground);">
-          Save Changes
-        </button>
+        <button type="button" class="btn btn-secondary" data-close-modal="editUrlModal">Cancel</button>
+        <button type="submit" class="btn" form="editUrlForm" id="saveUrlBtn">Save</button>
       </div>
     </div>
   </div>
 
-  <!-- QR Code Modal -->
-  <div id="qrcodeModal" class="modal-overlay">
-    <div class="modal">
+  <!-- Edit a bundle -->
+  <div id="editBundleModal" class="modal-overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editBundleTitle">
       <div class="modal-header">
-        <h3>QR Code</h3>
-        <button class="modal-close" onclick="closeModal('qrcodeModal')">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <h3 id="editBundleTitle">Edit bundle</h3>
+        <button type="button" class="modal-close" data-close-modal="editBundleModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
-
-      <div class="modal-body" style="text-align: center;">
-        <div id="qrcodeContainer" style="margin: 2rem 0;">
-          <img id="qrcodeImage" src="" alt="QR Code" style="max-width: 300px; width: 100%; border-radius: 8px;">
+      <form class="modal-body" id="editBundleForm" novalidate>
+        <div class="form-group">
+          <label for="editBundleName" class="form-label">Title</label>
+          <input type="text" id="editBundleName" class="form-input" maxlength="100" required>
         </div>
-        <p style="color: var(--muted-foreground); margin-bottom: 1rem;">Scan this QR code to open the link</p>
-      </div>
-
+        <div class="form-group">
+          <label for="editBundleDescription" class="form-label">Description</label>
+          <textarea id="editBundleDescription" class="form-input" rows="2" placeholder="Optional"></textarea>
+        </div>
+        <div class="form-group">
+          <span class="form-label">Links</span>
+          <div class="bundle-edit-items" id="editBundleItems"></div>
+          <button type="button" class="btn btn-small btn-secondary" id="editBundleAdd"><%- include('partials/icon', { icon: 'plus' }) %> Add link</button>
+        </div>
+        <% if (can.tags) { %>
+        <div class="form-group">
+          <label class="form-label">Tags</label>
+          <div id="editBundleTags"></div>
+        </div>
+        <% } %>
+      </form>
       <div class="modal-footer">
-        <button class="btn" style="background-color: var(--secondary); color: var(--foreground);" onclick="closeModal('qrcodeModal')">
-          Close
-        </button>
-        <button class="btn" id="downloadQRBtn" style="color: var(--primary-foreground);">
-          Download PNG
-        </button>
+        <button type="button" class="btn btn-secondary" data-close-modal="editBundleModal">Cancel</button>
+        <button type="submit" class="btn" form="editBundleForm" id="saveBundleBtn">Save</button>
       </div>
     </div>
   </div>
 
-  <script src="/js/main.js"></script>
-  <script src="/js/tagSelector.js"></script>
-  <script src="/js/dashboard.js"></script>
-  <script>
-    // ─── Row filters: type pill + selected tags, both apply ─
-    let dashTypeFilter = 'all';
-    const dashSelectedTags = new Set();
-    const DASH_TYPE_MAP = { links: 'link', bundles: 'bundle', files: 'file', pastes: 'paste' };
+  <% if (showFiles) { %>
+  <!-- Edit a file -->
+  <div id="editFileModal" class="modal-overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editFileTitle">
+      <div class="modal-header">
+        <h3 id="editFileTitle">Edit file</h3>
+        <button type="button" class="modal-close" data-close-modal="editFileModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
+      </div>
+      <form class="modal-body" id="editFileForm" novalidate>
+        <p class="field-help" id="editFileName"></p>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editFileExpires" class="form-label">Expires</label>
+            <input type="date" id="editFileExpires" class="form-input">
+          </div>
+          <div class="form-group">
+            <label for="editFileMaxDownloads" class="form-label">Download limit</label>
+            <input type="number" id="editFileMaxDownloads" class="form-input" min="1" placeholder="No limit">
+          </div>
+        </div>
+        <div class="form-group">
+          <% if (can.passwordProtection) { %>
+          <label for="editFilePassword" class="form-label">New password (optional)</label>
+          <input type="password" id="editFilePassword" class="form-input" autocomplete="new-password" placeholder="Leave empty to keep it" data-toggle-password>
+          <% } %>
+          <label class="checkbox-line" id="editFileRemoveLine"><input type="checkbox" id="editFileRemovePassword"> Remove the password</label>
+        </div>
+        <div class="form-group">
+          <label for="editFileSharing" class="form-label">Who can open it</label>
+          <select id="editFileSharing" class="form-input">
+            <option value="public">Anyone with the link</option>
+            <option value="restricted">Only the people listed below</option>
+          </select>
+        </div>
+        <div class="form-group" id="editFileUsersGroup">
+          <label for="editFileUserInput" class="form-label">People</label>
+          <div class="user-chips-input-wrap" id="editFileUsers">
+            <input type="text" id="editFileUserInput" class="user-chips-text-input" placeholder="Type a username and press Enter…" autocomplete="off">
+          </div>
+          <p class="field-help" id="editFileUsersError" role="alert"></p>
+        </div>
+        <% if (can.tags) { %>
+        <div class="form-group">
+          <label class="form-label">Tags</label>
+          <div id="editFileTags"></div>
+        </div>
+        <% } %>
+      </form>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="editFileModal">Cancel</button>
+        <button type="submit" class="btn" form="editFileForm" id="saveFileBtn">Save</button>
+      </div>
+    </div>
+  </div>
+  <% } %>
 
-    function applyRowFilters() {
-      const itemList = document.getElementById('itemList');
-      if (!itemList) return;
-      itemList.querySelectorAll(':scope > [data-type]').forEach(item => {
-        const typeMatch = dashTypeFilter === 'all' || item.dataset.type === DASH_TYPE_MAP[dashTypeFilter];
-        const rowTags = (item.dataset.tags || '').split(',').filter(Boolean);
-        const tagMatch = dashSelectedTags.size === 0 || rowTags.some(tag => dashSelectedTags.has(tag));
-        item.style.display = typeMatch && tagMatch ? '' : 'none';
-      });
-    }
-
-    // ─── Dashboard Filter Pills ───────────────────────────
-    function setDashFilter(filter) {
-      ['all', 'links', 'bundles', 'files', 'pastes'].forEach(f => {
-        const pill = document.getElementById('pill-' + f);
-        if (pill) pill.classList.toggle('active', f === filter);
-      });
-
-      const itemList = document.getElementById('itemList');
-
-      const perTypeMsgs = ['noBundlesMsg', 'noFilesMsg', 'noPastesMsg']
-        .map(id => document.getElementById(id))
-        .filter(Boolean);
-
-      // Account is completely empty — the main "Nothing here yet" block already
-      // covers every filter, so never stack a second message on top of it.
-      if (!itemList) {
-        perTypeMsgs.forEach(el => { el.style.display = 'none'; });
-        return;
-      }
-
-      dashTypeFilter = filter;
-      applyRowFilters();
-
-      const msgFor = { bundles: 'noBundlesMsg', files: 'noFilesMsg', pastes: 'noPastesMsg' };
-      perTypeMsgs.forEach(el => { el.style.display = 'none'; });
-      if (msgFor[filter]) {
-        const hasType = itemList.querySelectorAll(':scope > [data-type="' + DASH_TYPE_MAP[filter] + '"]').length > 0;
-        const el = document.getElementById(msgFor[filter]);
-        if (el && !hasType) el.style.display = 'block';
-      }
-    }
-
-    // ─── Sort unified list by creation date (newest first) ─
-    function sortItemsByDate() {
-      const list = document.getElementById('itemList');
-      if (!list) return;
-      const items = Array.from(list.children);
-      items.sort((a, b) => {
-        const da = new Date(a.dataset.createdAt || 0);
-        const db = new Date(b.dataset.createdAt || 0);
-        return db - da;
-      });
-      items.forEach(item => list.appendChild(item));
-    }
-
-    // ─── Tag selectors in the edit modals (only rendered for roles with tags) ─
-    const editSelectors = {};
-    function editSelector(id) {
-      if (!editSelectors[id] && document.getElementById(id) && typeof TagSelector !== 'undefined') {
-        editSelectors[id] = new TagSelector(id, { placeholder: 'Add tags...' });
-      }
-      return editSelectors[id] || null;
-    }
-
-    // ─── Bundle Edit / Delete ─────────────────────────────
-    function editBundle(bundleId) {
-      openModal('editBundleModal');
-      document.getElementById('editBundleLoading').style.display = 'block';
-      document.getElementById('editBundleContent').style.display = 'none';
-      document.getElementById('editBundleModalFooter').style.display = 'none';
-
-      fetch('/api/bundles/' + bundleId)
-        .then(r => r.json())
-        .then(data => {
-          document.getElementById('editBundleId').value = bundleId;
-          document.getElementById('editBundleTitle').value = data.title || '';
-          document.getElementById('editBundleDescription').value = data.description || '';
-
-          const list = document.getElementById('editBundleItemsList');
-          list.innerHTML = '';
-          (data.items || []).forEach((item, i) => addEditBundleItem(item.url, item.label));
-          const bundleTags = editSelector('editBundleTagSelector');
-          if (bundleTags) bundleTags.setValue((data.tags || []).map(t => t.name).join(','));
-
-          document.getElementById('editBundleLoading').style.display = 'none';
-          document.getElementById('editBundleContent').style.display = 'block';
-          document.getElementById('editBundleModalFooter').style.display = 'flex';
-        })
-        .catch(() => {
-          closeModal('editBundleModal');
-          alert('Failed to load bundle.');
-        });
-    }
-
-    function addEditBundleItem(url = '', label = '') {
-      const list = document.getElementById('editBundleItemsList');
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex; gap:0.5rem; align-items:center;';
-      row.innerHTML = `
-        <input type="url" class="form-input edit-bundle-url" value="${url.replace(/"/g, '&quot;')}" placeholder="https://example.com" style="flex:2;">
-        <input type="text" class="form-input edit-bundle-label" value="${label.replace(/"/g, '&quot;')}" placeholder="Label (optional)" style="flex:1;" maxlength="100">
-        <button type="button" class="icon-btn" style="color:var(--destructive); flex-shrink:0;" onclick="this.closest('div').remove()" title="Remove">
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-        </button>
-      `;
-      list.appendChild(row);
-    }
-
-    async function saveBundleChanges() {
-      const id = document.getElementById('editBundleId').value;
-      const title = document.getElementById('editBundleTitle').value.trim();
-      if (!title) { alert('Title is required'); return; }
-
-      const items = [];
-      document.getElementById('editBundleItemsList').querySelectorAll('div').forEach(row => {
-        const url = row.querySelector('.edit-bundle-url')?.value.trim();
-        const label = row.querySelector('.edit-bundle-label')?.value.trim();
-        if (url) items.push({ url, label: label || null });
-      });
-      if (items.length < 2) { alert('At least 2 links are required.'); return; }
-
-      const description = document.getElementById('editBundleDescription').value.trim();
-      const body = { title, description: description || null, items };
-      const bundleTags = editSelector('editBundleTagSelector');
-      if (bundleTags) body.tags = bundleTags.getValue();
-
-      try {
-        const res = await fetch('/api/bundles/' + id, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        const data = await res.json();
-        if (data.success) {
-          closeModal('editBundleModal');
-          location.reload();
-        } else {
-          alert(data.error || 'Failed to save bundle.');
-        }
-      } catch {
-        alert('Network error.');
-      }
-    }
-
-    function confirmDeleteBundle(bundleId, title) {
-      document.getElementById('deleteBundleTitleSpan').textContent = '"' + title + '"';
-      document.getElementById('confirmBundleDeleteBtn').onclick = () => deleteBundle(bundleId);
-      openModal('confirmDeleteBundleModal');
-    }
-
-    async function deleteBundle(bundleId) {
-      try {
-        const res = await fetch('/api/bundles/' + bundleId, { method: 'DELETE' });
-        const data = await res.json();
-        if (data.success) {
-          closeModal('confirmDeleteBundleModal');
-          const el = document.getElementById('bundle-' + bundleId);
-          if (el) el.remove();
-        } else {
-          alert(data.error || 'Failed to delete bundle.');
-        }
-      } catch {
-        alert('Network error.');
-      }
-    }
-
-    // ─── Toggle URL details expand/collapse
-    function toggleUrlDetails(headerElement) {
-      const urlItem = headerElement.closest('.url-item');
-      const detailsElement = urlItem.querySelector('.url-item-details');
-      const expandIcon = headerElement.querySelector('.expand-icon');
-
-      if (detailsElement.style.display === 'none') {
-        detailsElement.style.display = 'block';
-        expandIcon.style.transform = 'rotate(180deg)';
-      } else {
-        detailsElement.style.display = 'none';
-        expandIcon.style.transform = 'rotate(0deg)';
-      }
-    }
-
-    // QR Code functionality
-    let currentQRDownloadUrl = null;
-
-    function showQRCode(urlId, slug) {
-      currentQRDownloadUrl = `/qrcode/url/${slug}/download?theme=light`;
-      document.getElementById('qrcodeImage').src = `/qrcode/url/${slug}?theme=light`;
-      openModal('qrcodeModal');
-    }
-
-    function showPasteQRCode(slug) {
-      currentQRDownloadUrl = `/qrcode/paste/${slug}/download?theme=light`;
-      document.getElementById('qrcodeImage').src = `/qrcode/paste/${slug}?theme=light`;
-      openModal('qrcodeModal');
-    }
-
-    document.getElementById('downloadQRBtn').addEventListener('click', () => {
-      if (currentQRDownloadUrl) {
-        window.location.href = currentQRDownloadUrl;
-      }
-    });
-
-    // Pagination functionality
-    document.getElementById('itemsPerPage')?.addEventListener('change', function() {
-      const limit = this.value;
-      const url = new URL(window.location.href);
-      url.searchParams.set('limit', limit);
-      url.searchParams.set('page', '1'); // Reset to first page
-      window.location.href = url.toString();
-    });
-
-    document.getElementById('prevPage')?.addEventListener('click', function() {
-      const url = new URL(window.location.href);
-      const currentPage = parseInt(url.searchParams.get('page') || '1');
-      url.searchParams.set('page', Math.max(1, currentPage - 1).toString());
-      window.location.href = url.toString();
-    });
-
-    document.getElementById('nextPage')?.addEventListener('click', function() {
-      const url = new URL(window.location.href);
-      const currentPage = parseInt(url.searchParams.get('page') || '1');
-      url.searchParams.set('page', (currentPage + 1).toString());
-      window.location.href = url.toString();
-    });
-
-    // Tag filtering functionality (multi-select)
-    document.addEventListener('DOMContentLoaded', function() {
-      sortItemsByDate();
-
-      const filterButtons = document.querySelectorAll('.tag-filter-btn');
-      const activeFiltersDiv = document.getElementById('activeFilters');
-      const filterCountSpan = document.getElementById('filterCount');
-      const selectedTags = dashSelectedTags;
-
-      function updateFilters() {
-        // Update button visuals
-        filterButtons.forEach(btn => {
-          const tag = btn.getAttribute('data-tag');
-          if (tag === 'all') return; // Skip "Clear All" button
-
-          if (selectedTags.has(tag)) {
-            btn.style.opacity = '1';
-            btn.style.fontWeight = '600';
-            btn.style.transform = 'scale(1.05)';
-          } else {
-            btn.style.opacity = '0.6';
-            btn.style.fontWeight = '400';
-            btn.style.transform = 'scale(1)';
-          }
-        });
-
-        // Update active filters display
-        if (selectedTags.size > 0) {
-          activeFiltersDiv.style.display = 'block';
-          filterCountSpan.textContent = selectedTags.size;
-        } else {
-          activeFiltersDiv.style.display = 'none';
-        }
-
-        // Rows with ANY of the selected tags (within the chosen type)
-        applyRowFilters();
-      }
-
-      filterButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-          const tag = this.getAttribute('data-tag');
-
-          if (tag === 'all') {
-            // Clear all filters
-            selectedTags.clear();
-          } else {
-            // Toggle tag selection
-            if (selectedTags.has(tag)) {
-              selectedTags.delete(tag);
-            } else {
-              selectedTags.add(tag);
-            }
-          }
-
-          updateFilters();
-        });
-      });
-    });
-
-
-    // ─── File actions (roles with uploadFiles) ────────────────────
-    <% if (showFiles) { %>
-    function copyFileLink(url, btn) {
-      navigator.clipboard.writeText(url).then(() => {
-        const orig = btn.innerHTML;
-        btn.innerHTML = '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
-        setTimeout(() => { btn.innerHTML = orig; }, 1500);
-      });
-    }
-
-    async function deleteFile(id, name) {
-      if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-      try {
-        const res = await fetch(`/api/files/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (data.success) {
-          const row = document.getElementById('file-item-' + id);
-          if (row) row.remove();
-          if (typeof showToast === 'function') showToast('File deleted', 'success');
-        } else {
-          alert(data.error || 'Delete failed');
-        }
-      } catch (_) { alert('Request failed'); }
-    }
-
-    // ── File Edit Modal ───────────────────────────────────
-    let currentFileId = null;
-
-    function openFileEdit(id) {
-      currentFileId = id;
-      fetch('/api/files').then(r => r.json()).then(data => {
-        const f = data.files.find(x => x.id === id);
-        if (!f) return;
-        document.getElementById('feFileName').textContent = f.originalName;
-        document.getElementById('feExpiresAt').value = f.expiresAt ? f.expiresAt.substring(0,10) : '';
-        document.getElementById('feMaxDownloads').value = f.maxDownloads || '';
-        document.getElementById('fePassword').value = '';
-        document.getElementById('feRemovePassword').checked = false;
-        document.getElementById('feSharingMode').value = f.sharingMode || 'public';
-
-        // Populate allowed users chips
-        const chipsWrap = document.getElementById('feAllowedUsersChips');
-        chipsWrap.querySelectorAll('.user-chip').forEach(c => c.remove());
-        feAllowedUsers = Array.isArray(f.allowedUsers) ? [...f.allowedUsers] : [];
-        document.getElementById('feAllowedUsersHidden').value = JSON.stringify(feAllowedUsers);
-        feAllowedUsers.forEach(uid => {
-          addFeChip({ id: uid, username: 'uid:' + uid });
-        });
-
-        const fileTags = editSelector('feTagSelector');
-        if (fileTags) fileTags.setValue((f.tags || []).map(t => t.name).join(','));
-
-        openModal('fileEditModal');
-      });
-    }
-
-    let feAllowedUsers = [];
-
-    function addFeChip(user) {
-      const chipsWrap = document.getElementById('feAllowedUsersChips');
-      const typer = document.getElementById('feAllowedUsersTyper');
-      if (feAllowedUsers.find(u => u === user.id)) return;
-      feAllowedUsers.push(user.id);
-      document.getElementById('feAllowedUsersHidden').value = JSON.stringify(feAllowedUsers);
-
-      const chip = document.createElement('span');
-      chip.className = 'user-chip';
-      chip.dataset.uid = user.id;
-      chip.innerHTML = `@${user.username}<button type="button">×</button>`;
-      chip.querySelector('button').addEventListener('click', () => {
-        feAllowedUsers = feAllowedUsers.filter(u => u !== user.id);
-        document.getElementById('feAllowedUsersHidden').value = JSON.stringify(feAllowedUsers);
-        chip.remove();
-      });
-      chipsWrap.insertBefore(chip, typer);
-    }
-
-    async function saveFileEdit() {
-      if (!currentFileId) return;
-      const body = {
-        expiresAt: document.getElementById('feExpiresAt').value || null,
-        maxDownloads: document.getElementById('feMaxDownloads').value || null,
-        password: document.getElementById('fePassword').value || undefined,
-        removePassword: document.getElementById('feRemovePassword').checked ? '1' : undefined,
-        sharingMode: document.getElementById('feSharingMode').value,
-        allowedUsers: document.getElementById('feAllowedUsersHidden').value
-      };
-      const fileTags = editSelector('feTagSelector');
-      if (fileTags) body.tags = fileTags.getValue();
-      try {
-        const res = await fetch(`/api/files/${currentFileId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        const data = await res.json();
-        if (data.success) {
-          closeModal('fileEditModal');
-          location.reload();
-        } else {
-          alert(data.error || 'Update failed');
-        }
-      } catch (_) { alert('Request failed'); }
-    }
-
-    // Share-with typer in edit modal
-    document.addEventListener('DOMContentLoaded', () => {
-      const typer = document.getElementById('feAllowedUsersTyper');
-      if (!typer) return;
-      typer.addEventListener('keydown', async (e) => {
-        if (e.key !== 'Enter' && e.key !== ',') return;
-        e.preventDefault();
-        const username = typer.value.trim().replace(/^@/, '');
-        if (!username) return;
-        const res = await fetch(`/api/users/lookup?username=${encodeURIComponent(username)}`);
-        const data = await res.json();
-        if (data.found) {
-          addFeChip({ id: data.id, username: data.username });
-          typer.value = '';
-        } else {
-          alert(`User "@${username}" not found.`);
-        }
-      });
-    });
-
-    <% } %>
-
-    // ── Pastes (all logged-in users) ──────────────────────
-    async function deletePaste(id, name) {
-      if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-      try {
-        const res = await fetch(`/api/pastes/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (data.success) {
-          const row = document.getElementById('paste-item-' + id);
-          if (row) row.remove();
-          if (typeof showToast === 'function') showToast('Paste deleted', 'success');
-        } else {
-          alert(data.error || 'Delete failed');
-        }
-      } catch (_) { alert('Request failed'); }
-    }
-    // Paste editing lives on its own full page: GET /pastes/:id/edit
-  </script>
-
-  <!-- Move to a team -->
   <% if (writableTeams.length && !currentTeam) { %>
+  <!-- Move to a team -->
   <div id="moveToTeamModal" class="modal-overlay">
-    <div class="modal" style="max-width:440px;">
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="moveTeamTitle">
       <div class="modal-header">
-        <h3>Move to a team</h3>
-        <button type="button" class="modal-close" onclick="closeModal('moveToTeamModal')" aria-label="Close">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <h3 id="moveTeamTitle">Move to a team</h3>
+        <button type="button" class="modal-close" data-close-modal="moveToTeamModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
       <form class="modal-body" id="moveToTeamForm">
         <div class="form-group">
@@ -1469,103 +258,36 @@
             <% writableTeams.forEach(team => { %><option value="<%= team.id %>"><%= team.name %></option><% }) %>
           </select>
         </div>
-        <p style="color:var(--muted-foreground); font-size:0.875rem;">Its tags move along. The team's members will see it, and only team owners and admins can move it back out.</p>
-        <p id="moveTeamError" style="color:var(--destructive);" role="alert"></p>
-        <div class="modal-footer">
-          <button type="button" class="btn" style="background:var(--secondary); color:var(--foreground);" onclick="closeModal('moveToTeamModal')">Cancel</button>
-          <button type="submit" class="btn" style="color:var(--primary-foreground);">Move</button>
-        </div>
+        <p class="field-help">Its tags move along. The team's members will see it, and only team owners and admins can move it back out.</p>
+        <p class="field-error" id="moveTeamError" role="alert"></p>
       </form>
-    </div>
-  </div>
-  <% } %>
-  <script src="/js/teamMove.js"></script>
-
-  <!-- File Edit Modal -->
-  <% if (showFiles) { %>
-  <div id="fileEditModal" class="modal-overlay">
-    <div class="modal" style="max-width:520px;">
-      <div class="modal-header">
-        <h3>Edit File</h3>
-        <button class="modal-close" onclick="closeModal('fileEditModal')">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem;">
-        <div style="font-weight:500;font-size:0.9rem;color:var(--muted-foreground);" id="feFileName"></div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
-          <div>
-            <label class="form-label">Expires</label>
-            <input type="date" id="feExpiresAt" class="form-input" style="width:100%;">
-          </div>
-          <div>
-            <label class="form-label">Max downloads</label>
-            <input type="number" id="feMaxDownloads" class="form-input" style="width:100%;" placeholder="Unlimited" min="1">
-          </div>
-        </div>
-
-        <div>
-          <label class="form-label">New password <span style="color:var(--muted-foreground);font-weight:400;">(leave blank to keep existing)</span></label>
-          <input type="password" id="fePassword" class="form-input" style="width:100%;" placeholder="Enter new password…">
-          <label style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;font-size:0.85rem;color:var(--muted-foreground);cursor:pointer;">
-            <input type="checkbox" id="feRemovePassword"> Remove existing password
-          </label>
-        </div>
-
-        <div>
-          <label class="form-label">Access</label>
-          <select id="feSharingMode" class="form-input" style="width:100%;">
-            <option value="public">Public (anyone with the link)</option>
-            <option value="restricted">Restricted (specific users only)</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="form-label">Allowed users</label>
-          <div class="user-chips-input-wrap" id="feAllowedUsersChips" onclick="document.getElementById('feAllowedUsersTyper').focus()">
-            <input type="text" id="feAllowedUsersTyper" class="user-chips-text-input" placeholder="Type username + Enter…" autocomplete="off">
-          </div>
-          <input type="hidden" id="feAllowedUsersHidden" value="[]">
-        </div>
-
-        <% if (can.tags) { %>
-        <div>
-          <label class="form-label">Tags</label>
-          <div id="feTagSelector"></div>
-        </div>
-        <% } %>
-      </div>
       <div class="modal-footer">
-        <button class="btn" style="background:var(--secondary);color:var(--foreground);" onclick="closeModal('fileEditModal')">Cancel</button>
-        <button class="btn btn-primary" onclick="saveFileEdit()">Save Changes</button>
+        <button type="button" class="btn btn-secondary" data-close-modal="moveToTeamModal">Cancel</button>
+        <button type="submit" class="btn" form="moveToTeamForm">Move</button>
       </div>
     </div>
   </div>
   <% } %>
 
-  <!-- Confirm Dialog Modal -->
+  <!-- Confirm (confirmAction in main.js) -->
   <div id="confirmModal" class="modal-overlay">
-    <div class="modal" style="max-width: 420px;">
+    <div class="modal modal-narrow" role="alertdialog" aria-modal="true" aria-labelledby="confirmModalTitle">
       <div class="modal-header">
-        <h3 id="confirmModalTitle">Confirm Action</h3>
-        <button class="modal-close" onclick="closeModal('confirmModal')">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <h3 id="confirmModalTitle">Confirm</h3>
       </div>
       <div class="modal-body">
-        <p id="confirmModalMessage" style="margin: 0; line-height: 1.6;"></p>
+        <p id="confirmModalMessage"></p>
       </div>
       <div class="modal-footer">
-        <button id="confirmModalCancelBtn" class="btn" style="background-color: var(--secondary); color: var(--foreground);">Cancel</button>
-        <button id="confirmModalConfirmBtn" class="btn btn-danger">Confirm</button>
+        <button type="button" id="confirmModalCancelBtn" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="confirmModalConfirmBtn" class="btn btn-danger">Delete</button>
       </div>
     </div>
   </div>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/tagSelector.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script src="/js/teamMove.js"></script>
 <%- include('partials/layout-end', { shell: 'app' }) %>
 </html>
