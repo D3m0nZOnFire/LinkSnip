@@ -1,195 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Setup', styles: ['forms'] }) %>
-  <style>
-    .container {
-      width: 100%;
-      max-width: 28rem;
-      margin: auto;
-      padding: var(--spacing-xl) var(--spacing-md);
-    }
-
-    .logo-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .logo {
-      width: 2.5rem;
-      height: 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .logo span {
-      color: var(--primary-foreground);
-      font-weight: bold;
-    }
-
-    .logo-text {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: var(--primary);
-    }
-
-    .heading {
-      margin-bottom: 2rem;
-      text-align: center;
-    }
-
-    .heading h2 {
-      font-size: 1.875rem;
-      font-weight: bold;
-      margin-bottom: 0.5rem;
-    }
-
-    .heading p {
-      color: var(--muted-foreground);
-    }
-
-    .error-block {
-      margin-bottom: 1.5rem;
-      padding: 1rem;
-      background-color: var(--status-error-bg);
-      border: 1px solid var(--status-error-border);
-      border-radius: 0.5rem;
-      color: var(--destructive);
-      font-size: 0.875rem;
-    }
-
-    .form-group {
-      margin-bottom: 1rem;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 0.875rem;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      background-color: var(--secondary);
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      color: var(--foreground);
-      font-size: 1rem;
-      transition: all 0.2s;
-    }
-
-    .form-input::placeholder {
-      color: var(--muted-foreground);
-    }
-
-    .form-input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-
-    .btn {
-      width: 100%;
-      padding: 0.75rem 1.5rem;
-      background-color: var(--primary);
-      color: var(--primary-foreground);
-      border: none;
-      border-radius: 0.5rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 0.2s;
-      margin-top: 1.5rem;
-      font-size: 1rem;
-    }
-
-    .btn:hover {
-      opacity: 0.9;
-    }
-
-    .footer-links {
-      margin-top: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      text-align: center;
-      font-size: 0.875rem;
-    }
-
-    .footer-links p {
-      color: var(--muted-foreground);
-    }
-
-    .footer-links a {
-      color: var(--primary);
-      font-weight: 500;
-      text-decoration: none;
-      transition: opacity 0.2s;
-    }
-
-    .footer-links a:hover {
-      opacity: 0.8;
-    }
-    .setup-hint { color: var(--muted-foreground); font-size: 0.875rem; margin-top: 0.35rem; }
-    .setup-hint code { color: var(--foreground); }
-  </style>
+  <%- include('partials/head', { title: 'Setup', styles: ['forms', 'auth'], noindex: true }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'standalone', pageClass: 'page-center' }) %>
-  <div class="container">
-    <!-- Logo -->
-    <div class="logo-container">
-      <%- include('partials/brand', { large: true }) %>
-    </div>
-
-    <!-- Heading -->
-    <div class="heading">
-      <h2>Set up <%= branding.name %></h2>
+  <main class="auth-card">
+    <div class="auth-brand"><%- include('partials/brand', { large: true }) %></div>
+    <div class="auth-heading">
+      <h1>Set up <%= branding.name %></h1>
       <p>Create the first admin account</p>
     </div>
-
-    <% if (error) { %>
-      <div class="error-block" role="alert"><%= error %></div>
-    <% } %>
-
-    <form action="/setup" method="POST">
+    <form class="auth-form" action="/setup" method="POST">
+      <% if (error) { %><div class="auth-error" role="alert"><%= error %></div><% } %>
       <div class="form-group">
         <label for="code" class="form-label">Setup code</label>
         <input type="text" id="code" name="code" class="form-input" placeholder="XXXX-XXXX-XXXX"
-          autocomplete="off" autocapitalize="characters" spellcheck="false" required <%= error ? '' : 'autofocus' %>>
-        <p class="setup-hint">Printed in the server log when LinkSnip started (<code>docker compose logs linksnip</code>).</p>
+          autocomplete="off" autocapitalize="characters" spellcheck="false" required<%= error ? '' : ' autofocus' %>>
+        <p class="field-help">Printed in the server log when LinkSnip started (<code>docker compose logs linksnip</code>).</p>
       </div>
-
       <div class="form-group">
         <label for="username" class="form-label">Admin username</label>
         <input type="text" id="username" name="username" class="form-input" value="<%= username %>" autocomplete="username" required>
       </div>
-
       <div class="form-group">
-        <label for="password" class="form-label">Password</label>
+        <label for="password" class="form-label">Password <span class="muted">at least <%= minPassword %> characters</span></label>
         <input type="password" id="password" name="password" class="form-input" minlength="<%= minPassword %>"
           autocomplete="new-password" required data-toggle-password>
-        <p class="setup-hint">At least <%= minPassword %> characters.</p>
       </div>
-
       <div class="form-group">
-        <label for="confirmPassword" class="form-label">Repeat password</label>
+        <label for="confirmPassword" class="form-label">Repeat the password</label>
         <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" minlength="<%= minPassword %>"
           autocomplete="new-password" required data-toggle-password>
       </div>
-
-      <button type="submit" class="btn" style="color: var(--primary-foreground);">Create admin</button>
+      <button type="submit" class="btn">Create admin</button>
     </form>
-
-    <div class="footer-links">
+    <div class="auth-links">
       <p>Lost the code? Restart LinkSnip to print a new one, or run <code>npm run admin</code>.</p>
     </div>
-  </div>
-
+  </main>
   <script src="/js/main.js"></script>
 <%- include('partials/layout-end', { shell: 'standalone' }) %>
 </html>

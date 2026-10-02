@@ -32,4 +32,8 @@ describe('a fresh database', () => {
   it('has the bio page gradient columns from the first start', () => {
     expect(columnsOfFreshDatabase('bio_pages')).toEqual(expect.arrayContaining(['gradientStart', 'gradientEnd']));
   });
+
+  it('has the bio link label column', () => {
+    expect(columnsOfFreshDatabase('bio_page_urls')).toEqual(expect.arrayContaining(['label']));
+  });
 });

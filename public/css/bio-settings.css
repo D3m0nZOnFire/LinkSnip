@@ -211,3 +211,22 @@
     padding-right: var(--spacing-md);
   }
 }
+
+/* A ticked link's label, under it */
+.link-label-row {
+  padding: 0 var(--spacing-lg) 0.6rem calc(var(--spacing-lg) + 1rem + var(--spacing-sm));
+  border-bottom: 1px solid var(--border);
+}
+
+.link-label-row[hidden] {
+  display: none;
+}
+
+.link-label-row .form-input {
+  padding: 0.4rem 0.6rem;
+  font-size: var(--text-sm);
+}
+
+.link-picker-item:has(+ .link-label-row:not([hidden])) {
+  border-bottom: 0;
+}

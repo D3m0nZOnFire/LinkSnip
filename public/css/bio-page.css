@@ -4,30 +4,21 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 0.75rem var(--spacing-lg);
   border-bottom: 1px solid var(--border);
 }
 
-.bio-home-link {
+.bio-edit {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--foreground);
+  font-size: var(--text-sm);
   text-decoration: none;
-  display: flex;
-  align-items: center;
 }
 
-.btn-small {
-  padding: 0.5rem 1rem;
-  background: var(--primary);
-  border: none;
-  border-radius: 8px;
-  color: var(--primary-foreground);
-  text-decoration: none;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-small:hover {
-  opacity: 0.9;
+.bio-edit:hover {
+  background: var(--secondary);
 }
 
 .bio-container {
@@ -131,12 +122,6 @@
   flex-wrap: wrap;
 }
 
-.bio-tag {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
 
 .bio-link-arrow {
   flex-shrink: 0;
@@ -150,19 +135,7 @@
   padding: 2rem;
 }
 
-.bio-footer {
-  text-align: center;
-  margin-top: 4rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--border);
-  color: var(--muted-foreground);
-  font-size: 0.875rem;
-}
 
-.bio-footer a {
-  color: var(--primary);
-  text-decoration: none;
-}
 
 /* Theme Variations */
 
@@ -182,7 +155,7 @@
 }
 
 .bio-theme-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--bio-from, #667eea) 0%, var(--bio-to, #764ba2) 100%);
   min-height: 100vh;
 }
 
@@ -214,9 +187,6 @@
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-.bio-theme-gradient .bio-footer {
-  border-color: rgba(255, 255, 255, 0.2);
-}
 
 /* Responsive */
 @media (max-width: 640px) {
@@ -231,4 +201,44 @@
   .bio-header {
     padding: 1rem;
   }
+}
+
+/* Social icons, link cards (v1.3) */
+.bio-social-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.bio-social-link span {
+  margin-left: 0.5rem;
+}
+
+.bio-link-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bio-link-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.bio-link-sub {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bio-link-content .tag-chips {
+  margin-top: 0.4rem;
+}
+
+.bio-link-arrow {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
 }

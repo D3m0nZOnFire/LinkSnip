@@ -88,6 +88,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   deletes the personal links, bundles, pastes and files (uploads too) and the user; tags and the bio page cascade,
   the items' analytics/share links/reports/tags go through the delete triggers. Team items stay, creator NULL.
 
+- Login keeps `?next=` (a hidden field) and returns there; `safeNext()` in `controllers/authController.js` allows
+  only paths on this site. Login, register and setup share `public/css/auth.css` (`.auth-card`).
+
 ## First admin and the admin CLI
 
 - **`services/setupService.js`**: while no admin exists, `start()` (called after `listen`) logs a one-time code
@@ -214,7 +217,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Bundles and bio pages
 - Bundles: `/b/:slug` launcher, `/bt/:itemId` per-item tracking redirect (checks the bundle's access).
   `Bundle.replaceItems` updates items in place: an item whose URL stays keeps its ID and click history.
-- Bio pages: `/bio/:username` public, `/bio/settings`. Hidden (404) when the owner's role lacks `bioPage`. In the
+- Bio pages: `/bio/:username` public, `/bio/settings`. Hidden (404) when the owner's role lacks `bioPage`. A link on
+  the page shows its label (`bio_page_urls.label`, `PUT /api/bio/urls/:urlId/label`, `BioPage.setUrlLabel`), else the
+  destination's domain. Social icon names are `[a-z0-9-]` only (they become part of an image address). In the
   settings, profile and social links are saved with the save bar (it sticks to the window while something is
   unsaved); the link checkboxes save right away (`POST /api/bio/urls/:id/toggle`).
 
@@ -242,6 +247,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   types (bulk endpoints for links, bundles, pastes; files one by one).
 
 ### Analytics and share links
+- Chart.js is served by LinkSnip (`routes/vendorRoutes.js`: `/vendor/chart.umd.js` from the `chart.js` dependency);
+  no page loads it from a CDN (a test checks). `public/js/analytics.js` draws the charts from `#analyticsData` (JSON).
 - One page for every type: `/analytics/:type/:id` (owner/admin, permission `analytics`, the type's feature on), JSON
   at `/api/analytics/:type/:id`. `views/analytics.ejs` draws `partials/analytics-summary.ejs`; `pageData()` in
   `controllers/analyticsController.js` is shared with `/stats/:token`. Old per-type addresses redirect.

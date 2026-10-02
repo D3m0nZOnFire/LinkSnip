@@ -175,7 +175,7 @@ class BioPage {
    */
   static getUrls(bioPageId) {
     const stmt = db.prepare(`
-      SELECT u.*, bpu.position
+      SELECT u.*, bpu.position, bpu.label
       FROM urls u
       INNER JOIN bio_page_urls bpu ON u.id = bpu.urlId
       WHERE bpu.bioPageId = ?
@@ -251,6 +251,15 @@ class BioPage {
    * @param {number} urlId
    * @returns {boolean}
    */
+  /**
+   * A link's label on the page ("My YouTube channel"); empty removes it
+   * @returns {boolean} whether the link is on the page
+   */
+  static setUrlLabel(bioPageId, urlId, label) {
+    const value = typeof label === 'string' && label.trim() ? label.trim() : null;
+    return db.prepare('UPDATE bio_page_urls SET label = ? WHERE bioPageId = ? AND urlId = ?').run(value, bioPageId, urlId).changes > 0;
+  }
+
   static hasUrl(bioPageId, urlId) {
     const stmt = db.prepare(`
       SELECT 1 FROM bio_page_urls WHERE bioPageId = ? AND urlId = ?

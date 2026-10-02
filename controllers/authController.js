@@ -2,6 +2,16 @@ const { passwordProblem } = require('../services/passwordPolicy');
 const User = require('../models/User');
 const { logAuth, ACTIONS } = require('../services/auditService');
 
+/**
+ * Where to go after logging in (?next=, from a page that needed an account): only a path on this site, so it
+ * can't become an open redirect. Anything else is null.
+ */
+function safeNext(value) {
+  if (typeof value !== 'string' || !value.startsWith('/')) return null;
+  if (value.startsWith('//') || value.startsWith('/\\') || /[\r\n]/.test(value)) return null;
+  return value;
+}
+
 class AuthController {
   /**
    * Render registration page
@@ -54,7 +64,7 @@ class AuthController {
    * Render login page
    */
   static getLogin(req, res) {
-    res.render('login', { error: null, username: '' });
+    res.render('login', { error: null, username: '', next: safeNext(req.query.next) });
   }
 
   /**
@@ -62,9 +72,10 @@ class AuthController {
    */
   static async postLogin(req, res) {
     const { username, password } = req.body;
+    const next = safeNext(req.body.next);
 
     if (!username || !password) {
-      return res.render('login', { error: 'Username and password are required', username: username || '' });
+      return res.render('login', { error: 'Username and password are required', username: username || '', next });
     }
 
     try {
@@ -73,14 +84,14 @@ class AuthController {
       if (!user) {
         // Log failed login - user not found
         logAuth(ACTIONS.LOGIN_FAILED, req, username, { reason: 'User not found' });
-        return res.render('login', { error: 'Invalid username or password', username });
+        return res.render('login', { error: 'Invalid username or password', username, next });
       }
 
       // Check if user is banned
       if (user.isBanned) {
         // Log failed login - user banned
         logAuth(ACTIONS.LOGIN_FAILED, req, username, { reason: 'Account banned' });
-        return res.render('login', { error: 'Your account has been suspended. Please contact support.', username });
+        return res.render('login', { error: 'Your account has been suspended. Please contact support.', username, next });
       }
 
       const isValidPassword = await User.verifyPassword(password, user.password);
@@ -88,7 +99,7 @@ class AuthController {
       if (!isValidPassword) {
         // Log failed login - wrong password
         logAuth(ACTIONS.LOGIN_FAILED, req, username, { reason: 'Invalid password' });
-        return res.render('login', { error: 'Invalid username or password', username });
+        return res.render('login', { error: 'Invalid username or password', username, next });
       }
 
       // Log successful login
@@ -99,11 +110,11 @@ class AuthController {
       req.session.username = user.username;
       req.session.isAdmin = user.isAdmin;
 
-      res.redirect('/dashboard');
+      res.redirect(next || '/dashboard');
     } catch (error) {
       // Log login error
       logAuth(ACTIONS.LOGIN_FAILED, req, username, { reason: 'System error', error: error.message });
-      res.render('login', { error: 'An error occurred. Please try again.', username });
+      res.render('login', { error: 'An error occurred. Please try again.', username, next });
     }
   }
 
@@ -126,3 +137,4 @@ class AuthController {
 }
 
 module.exports = AuthController;
+module.exports.safeNext = safeNext;
