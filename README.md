@@ -26,14 +26,41 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 - **Admin panel**: an overview, every item in one searchable list, users, teams, reports, settings, roles and appearance, and a full audit log
 - **Operations**: nightly online backups and cleanup of expired content
 
-### Screenshots
+### See it in action
 
-| | |
-|---|---|
-| ![Creating a short link](docs/screenshots/home.png) | ![Analytics for a link](docs/screenshots/analytics.png) |
-| **Create** links, pastes, bundles and files | **Analytics** per link, shareable read-only |
-| ![A text paste](docs/screenshots/paste.png) | ![Roles in Admin → Settings](docs/screenshots/roles.png) |
-| **Pastes** with line numbers, raw view and editor | **Roles**: permissions and limits per kind of account |
+<p>
+  <img src="docs/gifs/01-short-links.gif" alt="Short links" width="49%"> <img src="docs/gifs/02-pastes.gif" alt="Pastes" width="49%">
+</p>
+
+<p>
+  <img src="docs/gifs/03-files.gif" alt="Files" width="49%"> <img src="docs/gifs/04-bundles.gif" alt="Bundles" width="49%">
+</p>
+
+<p>
+  <img src="docs/gifs/05-teams.gif" alt="Teams" width="49%"> <img src="docs/gifs/06-dashboard.gif" alt="Dashboard" width="49%">
+</p>
+
+<p>
+  <img src="docs/gifs/07-analytics.gif" alt="Analytics" width="49%"> <img src="docs/gifs/08-tags.gif" alt="Tags" width="49%">
+</p>
+
+<p>
+  <img src="docs/gifs/09-bio-page.gif" alt="Bio pages" width="49%"> <img src="docs/gifs/10-admin.gif" alt="Admin panel" width="49%">
+</p>
+
+#### Admin
+
+<p>
+  <img src="docs/gifs/11-appearance-palettes.gif" alt="Palettes" width="49%"> <img src="docs/gifs/12-appearance-custom-palette.gif" alt="A custom palette" width="49%">
+</p>
+
+<p>
+  <img src="docs/gifs/13-appearance-branding.gif" alt="Branding" width="49%"> <img src="docs/gifs/14-admin-settings.gif" alt="Settings and roles" width="49%">
+</p>
+
+<p>
+  <img src="docs/gifs/15-admin-moderation.gif" alt="Moderation" width="49%">
+</p>
 
 ## Quick start (Docker)
 
