@@ -10,6 +10,10 @@
 // Keys are dotted paths into the nested JSON file. `env` names a legacy env var
 // carried over once, when settings.json is first created.
 const SETTINGS = {
+  'access.loginRequired': {
+    type: 'boolean', default: false,
+    description: 'Private instance: only people with an account can open anything. Visitors are sent to the login page from every short link, paste, file, bundle, info page, QR code and bio page. Analytics share links (/stats/…) need an account too, so they are effectively off. Usually combined with registration.open false, so that admins create the accounts.'
+  },
   'registration.open': {
     type: 'boolean', default: true,
     description: 'Anyone can create an account. When false, only admins can create accounts.'

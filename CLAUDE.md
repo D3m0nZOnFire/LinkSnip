@@ -30,7 +30,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 | Layer | Where | Holds |
 |---|---|---|
 | Environment | `.env` / container env | Infrastructure only: `SESSION_SECRET`, `IP_HASH_SECRET` (both required), `DATA_DIR`, `PORT` (8081), `NODE_ENV`, `TRUST_PROXY` (1) |
-| Settings | `DATA_DIR/settings.json` | Instance behavior: `registration.open`, `geo.enabled`, `features.*`, `moderation.reportThreshold`, `anonymous.*ExpirationDays`, `pastes.maxSizeKB`, `files.globalMaxFileSizeMB`, `retention.*` |
+| Settings | `DATA_DIR/settings.json` | Instance behavior: `access.loginRequired`, `registration.open`, `geo.enabled`, `features.*`, `moderation.reportThreshold`, `anonymous.*ExpirationDays`, `pastes.maxSizeKB`, `files.globalMaxFileSizeMB`, `retention.*` |
 | Roles | `DATA_DIR/roles.json` | Permissions and limits per role |
 
 - **`config/schema.js` is the single source of truth** for every setting, permission and limit, and its
@@ -80,7 +80,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
    on `/api/`, else the error page). No CSRF tokens anywhere: forms and `fetch` need nothing extra.
 3. Sessions (`config/session.js`: SQLite store, 7 days, cookie `sameSite: 'lax'`, `secure: 'auto'`)
 4. `requireSetupComplete`: while no admin exists every page redirects to `/setup` (API: 503 `setup_required`)
-5. `attachUser` (sets `req.user`, updates `lastActive`), then `middleware/viewLocals.js` (`can`, `features`,
+5. `attachUser` (sets `req.user`, updates `lastActive`), then `middleware/requireLogin.js` (`access.loginRequired`:
+   visitors reach only `/login`, `/register`, `/setup`, `/logout`; pages → `/login?next=…`, `/` and forms → `/login`,
+   `/api/` → 401 `login_required`; no exception for `/stats`), then `middleware/viewLocals.js` (`can`, `features`,
    `registrationOpen`, `writableTeams`; `appLocals()` sets `appVersion` and `reportReasons` on `app.locals`)
 6. Routers (feature routers wrapped in `featureRoutes`), then the home routes, 404 and error handlers
 

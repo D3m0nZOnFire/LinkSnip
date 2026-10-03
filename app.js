@@ -61,6 +61,7 @@ const { viewLocals, appLocals, brandingLocals } = require('./middleware/viewLoca
 const { prefillFromPath } = require('./middleware/prefill');
 const { featureRoutes } = require('./middleware/requireFeature');
 const sameOrigin = require('./middleware/sameOrigin');
+const requireLogin = require('./middleware/requireLogin');
 const { sessionOptions } = require('./config/session');
 
 const app = express();
@@ -102,6 +103,8 @@ app.use('/', setupRoutes);
 
 // Attach user to all requests
 app.use(attachUser);
+// Private instance (access.loginRequired): visitors reach only login, register and setup
+app.use(requireLogin);
 // Views get `features.<name>`, `can.<permission>`, `registrationOpen` and `writableTeams` per request,
 // and the app version and report reasons always (middleware/viewLocals.js)
 app.use(viewLocals);
