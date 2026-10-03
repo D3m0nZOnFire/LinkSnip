@@ -10,6 +10,7 @@ router.get('/register', registrationOpen, AuthController.getRegister);
 router.post('/register', registrationOpen, authLimiter, AuthController.postRegister);
 router.get('/login', AuthController.getLogin);
 router.post('/login', authLimiter, AuthController.postLogin);
-router.get('/logout', AuthController.logout);
+router.get('/logout', AuthController.getLogout); // asks; logging out is the POST
+router.post('/logout', AuthController.logout);
 
 module.exports = router;

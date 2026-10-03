@@ -101,6 +101,7 @@ const PAGES = {
   'unlock': () => rendered(c('unlockController').showUnlockPage, request(null, { params: { type: 'url', slug: 'locked' } })),
   'scheduled': () => rendered(c('urlController').redirect, request(null, { params: { slug: 'soon' } })),
   'quarantine': () => rendered(c('urlController').redirect, request(null, { params: { slug: 'flagged' } })),
+  'logout': () => rendered(c('authController').getLogout, request(s.user)),
   'error': async () => ({ req: request(null), view: 'error', data: { title: 'Page Not Found', message: 'Nope.', code: 404 } }),
   'bio-page': async () => ({ req: request(null), view: 'bio-page', data: bioPageData() }),
   'bio-settings': async () => ({ req: request(s.user), view: 'bio-settings', data: bioSettingsData() }),
@@ -165,7 +166,7 @@ const pages = fs.readdirSync(VIEWS).filter(f => f.endsWith('.ejs')).map(f => f.r
 //   standalone: page and footer only (login, errors, bio pages)
 const SHELL = Object.fromEntries(pages.map(name => [name,
   ['url-info', 'paste-view', 'paste-info', 'file-download', 'bundle-launcher', 'unlock'].includes(name) ? 'public'
-    : ['login', 'register', 'setup', 'error', 'scheduled', 'quarantine', 'bio-page'].includes(name) ? 'standalone'
+    : ['login', 'register', 'setup', 'logout', 'error', 'scheduled', 'quarantine', 'bio-page'].includes(name) ? 'standalone'
       : name.startsWith('admin') ? 'admin'
         : 'app']));
 
@@ -590,5 +591,42 @@ describe('admin pages (v1.3 part 7a)', () => {
 
   it.each(['admin-users', 'admin-reports', 'admin-audit-logs', 'admin-analytics-shares', 'admin-teams'])('%s uses the shared admin stylesheet', async (name) => {
     expect(await renderPage(name)).toContain('/css/admin-pages.css');
+  });
+});
+
+describe('analytics switched off (features.analytics)', () => {
+  beforeEach(() => configService.updateSettings({ 'features.analytics': false }));
+
+  it('dashboard: no analytics button on the rows', async () => {
+    expect(await renderPage('dashboard')).not.toMatch(/href="\/analytics\//);
+  });
+
+  it('admin-items: no analytics button on the rows', async () => {
+    expect(await renderPage('admin-items')).not.toMatch(/href="\/analytics\//);
+  });
+
+  it('admin-overview: no visits tile, no Analytics or Share links in the sidebar', async () => {
+    const html = await renderPage('admin-overview');
+    expect(html).not.toMatch(/Visits, last 7 days/);
+    expect(html).not.toMatch(/href="\/admin\/analytics"/);
+    expect(html).not.toMatch(/href="\/admin\/analytics-shares"/);
+  });
+
+  it('tags: no visits and no analytics button', async () => {
+    const html = await renderPage('tags');
+    expect(html).not.toMatch(/\/tags\/\d+\/analytics/);
+    expect(html).not.toMatch(/visit/i);
+  });
+
+  it('bundle-launcher: no Analytics link for its owner', async () => {
+    const { data } = await rendered(c('bundleController').launchBundle, request(s.user, { params: { slug: 'kit' } }));
+    expect(data.canSeeAnalytics).toBe(false);
+  });
+
+  it('with analytics on, the same pages show them', async () => {
+    configService.updateSettings({ 'features.analytics': true });
+    expect(await renderPage('dashboard')).toMatch(/href="\/analytics\//);
+    expect(await renderPage('admin-overview')).toMatch(/Visits, last 7 days/);
+    expect(await renderPage('tags')).toMatch(/\/tags\/\d+\/analytics/);
   });
 });

@@ -3,7 +3,7 @@ const AnalyticsShare = require('../models/AnalyticsShare');
 const Tag = require('../models/Tag');
 const Team = require('../models/Team');
 const RoleService = require('../services/roleService');
-const configService = require('../services/configService');
+const { enabledFeatures } = require('../middleware/requireFeature');
 const itemList = require('../services/itemList');
 const { contentType } = require('../services/contentTypes');
 const teamService = require('../services/teamService');
@@ -19,7 +19,7 @@ class DashboardController {
    * GET /dashboard
    */
   static getUserDashboard(req, res) {
-    const features = configService.getSettings().features;
+    const features = enabledFeatures();
 
     // Whose items: the user's personal ones, or a team's (?team=:id, for its members and site admins)
     const dashboardTeams = features.teams ? teamService.listForUser(req.user) : [];

@@ -57,7 +57,9 @@ describe('partials/sidebar (logged-in pages)', () => {
     expect(html).toContain('alice');
     expect(linkTo(html, '/settings')).toBe(true);
     expect(html).toMatch(/<button[^>]*data-theme-toggle/);
-    expect(linkTo(html, '/logout')).toBe(true);
+    // A form, not a link: logging out is a POST
+    expect(linkTo(html, '/logout')).toBe(false);
+    expect(html).toMatch(/<form[^>]*method="post"[^>]*action="\/logout"[^>]*>\s*<button[^>]*type="submit"[^>]*role="menuitem"/);
   });
 
   it('says when the account is an admin', async () => {

@@ -24,7 +24,7 @@
   };
   const words = (action) => action.charAt(0) + action.slice(1).toLowerCase().replace(/_/g, ' ');
   const { visits, system, moderation } = summary;
-  const trend = visits.weekBefore ? Math.round(((visits.lastWeek - visits.weekBefore) / visits.weekBefore) * 100) : null;
+  const trend = visits && visits.weekBefore ? Math.round(((visits.lastWeek - visits.weekBefore) / visits.weekBefore) * 100) : null;
   const backupHours = system.lastBackup ? (Date.now() - new Date(system.lastBackup.at).getTime()) / 3600000 : null;
 -%>
 
@@ -56,6 +56,7 @@
           <span class="stat-detail">&nbsp;</span>
         </a>
       <% } %>
+      <% if (visits) { %>
       <a class="stat-card" href="/admin/analytics">
         <span class="stat-label">Visits, last 7 days</span>
         <span class="stat-value"><%= number(visits.lastWeek) %></span>
@@ -64,6 +65,7 @@
           <% } else { %><span class="<%= trend >= 0 ? 'trend-up' : 'trend-down' %>"><%= trend >= 0 ? '+' : '' %><%= trend %>%</span> on the week before<% } %>
         </span>
       </a>
+      <% } %>
       <% if (features.files) { %>
         <a class="stat-card" href="/admin/items?type=file">
           <span class="stat-label">Storage</span>

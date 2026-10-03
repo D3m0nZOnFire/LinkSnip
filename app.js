@@ -126,7 +126,7 @@ app.use('/', dashboardRoutes);
 app.use('/', userRoutes);
 app.use('/', adminRoutes);
 app.use('/', adminItemRoutes); // block, unblock, delete for every type (a type's feature off: 404)
-app.use('/', analyticsRoutes);
+app.use('/', featureRoutes('analytics', analyticsRoutes)); // analytics pages (share links need it too: schema `requires`)
 app.use('/', featureRoutes('analyticsShareLinks', analyticsShareRoutes));
 app.use('/', featureRoutes('qrCodes', qrcodeRoutes));
 app.use('/', tagRoutes);

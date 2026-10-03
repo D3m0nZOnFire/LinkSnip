@@ -243,6 +243,10 @@ body.app {
   top: calc(100% + 0.4rem);
 }
 
+.user-menu-form {
+  display: contents;
+}
+
 .user-menu-list [role="menuitem"] {
   display: flex;
   align-items: center;

@@ -39,7 +39,8 @@ and the last good configuration stays in use.
 | `features.files` | `true` | File hosting (/f/…). |
 | `features.bioPages` | `true` | Bio pages. |
 | `features.importExport` | `true` | Bulk import and export of links. |
-| `features.analyticsShareLinks` | `true` | Read-only analytics share links. |
+| `features.analytics` | `true` | Visit analytics: every visit of a link, bundle, paste or file is recorded (keyed IP hash, referrer, browser, country) and shown on analytics pages. Off: nothing new is recorded and no country database is downloaded; analytics pages, share links and tag analytics are gone. Visits already recorded are kept (retention.analyticsDays still deletes old ones) and come back when it is switched on again. Clicks, views and downloads keep counting, for usage limits. |
+| `features.analyticsShareLinks` | `true` | Read-only analytics share links. Needs features.analytics. |
 | `features.reports` | `true` | Visitors can report links for abuse. |
 | `features.qrCodes` | `true` | QR codes for links, pastes, files and bundles. |
 | `features.teams` | `true` | Teams: links, bundles, pastes and files shared by several people. |

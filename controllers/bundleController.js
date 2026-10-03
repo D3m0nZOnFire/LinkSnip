@@ -1,4 +1,6 @@
 const { canEdit, canView } = require('../services/itemPermissions');
+const RoleService = require('../services/roleService');
+const { isEnabled } = require('../middleware/requireFeature');
 const Bundle = require('../models/Bundle');
 const Tag = require('../models/Tag');
 const AnalyticsService = require('../services/analyticsService');
@@ -308,7 +310,7 @@ async function launchBundle(req, res) {
 
   res.render('bundle-launcher', {
     user: req.user || null,
-    canSeeAnalytics: !!req.user && canView(req.user, 'bundle', bundle),
+    canSeeAnalytics: !!req.user && isEnabled('analytics') && RoleService.can(req.user, 'analytics') && canView(req.user, 'bundle', bundle),
     bundle,
     items,
     creatorUsername,

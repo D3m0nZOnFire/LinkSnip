@@ -64,7 +64,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   update a value equal to the stored one doesn't count (`tagsChanged()` compares tag sets).
 - **Feature switches** (`features.*` in settings.json) sit above roles: `middleware/requireFeature.js` provides
   `featureRoutes(feature, router)` (wraps a whole router in `app.js`) and `requireFeature(feature)` (single routes;
-  falls through with `next('route')`). A switched-off feature 404s for everyone, admins included.
+  falls through with `next('route')`). A switched-off feature 404s for everyone, admins included. A switch may need
+  another (schema `requires`: `analyticsShareLinks` needs `analytics`); `isEnabled(feature)` / `enabledFeatures()`
+  in `requireFeature.js` resolve that, and views' `features` come from `enabledFeatures()`.
 - Views get `can.<permission>` (false when its feature is off), `features.<name>`, `canUploadFiles`,
   `registrationOpen` and `limits` (`urlsPerHour`, `pastesPerHour`, `bundlesPerHour`, `uploadsPerHour`; null = none) from
   `middleware/viewLocals.js`. Use `locals.can` in partials that may render without it.
@@ -94,6 +96,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Login, registration and setup log in through `services/loginSession.js` `startSession(req, user)`: a new session
   ID (`session.regenerate`), so an ID known before logging in never becomes a logged-in session. Controller tests use
   `mockSession()` from `tests/setup/testHelpers.js` (`createMockRequest` has one by default).
+- Logout is `POST /logout` (the user menu's form), so another site or a prefetched link can't log anyone out;
+  `GET /logout` shows `views/logout.ejs` ("Log out?") for old bookmarks.
 - Login keeps `?next=` (a hidden field) and returns there; `safeNext()` in `controllers/authController.js` allows
   only paths on this site. Login, register and setup share `public/css/auth.css` (`.auth-card`).
 
@@ -254,6 +258,10 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   types (bulk endpoints for links, bundles, pastes; files one by one).
 
 ### Analytics and share links
+- `features.analytics` (default on) off: `AnalyticsService.record` returns early (no event, no country lookup, no
+  geo download), the analytics routes, tag analytics and share links 404, their buttons, the Admin sidebar entry and
+  the Overview visits tile are hidden. Recorded events are kept; item counters keep counting. `docs/PRIVACY.md`
+  (what is stored, how long; `tests/unit/docs/privacy.test.js` checks the settings it names exist).
 - Chart.js is served by LinkSnip (`routes/vendorRoutes.js`: `/vendor/chart.umd.js` from the `chart.js` dependency);
   no page loads it from a CDN (a test checks). `public/js/analytics.js` draws the charts from `#analyticsData` (JSON).
 - One page for every type: `/analytics/:type/:id` (owner/admin, permission `analytics`, the type's feature on), JSON

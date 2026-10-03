@@ -143,7 +143,7 @@
           </div>
           <div class="item-actions">
             <% if (item.infoPath) { %><a href="<%= item.infoPath %>" class="icon-btn" target="_blank" rel="noopener" title="Info page" aria-label="Info page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></a><% } %>
-            <a href="/analytics/<%= item.type %>/<%= item.id %>" class="icon-btn" title="Analytics" aria-label="Analytics"><%- include('partials/icon', { icon: 'chart' }) %></a>
+            <% if (features.analytics) { %><a href="/analytics/<%= item.type %>/<%= item.id %>" class="icon-btn" title="Analytics" aria-label="Analytics"><%- include('partials/icon', { icon: 'chart' }) %></a><% } %>
             <% if (features.qrCodes) { %><button type="button" class="icon-btn" data-qr="<%= item.type %>/<%= item.slug %>" title="QR code" aria-label="QR code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v.01M14 21h7v-4"/></svg></button><% } %>
             <% if (item.type === 'url') { %>
               <button type="button" class="icon-btn" data-edit-url="<%= item.id %>" title="Edit" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>

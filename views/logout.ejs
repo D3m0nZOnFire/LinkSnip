@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title: title, styles: ['public-pages'] }) %>
+</head>
+<%- include('partials/layout-start', { shell: 'standalone', pageClass: 'page-center' }) %>
+  <main class="status-card">
+    <span class="status-icon"><%- include('partials/icon', { icon: 'logout' }) %></span>
+    <h1>Log out?</h1>
+    <p>You're logged in as <strong><%= user.username %></strong>.</p>
+    <form method="post" action="/logout" class="status-actions">
+      <button type="submit" class="btn">Log out</button>
+      <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+    </form>
+  </main>
+<%- include('partials/layout-end', { shell: 'standalone' }) %>
+</html>
