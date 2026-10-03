@@ -12,6 +12,6 @@
   <div class="user-menu-list" id="<%= menuId %>" role="menu" hidden>
     <a href="/settings" role="menuitem"><%- include('icon', { icon: 'settings' }) %> Settings</a>
     <button type="button" role="menuitem" data-theme-toggle><span data-theme-icon></span> <span data-theme-label>Switch theme</span></button>
-    <a href="/logout" role="menuitem"><%- include('icon', { icon: 'logout' }) %> Log out</a>
+    <form method="post" action="/logout" class="user-menu-form"><button type="submit" role="menuitem"><%- include('icon', { icon: 'logout' }) %> Log out</button></form>
   </div>
 </div>

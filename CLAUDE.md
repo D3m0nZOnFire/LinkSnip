@@ -96,6 +96,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Login, registration and setup log in through `services/loginSession.js` `startSession(req, user)`: a new session
   ID (`session.regenerate`), so an ID known before logging in never becomes a logged-in session. Controller tests use
   `mockSession()` from `tests/setup/testHelpers.js` (`createMockRequest` has one by default).
+- Logout is `POST /logout` (the user menu's form), so another site or a prefetched link can't log anyone out;
+  `GET /logout` shows `views/logout.ejs` ("Log out?") for old bookmarks.
 - Login keeps `?next=` (a hidden field) and returns there; `safeNext()` in `controllers/authController.js` allows
   only paths on this site. Login, register and setup share `public/css/auth.css` (`.auth-card`).
 

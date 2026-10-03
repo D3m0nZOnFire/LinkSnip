@@ -117,6 +117,17 @@ class AuthController {
   /**
    * Handle logout
    */
+  /**
+   * GET /logout (old bookmarks): asks first. Logging out itself is POST /logout.
+   */
+  static getLogout(req, res) {
+    if (!req.user) return res.redirect('/login');
+    res.render('logout', { title: 'Log out', user: req.user });
+  }
+
+  /**
+   * POST /logout. A POST, so another site (middleware/sameOrigin.js) or a prefetched link can't log anyone out.
+   */
   static logout(req, res) {
     // Log logout before destroying session
     if (req.user) {
