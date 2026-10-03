@@ -24,6 +24,7 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 - **Moderation**: visitors can report links, bundles, pastes and files; reported items show a warning page until an admin blocks or clears them
 - **Your own look**: site name, tagline, logo and favicon, and a dark and a light color palette, from the built-in ones or your own
 - **Admin panel**: an overview, every item in one searchable list, users, teams, reports, settings, roles and appearance, and a full audit log
+- **Private instance**: one setting (`access.loginRequired`) and everything needs an account, short links included
 - **Operations**: nightly online backups and cleanup of expired content
 
 ### See it in action
@@ -114,7 +115,7 @@ You can also put `DOMAIN=links.example.com` in `.env`. To use a reverse proxy yo
 | Where | What |
 |---|---|
 | `.env` | Infrastructure only: `SESSION_SECRET`, `IP_HASH_SECRET`, `DATA_DIR`, `PORT`, `NODE_ENV`, `TRUST_PROXY` |
-| `data/settings.json` | Registration, feature switches, moderation, anonymous limits, retention, … Also editable in **Admin → Settings** |
+| `data/settings.json` | Private instance, registration, feature switches, moderation, anonymous limits, retention, … Also editable in **Admin → Settings** |
 | `data/roles.json` | Roles: what each kind of account (and anonymous visitors) may do, and their limits |
 
 Both JSON files are created with every option on first start. Edits apply within a few seconds, without a restart.

@@ -95,6 +95,20 @@ The app listens on `http://localhost:8081`. Without `DATA_DIR` in `.env`, data i
 | Update | `git pull && docker compose up -d --build` (check `.env.example` for new required variables first) |
 | Stop | `docker compose down` (data in `data/` is kept) |
 
+**Private instance** (a family, a club, a company): set these in `data/settings.json` or Admin → Settings,
+then create the accounts in Admin → Users (or `docker compose exec linksnip npm run admin`).
+
+```json
+{
+  "access": { "loginRequired": true },
+  "registration": { "open": false }
+}
+```
+
+Visitors then only see the login page: every short link, paste, file, bundle, info page, QR code and bio page asks
+them to log in first, and returns there afterwards. Analytics share links (`/stats/…`) need an account too, so they
+are effectively off. Leave `registration.open` on if anyone may sign up but nothing should be public.
+
 **Backups:** the database is backed up online every night at 3:00 (UTC) to `data/backups/`, keeping 30 days. Those
 copies sit on the same disk as everything else, and uploaded files (`data/uploads/`) aren't in them, so also keep
 copies somewhere else.

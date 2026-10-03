@@ -32,6 +32,7 @@ and the last good configuration stays in use.
 
 | Key | Default | Description |
 |---|---|---|
+| `access.loginRequired` | `false` | Private instance: only people with an account can open anything. Visitors are sent to the login page from every short link, paste, file, bundle, info page, QR code and bio page. Analytics share links (/stats/…) need an account too, so they are effectively off. Usually combined with registration.open false, so that admins create the accounts. |
 | `registration.open` | `true` | Anyone can create an account. When false, only admins can create accounts. |
 | `geo.enabled` | `true` | Record visitor countries, looked up in a local DB-IP Lite database (DATA_DIR/geo, downloaded monthly from db-ip.com; visitor IPs never leave the server). |
 | `features.pastes` | `true` | Text pastes (/p/…). |
