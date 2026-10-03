@@ -13,7 +13,9 @@ You'll get a reply as soon as possible. Once a fix is released, you'll be credit
 
 ## Supported versions
 
-Only the latest release gets security fixes. Update with `git pull && docker compose up -d --build`.
+Only the latest release gets security fixes. Update with `docker compose pull && docker compose up -d` (the default
+`:1` image follows every 1.x release) or `git pull && docker compose up -d --build`. Security fixes are listed under
+Security in [CHANGELOG.md](CHANGELOG.md).
 
 ## Scope
 

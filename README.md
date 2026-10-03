@@ -152,10 +152,16 @@ Database migrations run automatically on start, so a backup from an older versio
 
 ## Updating
 
+Read the [changelog](CHANGELOG.md) first: its Upgrading section says if anything needs doing. Then either pull the
+published image or build from the checkout:
+
 ```bash
-git pull
-docker compose up -d --build
+docker compose pull && docker compose up -d     # the image: ghcr.io/d3m0nzonfire/linksnip:1
+git pull && docker compose up -d --build        # or: build from the source
 ```
+
+`:1` follows every 1.x release and never jumps to 2.0. To stay on one version, set `LINKSNIP_VERSION=1.4.0` (or `1.4`
+for its fixes only) in `.env`. Every release is also tagged `:latest`.
 
 ## Troubleshooting
 
@@ -192,6 +198,7 @@ DATA_DIR=./demo-data npm run dev       # log in as admin / demo-password
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): Docker with Caddy, behind an existing proxy, or bare Node
 - [docs/CONFIGURATION.md](docs/CONFIGURATION.md): every setting, permission and limit
 - [docs/PRIVACY.md](docs/PRIVACY.md): what is stored about users and visitors, for how long, and how to keep less
+- [CHANGELOG.md](CHANGELOG.md): every release, and what to do when upgrading
 - [CONTRIBUTING.md](CONTRIBUTING.md): development setup and pull requests
 - [SECURITY.md](SECURITY.md): reporting a vulnerability
 
