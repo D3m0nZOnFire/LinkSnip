@@ -33,15 +33,15 @@ describe('login', () => {
 
   it('goes back to next after logging in, else to the dashboard', async () => {
     await createTestUser({ username: 'alice', password: 'password123' });
-    let res = await call(AuthController.postLogin, { body: { username: 'alice', password: 'password123', next: '/f/abc' }, session: {} });
+    let res = await call(AuthController.postLogin, { body: { username: 'alice', password: 'password123', next: '/f/abc' } });
     expect(res._redirectUrl).toBe('/f/abc');
-    res = await call(AuthController.postLogin, { body: { username: 'alice', password: 'password123', next: 'https://evil.example' }, session: {} });
+    res = await call(AuthController.postLogin, { body: { username: 'alice', password: 'password123', next: 'https://evil.example' } });
     expect(res._redirectUrl).toBe('/dashboard');
   });
 
   it('keeps next when the password is wrong', async () => {
     await createTestUser({ username: 'alice', password: 'password123' });
-    const res = await call(AuthController.postLogin, { body: { username: 'alice', password: 'nope', next: '/f/abc' }, session: {} });
+    const res = await call(AuthController.postLogin, { body: { username: 'alice', password: 'nope', next: '/f/abc' } });
     expect(res._viewData.next).toBe('/f/abc');
   });
 });

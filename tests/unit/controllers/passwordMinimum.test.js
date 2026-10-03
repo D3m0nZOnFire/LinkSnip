@@ -37,7 +37,7 @@ async function call(handler, req) {
 
 describe('register', () => {
   const register = (password) => call(AuthController.postRegister, {
-    body: { username: 'newbie', email: '', password, confirmPassword: password }, session: {}
+    body: { username: 'newbie', email: '', password, confirmPassword: password }
   });
 
   it('refuses 7 characters', async () => {
