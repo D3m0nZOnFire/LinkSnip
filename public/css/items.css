@@ -109,7 +109,17 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--card);
-  overflow: hidden;
+}
+
+/* The list doesn't clip (a ⋯ menu of the last rows hangs below it): the end rows round their own corners */
+.item-list > :first-child {
+  border-top-left-radius: calc(var(--radius-lg) - 1px);
+  border-top-right-radius: calc(var(--radius-lg) - 1px);
+}
+
+.item-list > :last-child {
+  border-bottom-left-radius: calc(var(--radius-lg) - 1px);
+  border-bottom-right-radius: calc(var(--radius-lg) - 1px);
 }
 
 .item-row {

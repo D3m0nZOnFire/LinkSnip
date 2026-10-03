@@ -168,3 +168,12 @@ describe('no inline styling', () => {
     expect(source).not.toMatch(/\sonclick=/);
   });
 });
+
+describe('row menus', () => {
+  // The ⋯ menu of the last rows hangs below the list: a list that clips its content (overflow: hidden) cuts it off
+  it('the list never clips its rows (the menus of the last rows stay reachable)', () => {
+    const css = fs.readFileSync(path.join(__dirname, '../../../public/css/items.css'), 'utf8');
+    const rule = css.match(/\n\.item-list \{[^}]*\}/)[0];
+    expect(rule).not.toMatch(/overflow/);
+  });
+});
