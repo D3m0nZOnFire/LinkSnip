@@ -66,6 +66,10 @@ by default). LinkSnip trusts one proxy hop (`TRUST_PROXY=1`). If there are more 
 plus Caddy, set `TRUST_PROXY` in `.env` to their number. With the wrong value, rate limits and reports see the proxy's
 address instead of the visitor's.
 
+**Host header:** keep the original `Host` header (Caddy does; in nginx, `proxy_set_header Host $host;`). Older
+browsers and plain-http setups are checked against it for cross-site requests: with a rewritten Host, their form
+submissions get "Request Refused" (403).
+
 **Upload size:** Caddy has no request size limit by default. Other proxies do (nginx: `client_max_body_size`, 1 MB by
 default); raise theirs to at least your largest `maxFileSizeMB`.
 

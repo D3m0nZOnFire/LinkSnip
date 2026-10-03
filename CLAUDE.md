@@ -73,11 +73,14 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ## Request flow
 
 1. `express.static`, then `GET /healthz` (`SELECT 1`, before sessions)
-2. Sessions (SQLite store, 7 days, cookie `secure: 'auto'`)
-3. `requireSetupComplete`: while no admin exists every page redirects to `/setup` (API: 503 `setup_required`)
-4. `attachUser` (sets `req.user`, updates `lastActive`), then `middleware/viewLocals.js` (`can`, `features`,
+2. `middleware/sameOrigin.js` (CSRF): POST/PUT/PATCH/DELETE need `Sec-Fetch-Site: same-origin|none`, or without it an
+   `Origin` whose host is the `Host` header; no header at all (curl) passes. Refused: 403 (`cross_site_request` JSON
+   on `/api/`, else the error page). No CSRF tokens anywhere: forms and `fetch` need nothing extra.
+3. Sessions (`config/session.js`: SQLite store, 7 days, cookie `sameSite: 'lax'`, `secure: 'auto'`)
+4. `requireSetupComplete`: while no admin exists every page redirects to `/setup` (API: 503 `setup_required`)
+5. `attachUser` (sets `req.user`, updates `lastActive`), then `middleware/viewLocals.js` (`can`, `features`,
    `registrationOpen`, `writableTeams`; `appLocals()` sets `appVersion` and `reportReasons` on `app.locals`)
-5. Routers (feature routers wrapped in `featureRoutes`), then the home routes, 404 and error handlers
+6. Routers (feature routers wrapped in `featureRoutes`), then the home routes, 404 and error handlers
 
 ## Accounts
 
