@@ -30,10 +30,12 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 
 | | |
 |---|---|
-| ![Creating a short link](docs/screenshots/home.png) | ![Analytics for a link](docs/screenshots/analytics.png) |
-| **Create** links, pastes, bundles and files | **Analytics** per link, shareable read-only |
-| ![A text paste](docs/screenshots/paste.png) | ![Roles in Admin → Settings](docs/screenshots/roles.png) |
-| **Pastes** with line numbers, raw view and editor | **Roles**: permissions and limits per kind of account |
+| ![The create page](docs/screenshots/home.png) | ![Analytics for a link](docs/screenshots/analytics.png) |
+| **Create** links, pastes, bundles and files | **Analytics** per item, shareable read-only |
+| ![A text paste](docs/screenshots/paste.png) | ![Admin overview](docs/screenshots/admin.png) |
+| **Pastes** with line numbers, raw view and editor | **Admin mode** with an overview of the whole instance |
+| ![Palettes in Admin → Appearance](docs/screenshots/appearance.png) | ![Roles in Admin → Settings](docs/screenshots/roles.png) |
+| **Your own look**: name, logo and a dark and a light palette | **Roles**: permissions and limits per kind of account |
 
 ## Quick start (Docker)
 
