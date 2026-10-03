@@ -92,7 +92,8 @@ The app listens on `http://localhost:8081`. Without `DATA_DIR` in `.env`, data i
 | Logs | `docker compose logs -f linksnip` |
 | Health | `curl http://127.0.0.1:8081/healthz` (also used by the container's health check) |
 | Admin accounts (create, promote, reset password) | `docker compose exec linksnip npm run admin` |
-| Update | `git pull && docker compose up -d --build` (check `.env.example` for new required variables first) |
+| Update | `docker compose pull && docker compose up -d`, or from the source `git pull && docker compose up -d --build` (read the Upgrading section of [CHANGELOG.md](../CHANGELOG.md) first) |
+| Pin a version | `LINKSNIP_VERSION=1.4.0` in `.env` (default `1`: every 1.x release, never 2.0; `1.4`: only 1.4 fixes) |
 | Stop | `docker compose down` (data in `data/` is kept) |
 
 **Private instance** (a family, a club, a company): set these in `data/settings.json` or Admin → Settings,

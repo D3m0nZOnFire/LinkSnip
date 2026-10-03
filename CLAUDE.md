@@ -421,8 +421,11 @@ share links · 5:30 expired files · 5:45 country database check.
 
 - `Dockerfile`: multi-stage `node:22-bookworm-slim`, build tools only in the build stage, runs as `node` (uid 1000),
   `DATA_DIR=/data`, `HEALTHCHECK` on `/healthz`. Code is root-owned; only `/data` is writable.
-- `docker-compose.yml`: `./data:/data`, `127.0.0.1:8081`, `restart: unless-stopped`; optional `caddy` profile with
+- `docker-compose.yml`: image `ghcr.io/d3m0nzonfire/linksnip:${LINKSNIP_VERSION:-1}` (+ `build: .`), `./data:/data`, `127.0.0.1:8081`, `restart: unless-stopped`; optional `caddy` profile with
   `docker/Caddyfile` and `DOMAIN`.
+- Releases: `CHANGELOG.md` (Keep a Changelog; a section with `### Upgrading` per version; `changelog.test.js` requires
+  one for package.json's version, newest first) is the source of the GitHub release notes. `docker-publish.yml` tags
+  `:X.Y.Z`, `:X.Y`, `:X` and `:latest` (`tests/unit/ci/dockerImage.test.js`).
 - Deploys (maintainer): a `vX.Y.Z` tag → `docker-publish.yml` → `deploy.yml` → forced-command SSH key →
   `docker/deploy/linksnip-deploy` on the server (installed by hand in `/usr/local/bin`): snapshot of DB + settings,
   build, 60 s health wait, and on failure the snapshot and the previous code are restored.
