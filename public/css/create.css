@@ -54,7 +54,7 @@
   margin-bottom: var(--spacing-md);
   border-radius: var(--radius-md);
   background: var(--status-active-bg);
-  color: var(--primary);
+  color: var(--status-active-text);
 }
 
 .feature-card h3 {
@@ -344,7 +344,7 @@
 }
 
 .creator-chip.chip-set {
-  color: var(--primary);
+  color: var(--status-active-text);
   background: var(--status-active-bg);
   border: 1px solid var(--status-active-border);
 }

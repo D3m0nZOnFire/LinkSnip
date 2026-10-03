@@ -45,7 +45,10 @@
   border-radius: 0.25rem;
   font-size: 0.875rem;
   font-weight: 500;
-  border: 1px solid;
+  /* Like .tag-chip: the tag's color in the tint and border, text in the text color (any tag color stays readable) */
+  border: 1px solid color-mix(in srgb, var(--tag-color, var(--muted-foreground)) 55%, transparent);
+  background: color-mix(in srgb, var(--tag-color, var(--muted-foreground)) 14%, transparent);
+  color: var(--foreground);
   transition: all 0.2s;
   max-width: 200px;
 }

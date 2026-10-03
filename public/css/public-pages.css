@@ -175,7 +175,7 @@ h1.short-link {
 }
 
 .text-btn.danger:hover:not(:disabled) {
-  color: var(--destructive);
+  color: var(--status-error-text);
   background: var(--status-error-bg);
 }
 
@@ -310,7 +310,7 @@ h1.short-link {
 
 .status-card.locked .status-icon {
   background: var(--status-active-bg);
-  color: var(--primary);
+  color: var(--status-active-text);
 }
 
 .status-code {
@@ -434,7 +434,7 @@ h1.short-link {
   border-radius: var(--radius-md);
   background: var(--status-active-bg);
   border: 1px solid var(--status-active-border);
-  color: var(--primary);
+  color: var(--status-active-text);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 700;

@@ -193,7 +193,7 @@ body.app {
   height: 1.75rem;
   border-radius: var(--radius-full);
   background: var(--status-active-bg);
-  color: var(--primary);
+  color: var(--status-active-text);
   font-size: var(--text-xs);
   font-weight: 600;
 }
