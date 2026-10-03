@@ -1,173 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Edit paste', styles: ['forms', 'tagSelector', 'lineNumbers'] }) %>
-  <style>
-    .paste-edit-textarea {
-      width: 100%;
-      min-height: 22rem;
-      font-family: var(--font-mono);
-      font-size: 0.875rem;
-      line-height: 1.55;
-      resize: vertical;
-      background: var(--background);
-      color: var(--foreground);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md, 0.5rem);
-      padding: 0.9rem;
-      tab-size: 2;
-    }
-    .paste-edit-textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: var(--focus-ring);
-    }
-    .pe-current-pw {
-      background: rgba(251, 191, 36, 0.1);
-      color: #fbbf24;
-      border: 1px solid rgba(251, 191, 36, 0.3);
-      border-radius: 0.375rem;
-      padding: 0.5rem 0.75rem;
-      font-size: 0.85rem;
-      margin-bottom: 0.75rem;
-    }
-    .pe-actions {
-      display: flex;
-      gap: 0.75rem;
-      margin-top: 1.5rem;
-    }
-    .pe-error {
-      background: var(--status-error-bg);
-      color: var(--status-error-text);
-      border: 1px solid var(--status-error-border);
-      border-radius: 0.5rem;
-      padding: 0.75rem 1rem;
-      margin-bottom: 1.5rem;
-      display: none;
-    }
-  </style>
+  <%- include('partials/head', { title: 'Edit paste', styles: ['forms', 'sections', 'tagSelector', 'lineNumbers', 'paste-edit'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'app', currentPage: 'dashboard' }) %>
+<% const backUrl = paste.teamId ? `/dashboard?team=${paste.teamId}` : '/dashboard'; -%>
 
-  <main class="main-content">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
-      <h2 style="font-size:1.875rem;font-weight:700;margin:0;">Edit Paste</h2>
-      <a href="/p/<%= paste.slug %>" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:none;font-size:0.9rem;">/p/<%= paste.slug %> ↗</a>
+  <main class="main-content-wide page-medium" id="pasteEditor" data-paste-id="<%= paste.id %>">
+    <div class="header-section">
+      <div>
+        <h2 class="page-title"><%= paste.title || 'Untitled paste' %></h2>
+        <p><a href="/p/<%= paste.slug %>" target="_blank" rel="noopener">/p/<%= paste.slug %></a></p>
+      </div>
+      <div class="header-actions">
+        <a href="<%= backUrl %>" class="btn btn-secondary" data-back>Back</a>
+      </div>
     </div>
 
-    <div id="peError" class="pe-error"></div>
-
-    <div class="card">
+    <section class="section-card">
+      <div class="section-head">
+        <h3>Text</h3>
+        <span class="paste-edit-size" id="peSize"></span>
+      </div>
+      <p class="section-help">Shown as plain text; the language is only a label.</p>
       <div class="form-grid">
         <div class="form-group">
-          <label for="peTitle" class="form-label">Title</label>
-          <input type="text" id="peTitle" class="form-input" maxlength="200" placeholder="(optional)" value="<%= paste.title || '' %>">
+          <label for="peTitle" class="form-label">Title <span class="muted">optional</span></label>
+          <input type="text" id="peTitle" class="form-input" maxlength="200" value="<%= paste.title || '' %>">
         </div>
         <div class="form-group">
-          <label for="peLanguage" class="form-label">Language</label>
-          <input type="text" id="peLanguage" class="form-input" maxlength="30" placeholder="(optional)" value="<%= paste.language || '' %>">
+          <label for="peLanguage" class="form-label">Language <span class="muted">optional</span></label>
+          <input type="text" id="peLanguage" class="form-input" maxlength="30" value="<%= paste.language || '' %>">
         </div>
       </div>
-
       <div class="form-group">
         <label for="peContent" class="form-label">Content</label>
         <textarea id="peContent" class="paste-edit-textarea" spellcheck="false" data-line-numbers><%= paste.content %></textarea>
       </div>
+    </section>
 
+    <section class="section-card">
+      <h3>Settings</h3>
+      <p class="section-help">Leave a field empty for no limit.</p>
       <div class="form-grid">
         <div class="form-group">
-          <label for="peExpiresAt" class="form-label">Expires</label>
+          <label for="peExpiresAt" class="form-label">Expires on</label>
           <input type="date" id="peExpiresAt" class="form-input" value="<%= paste.expiresAt ? String(paste.expiresAt).substring(0, 10) : '' %>">
         </div>
         <div class="form-group">
-          <label for="peMaxViews" class="form-label">Max views</label>
+          <label for="peMaxViews" class="form-label">View limit</label>
           <input type="number" id="peMaxViews" class="form-input" min="1" placeholder="Unlimited" value="<%= paste.maxViews || '' %>">
         </div>
       </div>
-
       <div class="form-group">
-        <label class="form-label">Tags</label>
+        <span class="form-label">Tags</span>
         <div id="peTagSelectorMount"></div>
-        <input type="hidden" id="peTags" value="<%= (paste.tags || []).map(function(t){ return t.name; }).join(',') %>">
+        <input type="hidden" id="peTags" value="<%= (paste.tags || []).map(t => t.name).join(',') %>">
       </div>
-
       <div class="form-group">
         <% if (paste.password) { %>
-        <div class="pe-current-pw">This paste is currently password protected.</div>
+          <p class="status-note warning">This paste is password protected.</p>
         <% } %>
-        <label for="pePassword" class="form-label">
-          New password <span style="color:var(--muted-foreground);font-weight:400;">(leave blank to keep existing)</span>
-        </label>
-        <input type="password" id="pePassword" class="form-input" placeholder="Enter new password…" autocomplete="new-password">
+        <label for="pePassword" class="form-label"><%= paste.password ? 'New password' : 'Password' %> <span class="muted"><%= paste.password ? 'leave empty to keep the current one' : 'optional' %></span></label>
+        <input type="password" id="pePassword" class="form-input" autocomplete="new-password" data-toggle-password>
         <% if (paste.password) { %>
-        <label style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;font-size:0.85rem;color:var(--muted-foreground);cursor:pointer;">
-          <input type="checkbox" id="peRemovePassword"> Remove existing password
-        </label>
+          <label class="check-line"><input type="checkbox" id="peRemovePassword"> Remove the password</label>
         <% } %>
       </div>
+    </section>
 
-      <div class="pe-actions">
-        <button type="button" class="btn btn-primary" id="peSaveBtn" onclick="savePaste()">Save Changes</button>
-        <a href="/dashboard" class="btn" style="background:var(--secondary);color:var(--foreground);">Cancel</a>
-      </div>
+    <div class="save-bar" id="saveBar" data-state="clean">
+      <span class="save-bar-status" id="saveStatus">No unsaved changes</span>
+      <button type="button" class="btn btn-small" id="peSaveBtn">Save</button>
     </div>
   </main>
 
+  <script src="/js/main.js"></script>
   <script src="/js/tagSelector.js"></script>
   <script src="/js/lineNumbers.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const preset = (document.getElementById('peTags').value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
-      new TagSelector('peTagSelectorMount', {
-        placeholder: 'Add tags…',
-        selectedTags: preset,
-        onChange: function (tags) { document.getElementById('peTags').value = tags.join(','); }
-      });
-    });
-
-    async function savePaste() {
-      const err = document.getElementById('peError');
-      err.style.display = 'none';
-
-      const body = {
-        title: document.getElementById('peTitle').value,
-        language: document.getElementById('peLanguage').value,
-        content: document.getElementById('peContent').value,
-        expiresAt: document.getElementById('peExpiresAt').value || null,
-        maxViews: document.getElementById('peMaxViews').value || null,
-        tags: document.getElementById('peTags').value
-      };
-      const pw = document.getElementById('pePassword').value;
-      const removeEl = document.getElementById('peRemovePassword');
-      if (removeEl && removeEl.checked) body.removePassword = '1';
-      else if (pw) body.password = pw;
-
-      const btn = document.getElementById('peSaveBtn');
-      btn.disabled = true;
-      btn.textContent = 'Saving…';
-
-      try {
-        const res = await fetch('/api/pastes/<%= paste.id %>', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        const data = await res.json();
-        if (data.success) {
-          window.location = '/dashboard';
-        } else {
-          err.textContent = data.error || 'Update failed';
-          err.style.display = 'block';
-          btn.disabled = false;
-          btn.textContent = 'Save Changes';
-        }
-      } catch (e) {
-        err.textContent = 'Request failed. Please try again.';
-        err.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Save Changes';
-      }
-    }
-  </script>
+  <script src="/js/paste-edit.js"></script>
 <%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

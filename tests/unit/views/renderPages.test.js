@@ -495,3 +495,100 @@ describe('bio-settings: link labels', () => {
     expect(html).toMatch(new RegExp(`<input[^>]*data-label-for="${s.url.id}"[^>]*value="My link"`));
   });
 });
+
+describe('every view (v1.3 part 7a): no inline styling, handlers, scripts or emoji', () => {
+  const EMOJI = /\p{Extended_Pictographic}/u;
+  const ALL_VIEWS = [
+    ...fs.readdirSync(VIEWS).filter(f => f.endsWith('.ejs')),
+    ...fs.readdirSync(path.join(VIEWS, 'partials')).filter(f => f.endsWith('.ejs')).map(f => `partials/${f}`)
+  ].map(f => f.replace(/\.ejs$/, ''));
+  // Bio page themes set <body style> from the theme's own colors (layout-start's bodyStyle)
+  const STYLE_ATTRIBUTE_OK = new Set(['partials/layout-start']);
+
+  it.each(ALL_VIEWS)('%s.ejs has no <style> blocks, style attributes (CSS variables aside), inline handlers or emoji', (name) => {
+    const source = fs.readFileSync(path.join(VIEWS, `${name}.ejs`), 'utf8');
+    expect(source).not.toMatch(/<style/);
+    if (!STYLE_ATTRIBUTE_OK.has(name)) expect(source.match(/\sstyle="(?!--[a-z-]+:)[^"]*"/g)).toBeNull();
+    expect(source).not.toMatch(/\son[a-z]+="/);
+    expect(source).not.toMatch(EMOJI);
+  });
+
+  const ADMIN_PAGES = ['admin-overview', 'admin-items', 'admin-users', 'admin-reports', 'admin-analytics',
+    'admin-analytics-shares', 'admin-audit-logs', 'admin-teams', 'admin-settings', 'admin-appearance'];
+
+  it.each([...ADMIN_PAGES, 'paste-edit', 'dashboard'])('%s has no inline script code (scripts come from /js, data as JSON)', async (name) => {
+    const html = await renderPage(name);
+    const inline = (html.match(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/json")[^>]*>[\s\S]*?<\/script>/g) || [])
+      .filter(script => !/theme|data-theme/.test(script)); // the head's theme bootstrap
+    expect(inline).toEqual([]);
+  });
+});
+
+describe('paste editor (v1.3 part 7a): an app page of section cards with a save bar', () => {
+  it('has the paste text and its settings in section cards, and saves from the save bar', async () => {
+    const html = await renderPage('paste-edit');
+    expect(html).toContain('/css/sections.css');
+    expect(html).toMatch(/class="[^"]*\bpage-medium\b/);
+    expect((html.match(/class="section-card/g) || []).length).toBeGreaterThanOrEqual(2);
+    expect(html).toMatch(/<textarea[^>]*id="peContent"[^>]*data-line-numbers/);
+    expect(html).toMatch(/class="save-bar" id="saveBar" data-state="clean"/);
+    expect(html).toContain('/js/paste-edit.js');
+  });
+
+  it('the paste ID and slug travel as data attributes, never inside script code', async () => {
+    const html = await renderPage('paste-edit');
+    expect(html).toMatch(/data-paste-id="\d+"/);
+    expect(html).toContain(`href="/p/${s.paste.slug}"`);
+  });
+
+  it('a password-protected paste says so with the warning colors and offers to remove the password', async () => {
+    getTestDatabase().prepare("UPDATE pastes SET password = 'x' WHERE id = ?").run(s.paste.id);
+    const html = await renderPage('paste-edit');
+    expect(html).toContain('class="status-note warning"');
+    expect(html).toContain('id="peRemovePassword"');
+  });
+
+  it("Back goes to the dashboard the paste is listed on (the team's for a team paste)", async () => {
+    expect(await renderPage('paste-edit')).toMatch(/<a href="\/dashboard" [^>]*data-back/);
+
+    getTestDatabase().prepare('UPDATE pastes SET teamId = ? WHERE id = ?').run(s.team.id, s.paste.id);
+    const { req, data } = await rendered(c('pasteController').showEditPage, request(s.admin, { params: { id: String(s.paste.id) } }));
+    const res = createMockResponse();
+    brandingLocals(req, res, () => {});
+    viewLocals(req, res, () => {});
+    const html = await ejs.renderFile(path.join(VIEWS, 'paste-edit.ejs'), { ...appLocals(), ...res.locals, ...data });
+    expect(html).toMatch(new RegExp(`<a href="/dashboard\\?team=${s.team.id}" [^>]*data-back`));
+  });
+});
+
+describe('admin pages (v1.3 part 7a)', () => {
+  it('audit logs: details someone could type (an email at registration) never break out into script', async () => {
+    getTestDatabase().prepare(`INSERT INTO audit_logs (action, category, username, ipAddress, details)
+      VALUES ('REGISTER', 'AUTH', 'mallory', '127.0.0.1', ?)`).run(JSON.stringify({ email: '</script><script>alert(1)</script>' }));
+    const html = await renderPage('admin-audit-logs');
+    expect(html).not.toContain('<script>alert(1)');
+    expect(html).toContain('&lt;/script&gt;&lt;script&gt;alert(1)');
+    expect(html).toContain('/js/admin-audit-logs.js');
+  });
+
+  it('audit logs: times are UTC in the page and shown in the reader\'s time zone (no fixed offset)', async () => {
+    getTestDatabase().prepare("UPDATE audit_logs SET createdAt = '2026-01-15 10:30:00'").run();
+    const html = await renderPage('admin-audit-logs');
+    expect(html).toMatch(/<time datetime="2026-01-15T10:30:00Z" data-local>2026-01-15 10:30 UTC<\/time>/);
+  });
+
+  it('audit logs: the category counts are the real counts (AuditLog.getStats returns rows)', async () => {
+    const html = await renderPage('admin-audit-logs');
+    expect(html).toMatch(/<div class="mini-stat-label">Sign-ins<\/div><div class="mini-stat-value">1<\/div>/);
+  });
+
+  it('users: the create form asks for the real password minimum', async () => {
+    const html = await renderPage('admin-users');
+    expect(html).toContain('At least 8 characters');
+    expect(html).not.toContain('At least 6 characters');
+  });
+
+  it.each(['admin-users', 'admin-reports', 'admin-audit-logs', 'admin-analytics-shares', 'admin-teams'])('%s uses the shared admin stylesheet', async (name) => {
+    expect(await renderPage(name)).toContain('/css/admin-pages.css');
+  });
+});

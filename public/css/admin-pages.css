@@ -1,0 +1,227 @@
+/* Admin pages built around a table: users, reports, audit logs, analytics, analytics shares, teams.
+   A filter bar (the same look as Admin → Items), a row of small numbers, the table, a pager. */
+
+/* A heading between blocks of a page */
+.section-title {
+  margin: var(--spacing-xl) 0 var(--spacing-sm);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+/* Filters: one card, fields side by side, labels above them */
+.filter-bar.card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.filter-field {
+  display: flex;
+  flex: 0 1 10rem;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.filter-field.grow {
+  flex: 1 1 16rem;
+}
+
+.filter-bar .form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: var(--text-sm);
+}
+
+.filter-bar select.form-input {
+  padding-right: 2.25rem;
+}
+
+.filter-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+/* Small numbers above a list: "Pending 3 · Reviewed 12 …" */
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.mini-stat {
+  padding: var(--spacing-md);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.mini-stat-label {
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.mini-stat-value {
+  margin-top: 0.25rem;
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-stat.danger .mini-stat-value {
+  color: var(--destructive);
+}
+
+/* A panel that needs a decision (Admin → Reports: quarantined items) */
+.attention-panel {
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-md);
+  background: var(--status-error-bg);
+  border: 1px solid var(--status-error-border);
+  border-radius: var(--radius-lg);
+}
+
+.attention-panel h3 {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.attention-panel > p {
+  margin: 0.25rem 0 var(--spacing-md);
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+}
+
+/* Dense rows, like Admin → Items; tables wider than the window scroll inside their card */
+.table-container.scroll {
+  overflow-x: auto;
+}
+
+.table-container th,
+.table-container td {
+  padding: 0.6rem 0.75rem;
+  font-size: var(--text-sm);
+}
+
+.table-container th:first-child,
+.table-container td:first-child {
+  padding-left: var(--spacing-md);
+}
+
+.table-container td a:not(.btn) {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.table-container td a:not(.btn):hover {
+  text-decoration: underline;
+}
+
+/* One line, cut short: "alice@demo.exa…" (the full text is the title) */
+.table-container td.clip {
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-container td.wrap {
+  max-width: 20rem;
+  overflow-wrap: anywhere;
+}
+
+.table-container td.nowrap,
+.table-container th.nowrap {
+  white-space: nowrap;
+}
+
+.table-container .cell-sub {
+  display: block;
+  max-width: 14rem;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+}
+
+/* Under the table */
+.table-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+}
+
+.table-footer .pager {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-left: auto;
+}
+
+/* A count on a tab: "Links 3" */
+.tab-count {
+  margin-left: 0.35rem;
+  padding: 0 0.4rem;
+  background: var(--destructive);
+  color: var(--background);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* Audit logs: a log's details open in a modal */
+.log-details {
+  max-width: 12rem;
+  overflow: hidden;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.log-details:hover {
+  text-decoration: underline;
+}
+
+.log-details-content {
+  max-height: 60vh;
+  overflow: auto;
+  padding: var(--spacing-md);
+  background: var(--secondary);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}

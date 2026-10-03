@@ -134,9 +134,22 @@ function createTestTag(overrides = {}) {
  * @param {object} overrides - Override default request values
  * @returns {object} Mock request object
  */
+/**
+ * A session object like express-session's: regenerate() empties it (a new session), save() stores it.
+ */
+function mockSession(data = {}) {
+  const session = { ...data };
+  Object.defineProperties(session, {
+    regenerate: { value: (cb) => { for (const key of Object.keys(session)) delete session[key]; cb(); } },
+    save: { value: (cb) => cb() },
+    destroy: { value: (cb) => cb() }
+  });
+  return session;
+}
+
 function createMockRequest(overrides = {}) {
   return {
-    session: {},
+    session: mockSession(),
     user: null,
     params: {},
     query: {},
@@ -389,6 +402,7 @@ module.exports = {
   createTestUrl,
   createTestTag,
   createMockRequest,
+  mockSession,
   createMockResponse,
   createMockNext,
   tagItem,

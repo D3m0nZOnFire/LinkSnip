@@ -88,6 +88,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   deletes the personal links, bundles, pastes and files (uploads too) and the user; tags and the bio page cascade,
   the items' analytics/share links/reports/tags go through the delete triggers. Team items stay, creator NULL.
 
+- Login, registration and setup log in through `services/loginSession.js` `startSession(req, user)`: a new session
+  ID (`session.regenerate`), so an ID known before logging in never becomes a logged-in session. Controller tests use
+  `mockSession()` from `tests/setup/testHelpers.js` (`createMockRequest` has one by default).
 - Login keeps `?next=` (a hidden field) and returns there; `safeNext()` in `controllers/authController.js` allows
   only paths on this site. Login, register and setup share `public/css/auth.css` (`.auth-card`).
 
@@ -195,7 +198,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   local time and sent as UTC. The limit line comes from `limits`.
 
 ### Pastes
-- `/p/:slug`, `/p/:slug/raw`, `/p-info/:slug`, editor `/pastes/:id/edit`, API `/api/pastes`. Model `models/Paste.js`,
+- `/p/:slug`, `/p/:slug/raw`, `/p-info/:slug`, editor `/pastes/:id/edit` (app page of section cards with a save bar,
+  `public/js/paste-edit.js`; Back goes to the team dashboard for a team paste), API `/api/pastes`. Model `models/Paste.js`,
   controller `controllers/pasteController.js`.
 - EJS-escaped plain text (`<%= %>`, never `<%-`), `language` is only a label. Line-number gutters via
   `public/js/lineNumbers.js` on textareas with `data-line-numbers`.
@@ -455,7 +459,16 @@ share links · 5:30 expired files · 5:45 country database check.
   (`.page-narrow` / `.page-medium` column, `.section-card` with `h3` + `.section-help`, `.section-card.danger`,
   `.inline-form`, `.section-table` in a `.table-scroll`, `.save-bar`), plus a small stylesheet per page. No `<style>`,
   `style=` (CSS variables aside), inline handlers or emoji in their templates; a test checks this.
-- `confirmAction()` returns a Promise: always `await` it (an unawaited one is always truthy).
+- No view or partial has `<style>`, `style=` (CSS variables aside; `layout-start`'s bio `bodyStyle` excepted),
+  inline handlers, inline script code or emoji: `renderPages.test.js` checks every file. Data for scripts goes in
+  data attributes or `<script type="application/json">` (escape `<`), never into script code.
+- Admin pages around a table (users, reports, audit logs, analytics, analytics shares, teams):
+  `public/css/admin-pages.css` (`.filter-bar.card` with `.filter-field`s, `.mini-stats`, `.attention-panel`, dense
+  `.table-container` rows with `.cell-sub` second lines, `.row-actions`, `.table-footer` + `.pager`), a script per page
+  (`public/js/admin-*.js`, Users: `admin.js`). Admin → Settings: `admin-settings.css` / `admin-settings.js`.
+- `confirmAction(message, title, destructive, confirmLabel)` returns a Promise: always `await` it (an unawaited one is
+  always truthy). Its dialog is `partials/confirm-modal.ejs`. Buttons with `data-open-modal="id"` /
+  `data-close-modal="id"` work on every page that loads `main.js`.
 - Modals: `public/css/modals.css`, `openModal(id)` / `closeModal(id)` in `public/js/main.js`; `showToast`,
   `apiRequest`, `setButtonLoading` there too.
 - Password inputs with `data-toggle-password` get an eye toggle. Theme variables in `public/css/tokens.css`

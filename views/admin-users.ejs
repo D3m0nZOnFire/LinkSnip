@@ -1,153 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Users · Admin', styles: ['tables', 'forms', 'modals'] }) %>
+  <%- include('partials/head', { title: 'Users · Admin', styles: ['tables', 'forms', 'modals', 'admin-pages'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-users' }) %>
+<%
+  const SORTS = [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['username', 'Username A–Z'], ['most-urls', 'Most links'],
+    ['most-clicks', 'Most clicks'], ['recently-active', 'Recently active']];
+  const ACTIVITY = [['', 'Any activity'], ['today', 'Active today'], ['7days', 'Active (7 days)'], ['30days', 'Active (30 days)'],
+    ['90days', 'Active (90 days)'], ['inactive30', 'Inactive 30+ days'], ['inactive90', 'Inactive 90+ days'], ['never', 'Never active']];
+  const hasFilters = filters.search || filters.role || filters.status || filters.userRole || filters.activity || filters.sort !== 'newest';
+  const defaultRoleLabel = (roles.find(r => r.name === defaultRole) || {}).label || defaultRole;
+-%>
 
-  <!-- Main Content -->
   <main class="main-content-wide">
-    <!-- Header Section -->
     <div class="header-section">
       <div>
-        <h2>User Management</h2>
-        <p>Total users: <span class="count"><%= users.length %></span></p>
+        <h2>Users</h2>
+        <p><%= users.length %> account<%= users.length === 1 ? '' : 's' %><%= hasFilters ? ' match' : '' %></p>
       </div>
-      <button type="button" class="btn" style="color: var(--primary-foreground);" onclick="openModal('createUserModal')">Create user</button>
+      <button type="button" class="btn" data-open-modal="createUserModal"><%- include('partials/icon', { icon: 'plus' }) %> Create user</button>
     </div>
 
-    <!-- Filters Section -->
-    <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--card); border: 1px solid var(--border); border-radius: 0.5rem;">
-      <form id="filterForm" method="GET" action="/admin/users">
-        <!-- Row 1: Search and Sort -->
-        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 1rem;">
-          <!-- Search Input -->
-          <div style="flex: 2; min-width: 250px;">
-            <label for="searchInput" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">Search</label>
-            <input
-              type="text"
-              id="searchInput"
-              name="search"
-              value="<%= filters.search %>"
-              placeholder="Search username or email..."
-              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem;"
-            >
-          </div>
+    <form class="filter-bar card" id="filterForm" method="GET" action="/admin/users">
+      <label class="filter-field grow">Search
+        <input type="search" class="form-input" name="search" value="<%= filters.search %>" placeholder="Username or email">
+      </label>
+      <label class="filter-field">Admin
+        <select class="form-input" name="role" data-auto-submit>
+          <option value=""<%= filters.role === '' ? ' selected' : '' %>>Everyone</option>
+          <option value="admin"<%= filters.role === 'admin' ? ' selected' : '' %>>Admins</option>
+          <option value="user"<%= filters.role === 'user' ? ' selected' : '' %>>Not admins</option>
+        </select>
+      </label>
+      <label class="filter-field">Account role
+        <select class="form-input" name="userRole" data-auto-submit>
+          <option value=""<%= filters.userRole === '' ? ' selected' : '' %>>Any role</option>
+          <% roles.forEach(r => { %>
+            <option value="<%= r.name %>"<%= filters.userRole === r.name ? ' selected' : '' %>><%= r.label %></option>
+          <% }) %>
+        </select>
+      </label>
+      <label class="filter-field">Status
+        <select class="form-input" name="status" data-auto-submit>
+          <option value=""<%= filters.status === '' ? ' selected' : '' %>>Any status</option>
+          <option value="active"<%= filters.status === 'active' ? ' selected' : '' %>>Active</option>
+          <option value="banned"<%= filters.status === 'banned' ? ' selected' : '' %>>Banned</option>
+        </select>
+      </label>
+      <label class="filter-field">Activity
+        <select class="form-input" name="activity" data-auto-submit>
+          <% ACTIVITY.forEach(([value, label]) => { %>
+            <option value="<%= value %>"<%= filters.activity === value ? ' selected' : '' %>><%= label %></option>
+          <% }) %>
+        </select>
+      </label>
+      <label class="filter-field">Sort
+        <select class="form-input" name="sort" data-auto-submit>
+          <% SORTS.forEach(([value, label]) => { %>
+            <option value="<%= value %>"<%= filters.sort === value ? ' selected' : '' %>><%= label %></option>
+          <% }) %>
+        </select>
+      </label>
+      <div class="filter-actions">
+        <button type="submit" class="btn btn-small">Apply</button>
+        <% if (hasFilters) { %><a href="/admin/users" class="btn btn-small btn-ghost">Reset</a><% } %>
+      </div>
+    </form>
 
-          <!-- Sort -->
-          <div style="min-width: 160px;">
-            <label for="sortFilter" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">Sort By</label>
-            <select
-              id="sortFilter"
-              name="sort"
-              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem; cursor: pointer;"
-            >
-              <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest First</option>
-              <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest First</option>
-              <option value="username" <%= filters.sort === 'username' ? 'selected' : '' %>>Username A-Z</option>
-              <option value="most-urls" <%= filters.sort === 'most-urls' ? 'selected' : '' %>>Most URLs</option>
-              <option value="most-clicks" <%= filters.sort === 'most-clicks' ? 'selected' : '' %>>Most Clicks</option>
-              <option value="recently-active" <%= filters.sort === 'recently-active' ? 'selected' : '' %>>Recently Active</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Row 2: Filters -->
-        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
-          <!-- Role Filter -->
-          <div style="min-width: 100px;">
-            <label for="roleFilter" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">Role</label>
-            <select
-              id="roleFilter"
-              name="role"
-              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem; cursor: pointer;"
-            >
-              <option value="" <%= filters.role === '' ? 'selected' : '' %>>All</option>
-              <option value="admin" <%= filters.role === 'admin' ? 'selected' : '' %>>Admin</option>
-              <option value="user" <%= filters.role === 'user' ? 'selected' : '' %>>User</option>
-            </select>
-          </div>
-
-          <!-- Status Filter -->
-          <div style="min-width: 100px;">
-            <label for="statusFilter" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">Status</label>
-            <select
-              id="statusFilter"
-              name="status"
-              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem; cursor: pointer;"
-            >
-              <option value="" <%= filters.status === '' ? 'selected' : '' %>>All</option>
-              <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
-              <option value="banned" <%= filters.status === 'banned' ? 'selected' : '' %>>Banned</option>
-            </select>
-          </div>
-
-          <!-- Account Role Filter -->
-          <div style="min-width: 110px;">
-            <label for="userRoleFilter" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">Account role</label>
-            <select
-              id="userRoleFilter"
-              name="userRole"
-              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem; cursor: pointer;"
-            >
-              <option value="" <%= filters.userRole === '' ? 'selected' : '' %>>All</option>
-              <% roles.forEach(r => { %>
-                <option value="<%= r.name %>" <%= filters.userRole === r.name ? 'selected' : '' %>><%= r.label %></option>
-              <% }) %>
-            </select>
-          </div>
-
-          <!-- Activity Filter -->
-          <div style="min-width: 150px;">
-            <label for="activityFilter" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--muted-foreground);">Activity</label>
-            <select
-              id="activityFilter"
-              name="activity"
-              style="width: 100%; padding: 0.5rem 0.75rem; background-color: var(--secondary); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.375rem; cursor: pointer;"
-            >
-              <option value="" <%= filters.activity === '' ? 'selected' : '' %>>All</option>
-              <option value="today" <%= filters.activity === 'today' ? 'selected' : '' %>>Active Today</option>
-              <option value="7days" <%= filters.activity === '7days' ? 'selected' : '' %>>Active (7 days)</option>
-              <option value="30days" <%= filters.activity === '30days' ? 'selected' : '' %>>Active (30 days)</option>
-              <option value="90days" <%= filters.activity === '90days' ? 'selected' : '' %>>Active (90 days)</option>
-              <option value="inactive30" <%= filters.activity === 'inactive30' ? 'selected' : '' %>>Inactive 30+ days</option>
-              <option value="inactive90" <%= filters.activity === 'inactive90' ? 'selected' : '' %>>Inactive 90+ days</option>
-              <option value="never" <%= filters.activity === 'never' ? 'selected' : '' %>>Never Active</option>
-            </select>
-          </div>
-
-          <!-- Filter Buttons -->
-          <div style="display: flex; gap: 0.5rem;">
-            <button type="submit" class="btn" style="padding: 0.5rem 1rem; color: var(--primary-foreground);">
-              Apply
-            </button>
-            <% const hasFilters = filters.search || filters.role || filters.status || filters.userRole || filters.activity || filters.sort !== 'newest'; %>
-            <% if (hasFilters) { %>
-              <a href="/admin/users" class="btn" style="padding: 0.5rem 1rem; background-color: var(--secondary); color: var(--foreground); text-decoration: none;">
-                Clear
-              </a>
-            <% } %>
-          </div>
-        </div>
-      </form>
-    </div>
-
-    <!-- Users Table -->
-    <div class="table-container">
+    <% if (!users.length) { %>
+      <div class="empty-state"><p>No accounts match these filters.</p></div>
+    <% } else { %>
+    <div class="table-container scroll">
       <div class="table-wrapper">
         <table>
           <thead>
             <tr>
               <th>User</th>
               <th>Email</th>
-              <th>Role</th>
               <th>Account role</th>
-              <th class="text-right">URLs</th>
+              <th class="text-right">Links</th>
               <th class="text-right">Clicks</th>
-              <th>Last Active</th>
-              <th>Joined</th>
-              <th class="text-center">Status</th>
-              <th class="text-center">Actions</th>
+              <th>Last active</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -206,89 +141,41 @@
                   }
                 }
               %>
-              <tr>
+              <tr data-user-id="<%= user.id %>" data-username="<%= user.username %>">
                 <td>
                   <div class="user-info">
-                    <div class="user-avatar">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                      </svg>
-                    </div>
+                    <div class="user-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
                     <div class="user-details">
                       <div class="user-name">
                         <%= user.username %>
-                        <% if (user.id === currentUserId) { %>
-                          <span class="badge badge-active" style="margin-left: 0.5rem; font-size: 0.7rem;">You</span>
-                        <% } %>
+                        <% if (user.id === currentUserId) { %><span class="badge badge-muted">You</span><% } %>
+                        <% if (user.isAdmin) { %><span class="badge badge-active">Admin</span><% } %>
+                        <% if (user.isBanned) { %><span class="badge badge-expired">Banned</span><% } %>
                       </div>
+                      <span class="cell-sub">Joined <%= new Date(user.createdAt).toLocaleDateString('en-GB') %></span>
                     </div>
                   </div>
                 </td>
-                <td>
+                <td class="clip"<% if (user.email) { %> title="<%= user.email %>"<% } %>>
                   <% if (user.email) { %>
                     <a href="mailto:<%= user.email %>" class="user-email"><%= user.email %></a>
                   <% } else { %>
-                    <span style="color: var(--muted-foreground); font-style: italic; font-size: 0.875rem;">No email</span>
+                    <span class="muted">—</span>
                   <% } %>
                 </td>
-                <td>
-                  <% if (user.isAdmin) { %>
-                    <span class="badge badge-active">Admin</span>
-                  <% } else { %>
-                    <span style="color: var(--muted-foreground);">User</span>
-                  <% } %>
-                </td>
-                <td>
-                  <span class="badge" title="<%= user.roleIsDefault ? 'Default role' : '' %>" style="background: #6b728020; color: var(--foreground); border: 1px solid #6b728040;"><%= user.roleLabel %><% if (user.roleIsDefault) { %> <span style="color: var(--muted-foreground);">(default)</span><% } %></span>
+                <td class="nowrap">
+                  <%= user.roleLabel %><% if (user.roleIsDefault) { %> <span class="muted">(default)</span><% } %>
                 </td>
                 <td class="text-right"><%= user.urlCount || 0 %></td>
                 <td class="text-right"><%= user.totalClicks || 0 %></td>
+                <td class="nowrap"><span class="last-active<%= isRecent ? ' recent' : '' %>"><%= lastActiveText %></span></td>
                 <td>
-                  <span class="last-active <%= isRecent ? 'recent' : '' %>">
-                    <%= lastActiveText %>
-                  </span>
-                </td>
-                <td><%= new Date(user.createdAt).toLocaleDateString('en-GB') %></td>
-                <td class="text-center">
-                  <% if (user.isBanned) { %>
-                    <span class="badge badge-expired">Banned</span>
-                  <% } else { %>
-                    <span class="badge badge-active">Active</span>
-                  <% } %>
-                </td>
-                <td class="text-center">
-                  <div class="actions">
-                    <button class="icon-btn-simple" onclick="editUser(<%= user.id %>)" title="Edit user">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                      </svg>
-                    </button>
-
+                  <div class="row-actions">
+                    <button type="button" class="icon-btn-simple" data-action="edit" title="Edit user" aria-label="Edit <%= user.username %>"><%- include('partials/icon', { icon: 'edit' }) %></button>
                     <% if (user.id !== currentUserId) { %>
-                      <% if (user.isBanned) { %>
-                        <button class="icon-btn-simple warning" onclick="toggleBanUser(<%= user.id %>, true)" title="Unban user">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
-                            <path d="m9 12 2 2 4-4"></path>
-                          </svg>
-                        </button>
-                      <% } else { %>
-                        <button class="icon-btn-simple warning" onclick="toggleBanUser(<%= user.id %>, false)" title="Ban user">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
-                          </svg>
-                        </button>
-                      <% } %>
-
-                      <button class="icon-btn-simple danger" onclick="deleteUser(<%= user.id %>)" title="Delete user">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
+                      <button type="button" class="icon-btn-simple warning" data-action="<%= user.isBanned ? 'unban' : 'ban' %>"
+                        title="<%= user.isBanned ? 'Unban' : 'Ban' %> user" aria-label="<%= user.isBanned ? 'Unban' : 'Ban' %> <%= user.username %>"><%- include('partials/icon', { icon: user.isBanned ? 'check' : 'lock' }) %></button>
+                      <button type="button" class="icon-btn-simple danger" data-action="delete" title="Delete user" aria-label="Delete <%= user.username %>"><%- include('partials/icon', { icon: 'trash' }) %></button>
                     <% } %>
                   </div>
                 </td>
@@ -298,169 +185,95 @@
         </table>
       </div>
     </div>
+    <% } %>
   </main>
 
-  <!-- Edit User Modal -->
   <div id="editUserModal" class="modal-overlay">
     <div class="modal">
       <div class="modal-header">
-        <h3>Edit User</h3>
-        <button class="modal-close" onclick="closeModal('editUserModal')">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <h3>Edit user</h3>
+        <button type="button" class="modal-close" data-close-modal="editUserModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
-      
-      <div class="modal-body">
-        <div class="modal-info">
-          <strong>User Info:</strong> 
-          Joined: <span id="userCreatedAt">-</span> | 
-          URLs: <span id="userUrlCount">0</span>
-        </div>
-
+      <form class="modal-body" id="editUserForm" novalidate>
+        <p class="form-hint">Joined <span id="userCreatedAt">-</span> · <span id="userUrlCount">0</span> links</p>
         <div class="form-group">
           <label for="editUsername" class="form-label">Username</label>
-          <input
-            type="text"
-            id="editUsername"
-            class="form-input"
-            placeholder="username"
-            required
-          >
+          <input type="text" id="editUsername" class="form-input" required>
         </div>
-
         <div class="form-group">
-          <label for="editUserEmail" class="form-label">Email (Optional)</label>
-          <input
-            type="email"
-            id="editUserEmail"
-            class="form-input"
-            placeholder="user@example.com"
-          >
+          <label for="editUserEmail" class="form-label">Email <span class="muted">optional</span></label>
+          <input type="email" id="editUserEmail" class="form-input" placeholder="user@example.com">
         </div>
-
         <div class="form-group">
-          <label for="editUserPassword" class="form-label">New Password (Optional)</label>
-          <input
-            type="password"
-            id="editUserPassword"
-            class="form-input"
-            placeholder="Leave empty to keep current password"
-            minlength="<%= minPasswordLength %>"
-            data-toggle-password
-          >
-          <div class="form-hint">Only fill this if you want to change the user's password</div>
+          <label for="editUserPassword" class="form-label">New password <span class="muted">leave empty to keep it</span></label>
+          <input type="password" id="editUserPassword" class="form-input" minlength="<%= minPasswordLength %>" autocomplete="new-password" data-toggle-password>
         </div>
-
         <div class="form-group">
           <label for="editUserRole" class="form-label">Account role</label>
           <select id="editUserRole" class="form-input">
-            <option value="">Default (<%= (roles.find(r => r.name === defaultRole) || {}).label || defaultRole %>)</option>
+            <option value="">Default (<%= defaultRoleLabel %>)</option>
             <% roles.forEach(r => { %>
               <option value="<%= r.name %>"><%= r.label %></option>
             <% }) %>
           </select>
-          <div class="form-hint">Sets the user's permissions and limits. Roles are defined in roles.json.</div>
+          <p class="form-hint">Sets the account's permissions and limits (Admin → Settings → Roles &amp; limits).</p>
         </div>
-
         <div class="form-group">
-          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-            <input
-              type="checkbox"
-              id="editUserIsAdmin"
-              style="width: auto; cursor: pointer;"
-            >
-            <span class="form-label" style="margin: 0;">Admin Privileges</span>
-          </label>
-          <div class="form-hint">Grant or revoke admin access</div>
+          <label class="check-line"><input type="checkbox" id="editUserIsAdmin"> Admin: every permission, no limits</label>
+          <label class="check-line"><input type="checkbox" id="editUserIsBanned"> Banned: can't log in</label>
         </div>
-
-        <div class="form-group" style="margin-bottom: 0;">
-          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-            <input
-              type="checkbox"
-              id="editUserIsBanned"
-              style="width: auto; cursor: pointer;"
-            >
-            <span class="form-label" style="margin: 0; color: var(--destructive);">Ban User</span>
-          </label>
-          <div class="form-hint">Banned users cannot log in</div>
-        </div>
-      </div>
-      
+      </form>
       <div class="modal-footer">
-        <button class="btn" style="background-color: var(--secondary); color: var(--foreground);" id="cancelUserEditBtn">
-          Cancel
-        </button>
-        <button class="btn" id="saveUserBtn" style="color: var(--primary-foreground);">
-          Save Changes
-        </button>
+        <button type="button" class="btn btn-secondary" data-close-modal="editUserModal">Cancel</button>
+        <button type="submit" class="btn" id="saveUserBtn" form="editUserForm">Save</button>
       </div>
     </div>
   </div>
 
-  <!-- Create User Modal (works whether or not registration is open) -->
+  <!-- Works whether or not registration is open -->
   <div id="createUserModal" class="modal-overlay">
     <div class="modal">
       <div class="modal-header">
-        <h3>Create User</h3>
-        <button class="modal-close" onclick="closeModal('createUserModal')" aria-label="Close">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <h3>Create user</h3>
+        <button type="button" class="modal-close" data-close-modal="createUserModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
-      <form class="modal-body" id="createUserForm" onsubmit="createUser(event)">
+      <form class="modal-body" id="createUserForm">
         <div class="form-group">
           <label for="newUsername" class="form-label">Username</label>
           <input type="text" id="newUsername" class="form-input" required>
         </div>
         <div class="form-group">
-          <label for="newUserEmail" class="form-label">Email (Optional)</label>
+          <label for="newUserEmail" class="form-label">Email <span class="muted">optional</span></label>
           <input type="email" id="newUserEmail" class="form-input">
         </div>
         <div class="form-group">
           <label for="newUserPassword" class="form-label">Password</label>
-          <div class="password-input-wrapper">
-            <input type="password" id="newUserPassword" class="form-input" minlength="<%= minPasswordLength %>" required data-toggle-password>
-          </div>
-          <div class="form-hint">At least 6 characters. Share it with the user so they can change it in Settings.</div>
+          <input type="password" id="newUserPassword" class="form-input" minlength="<%= minPasswordLength %>" required autocomplete="new-password" data-toggle-password>
+          <p class="form-hint">At least <%= minPasswordLength %> characters. Share it with the user so they can change it in Settings.</p>
         </div>
         <div class="form-group">
           <label for="newUserRole" class="form-label">Account role</label>
           <select id="newUserRole" class="form-input">
-            <option value="">Default (<%= (roles.find(r => r.name === defaultRole) || {}).label || defaultRole %>)</option>
+            <option value="">Default (<%= defaultRoleLabel %>)</option>
             <% roles.forEach(r => { %>
               <option value="<%= r.name %>"><%= r.label %></option>
             <% }) %>
           </select>
         </div>
         <div class="form-group">
-          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-            <input type="checkbox" id="newUserIsAdmin" style="width: auto; cursor: pointer;">
-            <span class="form-label" style="margin: 0;">Admin</span>
-          </label>
-        </div>
-        <div class="modal-footer" style="padding: 0; border: 0;">
-          <button type="button" class="btn" style="background-color: var(--secondary); color: var(--foreground);" onclick="closeModal('createUserModal')">Cancel</button>
-          <button type="submit" class="btn" id="createUserBtn" style="color: var(--primary-foreground);">Create user</button>
+          <label class="check-line"><input type="checkbox" id="newUserIsAdmin"> Admin</label>
         </div>
       </form>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="createUserModal">Cancel</button>
+        <button type="submit" class="btn" id="createUserBtn" form="createUserForm">Create user</button>
+      </div>
     </div>
   </div>
 
+  <%- include('partials/confirm-modal') %>
+
   <script src="/js/main.js"></script>
   <script src="/js/admin.js"></script>
-  <script>
-    // Auto-submit filter form when select fields change
-    ['roleFilter', 'statusFilter', 'userRoleFilter', 'activityFilter', 'sortFilter'].forEach(id => {
-      document.getElementById(id)?.addEventListener('change', function() {
-        document.getElementById('filterForm').submit();
-      });
-    });
-  </script>
 <%- include('partials/layout-end', { shell: 'admin' }) %>
 </html>

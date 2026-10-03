@@ -15,19 +15,6 @@
   overflow-wrap: anywhere;
 }
 
-.header-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.header-actions .btn {
-  gap: 0.35rem;
-  padding: 0.5rem 0.9rem;
-  font-size: var(--text-sm);
-}
-
 .section-card {
   margin-bottom: var(--spacing-lg);
   padding: var(--spacing-lg);
@@ -201,4 +188,25 @@
     padding-left: var(--spacing-md);
     padding-right: var(--spacing-md);
   }
+}
+
+/* A short note inside a section: "This paste is password protected." */
+.status-note {
+  margin-bottom: var(--spacing-md);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.status-note.warning {
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
+  color: var(--status-warning-text);
+}
+
+.status-note.error {
+  background: var(--status-error-bg);
+  border-color: var(--status-error-border);
+  color: var(--status-error-text);
 }

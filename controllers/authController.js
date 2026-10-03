@@ -1,5 +1,6 @@
 const { passwordProblem } = require('../services/passwordPolicy');
 const User = require('../models/User');
+const { startSession } = require('../services/loginSession');
 const { logAuth, ACTIONS } = require('../services/auditService');
 
 /**
@@ -47,9 +48,7 @@ class AuthController {
       logAuth(ACTIONS.REGISTER, req, username, { email: email || null });
 
       // Auto-login after registration
-      req.session.userId = user.id;
-      req.session.username = user.username;
-      req.session.isAdmin = user.isAdmin;
+      await startSession(req, user);
 
       res.redirect('/dashboard');
     } catch (error) {
@@ -105,10 +104,7 @@ class AuthController {
       // Log successful login
       logAuth(ACTIONS.LOGIN_SUCCESS, req, username);
 
-      // Set session
-      req.session.userId = user.id;
-      req.session.username = user.username;
-      req.session.isAdmin = user.isAdmin;
+      await startSession(req, user);
 
       res.redirect(next || '/dashboard');
     } catch (error) {

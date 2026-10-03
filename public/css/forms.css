@@ -331,3 +331,14 @@ html[data-theme="light"] input[type="time"].form-input::-webkit-calendar-picker-
   text-align: center;
   word-wrap: break-word;
 }
+
+/* A checkbox and its text on one line */
+.check-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
