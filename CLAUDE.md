@@ -292,7 +292,10 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   adjusting. `tokens(palette)` maps one to the theme
   colors: surfaces are mixed from background and foreground, text colors are nudged (same hue) to 4.5:1 (7:1 for
   foreground), a red/yellow that isn't red/warm is taken from the palette's other Omarchy colors (`extras`: orange,
-  bright_red, …) or else LinkSnip's; `report()` explains each change in the editor. `themeCss()` serves both as `/theme.css`
+  bright_red, …) or else LinkSnip's; `report()` explains each change in the editor. Badge text on a status tint gets
+  its own tokens (`--status-active-text`, `--status-warning-text`, `--status-error-text`: a shade of the signal
+  color where the tint would drop it below 4.5:1; `statusContrast.test.js` checks every built-in palette). Text on a
+  `--status-*-bg` uses them, never `--primary` / `--destructive` / `--warning` directly. `themeCss()` serves both as `/theme.css`
   (`:root` = dark, `html[data-theme="light"]`), linked as `/theme.css?v=<hash>` (cached for good). An unknown or
   wrong-mode palette id in settings.json falls back to the default with a warning; `services/color.js` does the math.
 - `services/brandingService.js`: logo/favicon in `DATA_DIR/branding/` (`paths.BRANDING_DIR`; PNG/JPG/WebP/SVG, ICO
@@ -390,7 +393,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - A type's feature switch in shared code: `isTypeEnabled(type)` / `enabledTypes()` from `services/contentTypes.js`.
 
 ### Audit logging (`services/auditService.js`)
-- `logAuth`, `logAdminAction`, `logAccountChange`, `logSecurity`. Add new action names to `ACTIONS`.
+- `logAuth`, `logAdminAction`, `logAccountChange`, `logSecurity`. Add new action names to `ACTIONS`. `logAuth(action,
+  req, username, details, userId)`: pass the user ID while logging in or registering (`req.user` isn't set yet).
 - Recent ones: `CREATE_USER`, `SETUP_ADMIN`, `UPDATE_SETTINGS`, `CREATE_SHARE_LINK`, `REVOKE_SHARE_LINK`, `BLOCK_FILE`,
   `UNBLOCK_FILE`, `QUARANTINE_URL` / `_BUNDLE` / `_PASTE` / `_FILE`, `CLEAR_QUARANTINE`, `UNLOCK_LOCKOUT`,
   `MIGRATE_REPORTS` (old → new bundle report IDs).
@@ -439,6 +443,9 @@ share links · 5:30 expired files · 5:45 country database check.
   colors, type/spacing/radius scales). Use the variables; accent tints are `color-mix()` of `var(--primary)`
   (`--status-active-bg`, `--focus-ring`, …). Never write the accent as a hex/rgba elsewhere, and canvas code (Chart.js)
   reads the variables with `getComputedStyle`. `tests/unit/views/tokens.test.js` enforces this.
+- Front-end code (`public/js`) is tested with `/** @jest-environment jsdom */` files in `tests/unit/frontend/`
+  (scripts export themselves with `module.exports` when it exists, like `tagSelector.js`). Build DOM from user data
+  with `textContent` / DOM nodes, never `innerHTML` with a template.
 - `tests/unit/views/renderPages.test.js` renders every view for real (controller data from a seeded DB + view
   locals) and checks the skeleton; a new view needs a case there.
 - Below 1024px the sidebar is a drawer opened from the top bar (`public/js/shell.js`, also the user menu; both close

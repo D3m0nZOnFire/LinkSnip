@@ -21,9 +21,9 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 - **QR codes**, **tags**, and **bulk import/export** (CSV, JSON, plain text)
 - **Roles**: you decide what each kind of account, and visitors without one, may do and how much, in the file or in the admin panel
 - **Teams**: links, bundles, pastes and files shared by several people, with owner, admin, member and viewer roles
-- **Moderation**: visitors can report links, and reported links show a warning page until an admin blocks or clears them
+- **Moderation**: visitors can report links, bundles, pastes and files; reported items show a warning page until an admin blocks or clears them
 - **Your own look**: site name, tagline, logo and favicon, and a dark and a light color palette, from the built-in ones or your own
-- **Admin panel**: users, teams, links, files, pastes, reports, settings and roles, and a full audit log
+- **Admin panel**: an overview, every item in one searchable list, users, teams, reports, settings, roles and appearance, and a full audit log
 - **Operations**: nightly online backups and cleanup of expired content
 
 ### Screenshots
