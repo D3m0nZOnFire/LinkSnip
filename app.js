@@ -60,6 +60,8 @@ const requirePermission = require('./middleware/requirePermission');
 const { viewLocals, appLocals, brandingLocals } = require('./middleware/viewLocals');
 const { prefillFromPath } = require('./middleware/prefill');
 const { featureRoutes } = require('./middleware/requireFeature');
+const sameOrigin = require('./middleware/sameOrigin');
+const { sessionOptions } = require('./config/session');
 
 const app = express();
 const PORT = process.env.PORT || 8081;
@@ -79,8 +81,11 @@ app.use(require('./routes/vendorRoutes')); // Chart.js from node_modules (no CDN
 app.use(require('./routes/brandingRoutes'));
 app.use(brandingLocals);
 
-// Session configuration
-app.use(session({
+// Changing requests (POST, PUT, PATCH, DELETE) from another site are refused (CSRF), before any session is read
+app.use(sameOrigin);
+
+// Session (config/session.js: SameSite=Lax cookie, 7 days)
+app.use(session(sessionOptions({
   store: new SqliteStore({
     client: db,
     expired: {
@@ -88,17 +93,8 @@ app.use(session({
       intervalMs: 900000 // Clear expired sessions every 15 minutes
     }
   }),
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  rolling: true,
-  cookie: {
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    httpOnly: true,
-    // Secure over HTTPS (incl. behind a proxy sending X-Forwarded-Proto), still works on plain http://localhost
-    secure: 'auto'
-  }
-}));
+  secret: SESSION_SECRET
+})));
 
 // Until the first admin exists, everything redirects to /setup (static files are served above)
 app.use(requireSetupComplete);

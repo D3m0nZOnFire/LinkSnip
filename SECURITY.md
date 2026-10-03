@@ -31,6 +31,10 @@ Out of scope:
   values. Visitor IPs are stored only as hashes keyed with `IP_HASH_SECRET`, which is not in the database, so a copy of
   the database or a backup can't be matched against IP addresses. Keep the secret with your `.env`, not with the backups.
 - Put LinkSnip behind HTTPS (the bundled Caddy does this). The published port is bound to `127.0.0.1` on purpose.
+- Cross-site request forgery: every POST, PUT, PATCH and DELETE must come from a page on your instance. LinkSnip reads
+  the browser's `Sec-Fetch-Site` header, or without it compares `Origin` with the `Host` header, and refuses the rest
+  (403). The session cookie is `SameSite=Lax`. Requests without either header (curl, scripts) aren't browsers carrying
+  a visitor's cookie and pass.
 - Uploaded files are always served as downloads, with `X-Content-Type-Options: nosniff` and
   `Content-Security-Policy: sandbox`, so they can't run scripts on your domain. Any file type can still be uploaded.
   Limit who may upload with the `uploadFiles` permission in `roles.json`.
