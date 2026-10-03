@@ -23,7 +23,14 @@ const SETTINGS = {
   'features.files': { type: 'boolean', default: true, description: 'File hosting (/f/…).' },
   'features.bioPages': { type: 'boolean', default: true, description: 'Bio pages.' },
   'features.importExport': { type: 'boolean', default: true, description: 'Bulk import and export of links.' },
-  'features.analyticsShareLinks': { type: 'boolean', default: true, description: 'Read-only analytics share links.' },
+  'features.analytics': {
+    type: 'boolean', default: true,
+    description: 'Visit analytics: every visit of a link, bundle, paste or file is recorded (keyed IP hash, referrer, browser, country) and shown on analytics pages. Off: nothing new is recorded and no country database is downloaded; analytics pages, share links and tag analytics are gone. Visits already recorded are kept (retention.analyticsDays still deletes old ones) and come back when it is switched on again. Clicks, views and downloads keep counting, for usage limits.'
+  },
+  'features.analyticsShareLinks': {
+    type: 'boolean', default: true, requires: 'analytics',
+    description: 'Read-only analytics share links. Needs features.analytics.'
+  },
   'features.reports': { type: 'boolean', default: true, description: 'Visitors can report links for abuse.' },
   'features.qrCodes': { type: 'boolean', default: true, description: 'QR codes for links, pastes, files and bundles.' },
   'features.teams': { type: 'boolean', default: true, description: 'Teams: links, bundles, pastes and files shared by several people.' },

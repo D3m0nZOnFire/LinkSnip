@@ -11,7 +11,23 @@ function assertFeature(feature) {
   if (!(`features.${feature}` in SETTINGS)) throw new Error(`Unknown feature: ${feature}`);
 }
 
-const isEnabled = (feature) => configService.get(`features.${feature}`);
+/**
+ * Whether a feature is on: its own switch, and the switch of the feature it needs (schema `requires`, e.g. share
+ * links need analytics).
+ */
+function isEnabled(feature) {
+  const setting = SETTINGS[`features.${feature}`];
+  if (!configService.get(`features.${feature}`)) return false;
+  return !setting.requires || isEnabled(setting.requires);
+}
+
+/** Every feature switch as it applies (`requires` resolved), for views */
+function enabledFeatures() {
+  return Object.fromEntries(Object.keys(SETTINGS)
+    .filter(key => key.startsWith('features.'))
+    .map(key => key.slice('features.'.length))
+    .map(feature => [feature, isEnabled(feature)]));
+}
 
 /** Route-level: skips the route when the feature is off. */
 function requireFeature(feature) {
@@ -25,4 +41,4 @@ function featureRoutes(feature, router) {
   return (req, res, next) => (isEnabled(feature) ? router(req, res, next) : next());
 }
 
-module.exports = { requireFeature, featureRoutes, isEnabled };
+module.exports = { requireFeature, featureRoutes, isEnabled, enabledFeatures };

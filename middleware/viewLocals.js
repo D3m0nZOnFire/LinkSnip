@@ -3,9 +3,11 @@ const brandingService = require('../services/brandingService');
 const RoleService = require('../services/roleService');
 const teamService = require('../services/teamService');
 const { PERMISSIONS } = require('../config/schema');
+const { enabledFeatures } = require('./requireFeature');
 
 // A permission tied to a switched-off feature is false for everyone
 const FEATURE_OF_PERMISSION = {
+  analytics: 'analytics',
   createPastes: 'pastes',
   createBundles: 'bundles',
   uploadFiles: 'files',
@@ -27,12 +29,12 @@ function appLocals() {
 }
 
 /**
- * Per request (res.locals): `features.<name>` (settings.json switches), `can.<permission>` (role and
- * feature), `registrationOpen`, the teams the user can create items in ("Create in"), and the hourly creation
+ * Per request (res.locals): `features.<name>` (settings.json switches; a feature that needs a switched-off one is
+ * off too), `can.<permission>` (role and feature), `registrationOpen`, the teams the user can create items in ("Create in"), and the hourly creation
  * `limits` the create page states (null = none).
  */
 function viewLocals(req, res, next) {
-  const features = configService.getSettings().features;
+  const features = enabledFeatures();
   res.locals.features = features;
   res.locals.registrationOpen = configService.get('registration.open');
   res.locals.can = Object.fromEntries(Object.keys(PERMISSIONS).map(p => {

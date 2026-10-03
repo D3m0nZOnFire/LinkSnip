@@ -16,7 +16,7 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 - **Files**: share uploads at `/f/…`, with per-role size limits and storage quotas
 - **Bundles**: one link that opens several links at once
 - **Bio pages**: a public page listing a user's chosen links
-- **Analytics**: clicks over time, referrers, countries, devices, browsers and operating systems. Visitor IPs are only stored as keyed hashes.
+- **Analytics**: clicks over time, referrers, countries, devices, browsers and operating systems. Visitor IPs are only stored as keyed hashes. Can be switched off (`features.analytics`).
 - **Analytics share links**: read-only, revocable `/stats/…` links for people without an account
 - **QR codes**, **tags**, and **bulk import/export** (CSV, JSON, plain text)
 - **Roles**: you decide what each kind of account, and visitors without one, may do and how much, in the file or in the admin panel
@@ -190,6 +190,7 @@ DATA_DIR=./demo-data npm run dev       # log in as admin / demo-password
 
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): Docker with Caddy, behind an existing proxy, or bare Node
 - [docs/CONFIGURATION.md](docs/CONFIGURATION.md): every setting, permission and limit
+- [docs/PRIVACY.md](docs/PRIVACY.md): what is stored about users and visitors, for how long, and how to keep less
 - [CONTRIBUTING.md](CONTRIBUTING.md): development setup and pull requests
 - [SECURITY.md](SECURITY.md): reporting a vulnerability
 

@@ -1,6 +1,7 @@
 const { hashIp } = require('./ipHash');
 const AnalyticsEvent = require('../models/AnalyticsEvent');
 const geo = require('./geoService');
+const configService = require('./configService');
 
 class AnalyticsService {
   /**
@@ -81,12 +82,14 @@ class AnalyticsService {
   }
 
   /**
-   * Record one visit of an item (the one capture path for every type).
+   * Record one visit of an item (the one capture path for every type). Nothing (not even a country lookup)
+   * while features.analytics is off; item counters are the callers' and keep counting.
    * @param {string} type - content type (url, bundle, paste, file)
    * @param {number} id - the item
    * @param {number|null} subId - a bundle item, for clicks on a bundle's items
    */
   static async record(req, type, id, subId = null) {
+    if (!configService.get('features.analytics')) return null;
     const details = await this.captureAnalytics(req);
     return AnalyticsEvent.record({ targetType: type, targetId: id, subTargetId: subId, ...details });
   }

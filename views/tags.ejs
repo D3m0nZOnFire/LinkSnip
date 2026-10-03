@@ -15,7 +15,7 @@
     <div class="header-section">
       <div>
         <h2>Tags</h2>
-        <p class="header-stats"><%= tags.length ? `${plural(tags.length, 'tag')} · ${plural(uses, 'use')} · ${plural(visits, 'visit')}` : 'Group links, bundles, pastes and files by campaign, platform or project' %></p>
+        <p class="header-stats"><%= tags.length ? [plural(tags.length, 'tag'), plural(uses, 'use'), ...(features.analytics ? [plural(visits, 'visit')] : [])].join(' · ') : 'Group links, bundles, pastes and files by campaign, platform or project' %></p>
       </div>
     </div>
 
@@ -26,7 +26,7 @@
         <ul class="tags-howto">
           <li>Add tags when you create or edit an item, e.g. <code>newsletter</code> or <code>launch</code>.</li>
           <li>Filter your dashboard by a tag.</li>
-          <li>See the visits of everything with a tag together.</li>
+          <% if (features.analytics) { %><li>See the visits of everything with a tag together.</li><% } %>
         </ul>
         <a href="/" class="btn btn-small"><%- include('partials/icon', { icon: 'plus' }) %> Create something</a>
       </div>
@@ -35,7 +35,7 @@
         <div class="table-scroll">
           <table class="section-table">
             <thead>
-              <tr><th>Tag</th><th class="num">Items</th><th class="num">Visits</th><th>Created</th><th class="actions-cell"><span class="visually-hidden">Actions</span></th></tr>
+              <tr><th>Tag</th><th class="num">Items</th><% if (features.analytics) { %><th class="num">Visits</th><% } %><th>Created</th><th class="actions-cell"><span class="visually-hidden">Actions</span></th></tr>
             </thead>
             <tbody>
               <% tags.forEach(tag => {
@@ -45,10 +45,10 @@
               <tr data-tag-id="<%= tag.id %>" data-tag-name="<%= tag.name %>" data-tag-color="<%= tag.color %>">
                 <td><%- include('partials/tag-chips', { tags: [tag] }) %></td>
                 <td class="num" title="<%= breakdown %>"><%= tag.itemCount %></td>
-                <td class="num"><%= tag.visits.toLocaleString('en-US') %></td>
+                <% if (features.analytics) { %><td class="num"><%= tag.visits.toLocaleString('en-US') %></td><% } %>
                 <td class="muted"><%= day(tag.createdAt) %></td>
                 <td class="actions-cell">
-                  <a href="/tags/<%= tag.id %>/analytics" class="icon-btn" title="Analytics" aria-label="Analytics for <%= tag.name %>"><%- include('partials/icon', { icon: 'chart' }) %></a>
+                  <% if (features.analytics) { %><a href="/tags/<%= tag.id %>/analytics" class="icon-btn" title="Analytics" aria-label="Analytics for <%= tag.name %>"><%- include('partials/icon', { icon: 'chart' }) %></a><% } %>
                   <button type="button" class="icon-btn" data-action="edit" title="Edit" aria-label="Edit <%= tag.name %>"><%- include('partials/icon', { icon: 'edit' }) %></button>
                   <button type="button" class="icon-btn danger" data-action="delete" title="Delete" aria-label="Delete <%= tag.name %>"><%- include('partials/icon', { icon: 'trash' }) %></button>
                 </td>

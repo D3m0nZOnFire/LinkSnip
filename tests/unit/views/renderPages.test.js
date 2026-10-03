@@ -592,3 +592,40 @@ describe('admin pages (v1.3 part 7a)', () => {
     expect(await renderPage(name)).toContain('/css/admin-pages.css');
   });
 });
+
+describe('analytics switched off (features.analytics)', () => {
+  beforeEach(() => configService.updateSettings({ 'features.analytics': false }));
+
+  it('dashboard: no analytics button on the rows', async () => {
+    expect(await renderPage('dashboard')).not.toMatch(/href="\/analytics\//);
+  });
+
+  it('admin-items: no analytics button on the rows', async () => {
+    expect(await renderPage('admin-items')).not.toMatch(/href="\/analytics\//);
+  });
+
+  it('admin-overview: no visits tile, no Analytics or Share links in the sidebar', async () => {
+    const html = await renderPage('admin-overview');
+    expect(html).not.toMatch(/Visits, last 7 days/);
+    expect(html).not.toMatch(/href="\/admin\/analytics"/);
+    expect(html).not.toMatch(/href="\/admin\/analytics-shares"/);
+  });
+
+  it('tags: no visits and no analytics button', async () => {
+    const html = await renderPage('tags');
+    expect(html).not.toMatch(/\/tags\/\d+\/analytics/);
+    expect(html).not.toMatch(/visit/i);
+  });
+
+  it('bundle-launcher: no Analytics link for its owner', async () => {
+    const { data } = await rendered(c('bundleController').launchBundle, request(s.user, { params: { slug: 'kit' } }));
+    expect(data.canSeeAnalytics).toBe(false);
+  });
+
+  it('with analytics on, the same pages show them', async () => {
+    configService.updateSettings({ 'features.analytics': true });
+    expect(await renderPage('dashboard')).toMatch(/href="\/analytics\//);
+    expect(await renderPage('admin-overview')).toMatch(/Visits, last 7 days/);
+    expect(await renderPage('tags')).toMatch(/\/tags\/\d+\/analytics/);
+  });
+});

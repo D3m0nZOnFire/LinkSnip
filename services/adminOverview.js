@@ -81,7 +81,7 @@ function summary() {
     users: users(),
     teams: configService.get('features.teams') ? db.prepare('SELECT COUNT(*) AS n FROM teams').get().n : null,
     storage: db.prepare('SELECT COUNT(*) AS files, COALESCE(SUM(size), 0) AS bytes FROM files').get(),
-    visits: visits(),
+    visits: configService.get('features.analytics') ? visits() : null,
     moderation: moderation(),
     recentActivity: AuditLog.findAll({ limit: RECENT_SHOWN }),
     system: { version: require('../package.json').version, ...backups() }

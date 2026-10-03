@@ -63,13 +63,16 @@ function normalize(ip) {
   return net.isIP(address) ? address : null;
 }
 
+// Countries are part of analytics: off with either switch
+const enabled = () => configService.get('geo.enabled') && configService.get('features.analytics');
+
 /**
  * @param {string} ip
  * @returns {string} English country name, or 'Unknown' (no file, private or unlisted
- *   address, geo.enabled off)
+ *   address, geo.enabled or features.analytics off)
  */
 function lookupCountry(ip) {
-  if (!configService.get('geo.enabled')) return 'Unknown';
+  if (!enabled()) return 'Unknown';
   const address = normalize(ip);
   if (!address) return 'Unknown';
   const reader = currentReader();
@@ -100,7 +103,7 @@ function installedMonth() {
  * @returns {Promise<{ status: 'updated'|'current'|'disabled'|'failed', month?: string, error?: string }>}
  */
 async function update({ fetch = globalThis.fetch, now = new Date() } = {}) {
-  if (!configService.get('geo.enabled')) return { status: 'disabled' };
+  if (!enabled()) return { status: 'disabled' };
   const installed = installedMonth();
   const temp = `${paths.GEO_DB_PATH}.download`;
   try {
