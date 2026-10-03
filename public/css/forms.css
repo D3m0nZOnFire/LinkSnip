@@ -44,7 +44,7 @@
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-lg);
+  column-gap: var(--spacing-lg); /* rows: the fields' own margin (a row gap doubled it once they stack on phones) */
 }
 
 .form-hint {

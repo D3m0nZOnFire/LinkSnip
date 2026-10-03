@@ -45,7 +45,7 @@ class AuthController {
       const user = await User.create(username, password, false, email || null);
 
       // Log successful registration
-      logAuth(ACTIONS.REGISTER, req, username, { email: email || null });
+      logAuth(ACTIONS.REGISTER, req, username, { email: email || null }, user.id);
 
       // Auto-login after registration
       await startSession(req, user);
@@ -89,7 +89,7 @@ class AuthController {
       // Check if user is banned
       if (user.isBanned) {
         // Log failed login - user banned
-        logAuth(ACTIONS.LOGIN_FAILED, req, username, { reason: 'Account banned' });
+        logAuth(ACTIONS.LOGIN_FAILED, req, username, { reason: 'Account banned' }, user.id);
         return res.render('login', { error: 'Your account has been suspended. Please contact support.', username, next });
       }
 
@@ -97,12 +97,12 @@ class AuthController {
 
       if (!isValidPassword) {
         // Log failed login - wrong password
-        logAuth(ACTIONS.LOGIN_FAILED, req, username, { reason: 'Invalid password' });
+        logAuth(ACTIONS.LOGIN_FAILED, req, username, { reason: 'Invalid password' }, user.id);
         return res.render('login', { error: 'Invalid username or password', username, next });
       }
 
       // Log successful login
-      logAuth(ACTIONS.LOGIN_SUCCESS, req, username);
+      logAuth(ACTIONS.LOGIN_SUCCESS, req, user.username, undefined, user.id);
 
       await startSession(req, user);
 

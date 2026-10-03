@@ -20,7 +20,7 @@ router.post('/setup', onlyDuringSetup, authLimiter, async (req, res) => {
     const admin = await setupService.createFirstAdmin({ code, username, password, confirmPassword });
 
     await startSession(req, { id: admin.id, username: admin.username, isAdmin: 1 });
-    logAuth(ACTIONS.SETUP_ADMIN, req, admin.username, { userId: admin.id });
+    logAuth(ACTIONS.SETUP_ADMIN, req, admin.username, { userId: admin.id }, admin.id);
 
     res.redirect('/admin/settings');
   } catch (error) {

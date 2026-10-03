@@ -169,7 +169,7 @@ class BioPageController {
             new URL(link.url);
           }
         } catch (e) {
-          console.error('Social links validation error:', e);
+          // Bad input, not a server error: the answer says what's wrong, the log stays quiet
           return res.status(400).json({ error: e.message || 'Invalid social links format' });
         }
       }

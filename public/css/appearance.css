@@ -301,7 +301,7 @@
 }
 
 .palette-delete:hover {
-  color: var(--destructive);
+  color: var(--status-error-text);
   background: var(--status-error-bg);
 }
 
@@ -489,13 +489,13 @@
 }
 
 .pl-badge {
-  color: var(--primary);
+  color: var(--status-active-text);
   border-color: var(--status-active-border);
   background: var(--status-active-bg);
 }
 
 .pl-warning {
-  color: var(--warning);
+  color: var(--status-warning-text);
   border-color: var(--status-warning-border);
   background: var(--status-warning-bg);
 }

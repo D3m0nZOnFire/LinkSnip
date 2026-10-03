@@ -26,6 +26,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Links in running text (no class of their own): the accent instead of the browser's blue */
+a:not([class]) {
+  color: var(--primary);
+  text-underline-offset: 2px;
+}
+
+a:not([class]):hover {
+  text-decoration-thickness: 2px;
+}
+
 .page {
   flex: 1 0 auto;
   width: 100%;
@@ -173,13 +183,13 @@ code, kbd, pre, samp {
 
 .badge-active {
   background-color: var(--status-active-bg);
-  color: var(--primary);
+  color: var(--status-active-text);
   border: 1px solid var(--status-active-border);
 }
 
 .badge-expired {
   background-color: var(--status-error-bg);
-  color: var(--destructive);
+  color: var(--status-error-text);
   border: 1px solid var(--status-error-border);
 }
 
@@ -200,10 +210,11 @@ code, kbd, pre, samp {
 .tag-chip {
   display: inline-block;
   padding: 0.05rem 0.45rem;
-  border: 1px solid color-mix(in srgb, var(--tag-color) 40%, transparent);
+  /* The tag's color in the tint and border; the text stays the text color, so any color a user picks reads */
+  border: 1px solid color-mix(in srgb, var(--tag-color) 55%, transparent);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--tag-color) 14%, transparent);
-  color: color-mix(in srgb, var(--tag-color) 75%, var(--foreground));
+  color: var(--foreground);
   font-size: var(--text-xs);
   line-height: 1.5;
 }
@@ -354,7 +365,7 @@ code, kbd, pre, samp {
 
 .icon-btn.danger:hover {
   background-color: var(--status-error-bg);
-  color: var(--destructive);
+  color: var(--status-error-text);
 }
 
 .icon-btn svg {
@@ -479,7 +490,7 @@ code, kbd, pre, samp {
 .alert-error {
   background-color: var(--status-error-bg);
   border-color: var(--status-error-border);
-  color: var(--destructive);
+  color: var(--status-error-text);
 }
 
 .alert-success {

@@ -186,9 +186,10 @@ function log({
 /**
  * Log authentication events
  */
-function logAuth(action, req, username, details) {
+function logAuth(action, req, username, details, userId) {
   return log({
     req,
+    userId, // while logging in or registering, req.user isn't set yet
     username,
     action,
     category: CATEGORIES.AUTH,

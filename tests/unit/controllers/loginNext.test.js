@@ -45,3 +45,29 @@ describe('login', () => {
     expect(res._viewData.next).toBe('/f/abc');
   });
 });
+
+describe('audit log', () => {
+  const { getTestDatabase } = require('../../setup/testDatabase');
+  const entry = (action) => getTestDatabase().prepare('SELECT userId, username FROM audit_logs WHERE action = ? ORDER BY id DESC').get(action);
+
+  it('a login is logged with the account it logged into', async () => {
+    const user = await createTestUser({ username: 'alice', password: 'password123' });
+    const res = createMockResponse();
+    await AuthController.postLogin(createMockRequest({ get: () => '', body: { username: 'alice', password: 'password123' } }), res);
+    expect(entry('LOGIN_SUCCESS')).toEqual({ userId: user.id, username: 'alice' });
+  });
+
+  it('so is a registration', async () => {
+    const res = createMockResponse();
+    await AuthController.postRegister(createMockRequest({ get: () => '',
+      body: { username: 'newbie', email: '', password: 'password123', confirmPassword: 'password123' } }), res);
+    expect(entry('REGISTER')).toEqual({ userId: expect.any(Number), username: 'newbie' });
+  });
+});
+
+it('a wrong password for an existing account is logged against that account', async () => {
+  const { getTestDatabase } = require('../../setup/testDatabase');
+  const user = await createTestUser({ username: 'alice', password: 'password123' });
+  await AuthController.postLogin(createMockRequest({ get: () => '', body: { username: 'alice', password: 'nope' } }), createMockResponse());
+  expect(getTestDatabase().prepare("SELECT userId FROM audit_logs WHERE action = 'LOGIN_FAILED'").get()).toEqual({ userId: user.id });
+});

@@ -187,12 +187,12 @@ tbody tr:last-child td {
 
 .icon-btn-simple:hover {
   background-color: var(--status-active-bg);
-  color: var(--primary);
+  color: var(--status-active-text);
 }
 
 .icon-btn-simple.danger:hover {
   background-color: var(--status-error-bg);
-  color: var(--destructive);
+  color: var(--status-error-text);
 }
 
 .icon-btn-simple svg {
@@ -226,12 +226,12 @@ tbody tr:last-child td {
 
 .icon-btn-simple:hover {
   background-color: var(--status-active-bg);
-  color: var(--primary);
+  color: var(--status-active-text);
 }
 
 .icon-btn-simple.danger:hover {
   background-color: var(--status-error-bg);
-  color: var(--destructive);
+  color: var(--status-error-text);
 }
 
 .icon-btn-simple.warning:hover {

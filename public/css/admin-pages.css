@@ -134,6 +134,7 @@
 }
 
 .table-container td.wrap {
+  min-width: 10rem; /* narrower, words break into pieces on phones; the table scrolls instead */
   max-width: 20rem;
   overflow-wrap: anywhere;
 }

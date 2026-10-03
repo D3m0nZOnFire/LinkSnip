@@ -86,23 +86,24 @@ class TagSelector {
   }
 
   renderSelectedTags() {
-    this.tagsContainer.innerHTML = '';
+    this.tagsContainer.textContent = '';
     this.selectedTags.forEach(tagName => {
-      const tag = this.allTags.find(t => t.name === tagName) || { name: tagName, color: '#34d399' };
+      const tag = this.allTags.find(t => t.name === tagName) || { name: tagName };
+      // Built from DOM nodes: tag names can hold any characters, and team members share them
       const tagElement = document.createElement('div');
       tagElement.className = 'tag-selector-tag';
-      tagElement.style.backgroundColor = `${tag.color}20`;
-      tagElement.style.color = tag.color;
-      tagElement.style.borderColor = `${tag.color}40`;
-      tagElement.innerHTML = `
-        <span>${tag.name}</span>
-        <button type="button" class="tag-selector-tag-remove" data-tag="${tagName}">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      `;
+      tagElement.style.setProperty('--tag-color', TagSelector.safeColor(tag.color));
+
+      const label = document.createElement('span');
+      label.textContent = tag.name;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'tag-selector-tag-remove';
+      remove.dataset.tag = tagName;
+      remove.setAttribute('aria-label', `Remove ${tag.name}`);
+      remove.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+      tagElement.append(label, remove);
       this.tagsContainer.appendChild(tagElement);
     });
 
@@ -146,7 +147,7 @@ class TagSelector {
         const option = document.createElement('div');
         option.className = 'tag-selector-dropdown-item';
         option.innerHTML = `
-          <span class="tag-selector-dropdown-tag-color" style="background-color: ${tag.color};"></span>
+          <span class="tag-selector-dropdown-tag-color" style="background-color: ${TagSelector.safeColor(tag.color)};"></span>
           <span>${this.escapeHtml(tag.name)}</span>
         `;
         option.addEventListener('click', () => {
@@ -303,6 +304,11 @@ class TagSelector {
       '#fbbf24', '#fb923c', '#f472b6', '#c084fc', '#60a5fa', '#4ade80'
     ];
     return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  // A tag color as stored (#rrggbb), else a neutral grey: it goes into a style
+  static safeColor(value) {
+    return /^#[0-9a-f]{6}$/i.test(value || '') ? value : '#888888';
   }
 
   escapeHtml(text) {

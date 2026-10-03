@@ -177,6 +177,9 @@ const isRed = (hex) => { const { h, s } = color.hsl(hex); return s >= 0.3 && (h 
 const isWarm = (hex) => { const { h, s } = color.hsl(hex); return s >= 0.3 && h >= 20 && h <= 70; };
 const article = (word) => (/^[aeiou]/.test(word) ? `an ${word}` : `a ${word}`);
 
+// Share of a signal color in the badge tints (--status-active-bg, --status-warning-bg, --status-error-bg in tokens.css)
+const STATUS_TINT = 0.1;
+
 // Readable on every one of `backgrounds`
 function readable(hex, backgrounds, ratio) {
   return backgrounds.reduce((c, bg) => color.ensureContrast(c, bg, ratio), hex);
@@ -229,6 +232,10 @@ function derive(palette) {
   const destructive = signal('red', isRed, { label: 'Red', sentence: 'Delete buttons and errors need a red.' }, "LinkSnip's red");
   const warning = signal('yellow', isWarm, { label: 'Yellow', sentence: 'Warnings need a yellow or orange.' }, "LinkSnip's amber");
 
+  // Badge text sits on a tint of its own color (--status-*-bg in tokens.css: STATUS_TINT of it), which reads worse
+  // than the plain background: a shade of the color where needed. Not a palette change, so no note.
+  const onTint = (hex) => readable(hex, surfaces.map(surface => color.mix(surface, hex, STATUS_TINT)), 4.5);
+
   const tokens = {
     '--background': bg,
     '--foreground': fg,
@@ -247,7 +254,10 @@ function derive(palette) {
     '--ring': primary,
     '--destructive': destructive,
     '--destructive-foreground': bg,
-    '--warning': warning
+    '--warning': warning,
+    '--status-active-text': onTint(primary),
+    '--status-warning-text': onTint(warning),
+    '--status-error-text': onTint(destructive)
   };
   return { tokens, notes };
 }

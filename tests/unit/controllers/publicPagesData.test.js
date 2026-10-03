@@ -82,6 +82,17 @@ describe('bio page social links: icon names are checked', () => {
       expect(res.body.error).toMatch(/icon/i);
     }
   });
+
+  it('a refused link is a normal 400, not a server error: nothing in the server log', async () => {
+    const logged = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect((await save('a b')).status).toBe(400);
+      expect((await request(app).put('/api/bio').send({ displayName: 'Alice', theme: 'dark', socialLinks: [{ icon: 'github', url: 'http://' }] })).status).toBe(400);
+      expect(logged).not.toHaveBeenCalled();
+    } finally {
+      logged.mockRestore();
+    }
+  });
 });
 
 describe('paste page: who sees Edit', () => {
