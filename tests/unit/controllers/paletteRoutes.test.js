@@ -109,7 +109,10 @@ describe('the Appearance page', () => {
   it('lists custom palettes with the built-in ones, and broken files', async () => {
     paletteService.createPalette({ name: 'Company', mode: 'dark', colors: COLORS });
     fs.writeFileSync(`${paths.PALETTES_DIR}/broken.toml`, 'mode = "dark"');
+    const warned = jest.spyOn(console, 'warn').mockImplementation(() => {});
     paletteService.reload();
+    expect(warned).toHaveBeenCalledWith(expect.stringMatching(/^palettes\/broken\.toml: .*\(skipped\)$/));
+    warned.mockRestore();
     const { data } = (await request(asAdmin()).get('/admin/appearance')).body;
     expect(data.palettes.dark.find(p => p.id === 'company')).toMatchObject({ builtIn: false });
     expect(data.problems).toEqual([{ file: 'broken.toml', errors: expect.any(Array) }]);
