@@ -536,6 +536,15 @@ code, kbd, pre, samp {
   color: var(--muted-foreground);
 }
 
+.header-section p a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.header-section p a:hover {
+  text-decoration: underline;
+}
+
 .header-section .count {
   color: var(--primary);
   font-weight: 600;
@@ -1089,4 +1098,52 @@ code, kbd, pre, samp {
 .tab:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+/* Pills that filter a list (type on the dashboard and Admin → Items, status on Admin → Reports) */
+.type-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.type-pill {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.type-pill:hover {
+  color: var(--foreground);
+  border-color: var(--border-hover);
+}
+
+.type-pill[aria-current="page"] {
+  color: var(--foreground);
+  background: var(--secondary);
+  border-color: var(--border-hover);
+}
+
+.type-pill:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Buttons next to a page title */
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.header-actions .btn {
+  gap: 0.35rem;
+  padding: 0.5rem 0.9rem;
+  font-size: var(--text-sm);
 }

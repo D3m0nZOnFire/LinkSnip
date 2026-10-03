@@ -1,206 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Audit logs · Admin', styles: ['tables', 'modals'] }) %>
-  <style>
-    .log-details {
-      font-family: var(--font-mono);
-      font-size: 0.875rem;
-      max-width: 300px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      cursor: pointer;
-    }
-    .log-details:hover {
-      text-decoration: underline;
-    }
-    .filter-section {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      padding: 1rem;
-      background: var(--info-bg);
-      border: 1px solid var(--info-border);
-      border-radius: 8px;
-    }
-    .filter-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .filter-group label {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--muted-foreground);
-    }
-    .filter-group select,
-    .filter-group input {
-      padding: 0.5rem;
-      border: 1px solid var(--info-border);
-      border-radius: 4px;
-      background: var(--background);
-      color: var(--foreground);
-    }
-    .filter-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      align-items: flex-end;
-    }
-  </style>
+  <%- include('partials/head', { title: 'Audit logs · Admin', styles: ['tables', 'modals', 'forms', 'admin-pages'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-audit-logs' }) %>
+<%
+  // The filters as a query string (export links and the pager keep them)
+  const query = (extra = {}) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries({ ...extra, category: filters.category, action: filters.action, userId: filters.userId, search: filters.search })) {
+      if (value) params.set(key, value);
+    }
+    return params.toString();
+  };
+  // Stored as UTC without a zone ("2026-01-15 10:30:00"); public/js/admin-audit-logs.js shows it in the reader's zone
+  const utc = (value) => {
+    const iso = String(value || '').replace(' ', 'T').replace(/(\.\d+)?Z?$/, 'Z');
+    return { iso, text: `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC` };
+  };
+  const counts = Object.fromEntries((stats || []).map(row => [row.category, row.count]));
+  const CATEGORY_STATS = [['AUTH', 'Sign-ins'], ['ADMIN_ACTION', 'Admin actions'], ['ACCOUNT_CHANGE', 'Account changes'], ['SECURITY', 'Security']];
+  const isAlarming = (action) => /FAILED|DELETE|BAN|BLOCK|LOCKOUT/.test(action);
+  const hasFilters = filters.category || filters.action || filters.userId || filters.search;
+-%>
 
-  <!-- Main Content -->
   <main class="main-content-wide">
-    <!-- Header Section -->
     <div class="header-section">
       <div>
-        <h2>Audit Logs</h2>
-        <p>Total logs: <span class="count"><%= pagination.totalLogs %></span></p>
+        <h2>Audit logs</h2>
+        <p><%= pagination.totalLogs %> entr<%= pagination.totalLogs === 1 ? 'y' : 'ies' %><%= hasFilters ? ' match' : '' %></p>
       </div>
-      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-        <a href="/api/admin/audit-logs/export?format=csv<%= filters.category ? '&category=' + filters.category : '' %><%= filters.action ? '&action=' + filters.action : '' %><%= filters.userId ? '&userId=' + filters.userId : '' %><%= filters.search ? '&search=' + encodeURIComponent(filters.search) : '' %>" class="btn" style="color: var(--primary-foreground);">Export CSV</a>
-        <a href="/api/admin/audit-logs/export?format=json<%= filters.category ? '&category=' + filters.category : '' %><%= filters.action ? '&action=' + filters.action : '' %><%= filters.userId ? '&userId=' + filters.userId : '' %><%= filters.search ? '&search=' + encodeURIComponent(filters.search) : '' %>" class="btn" style="color: var(--primary-foreground);">Export JSON</a>
-      </div>
-    </div>
-
-    <!-- System Maintenance Actions -->
-    <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding: 1rem; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 8px;">
-      <div style="flex: 1 1 14rem;">
-        <h3 style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: var(--muted-foreground);">⚙️ SYSTEM MAINTENANCE</h3>
-        <p style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">Manual triggers for scheduled maintenance tasks</p>
-      </div>
-      <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
-        <button onclick="triggerBackup()" class="btn" style="background: var(--primary); color: var(--primary-foreground);">
-          💾 Backup Database
-        </button>
-        <button onclick="triggerCleanup()" class="btn" style="background: var(--status-error-bg); color: var(--status-error-text);">
-          🧹 Cleanup Audit Logs
-        </button>
+      <div class="header-actions">
+        <a href="/api/admin/audit-logs/export?<%= query({ format: 'csv' }) %>" class="btn btn-secondary"><%- include('partials/icon', { icon: 'download' }) %> CSV</a>
+        <a href="/api/admin/audit-logs/export?<%= query({ format: 'json' }) %>" class="btn btn-secondary"><%- include('partials/icon', { icon: 'download' }) %> JSON</a>
       </div>
     </div>
 
-    <!-- Stats Overview -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 1rem; margin-bottom: 2rem;">
-      <div style="background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 8px; padding: 1rem;">
-        <h3 style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">AUTHENTICATION</h3>
-        <p style="margin: 0.5rem 0 0 0; font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= stats.AUTH || 0 %></p>
-      </div>
-      <div style="background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 8px; padding: 1rem;">
-        <h3 style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">ADMIN ACTIONS</h3>
-        <p style="margin: 0.5rem 0 0 0; font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= stats.ADMIN_ACTION || 0 %></p>
-      </div>
-      <div style="background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 8px; padding: 1rem;">
-        <h3 style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">ACCOUNT CHANGES</h3>
-        <p style="margin: 0.5rem 0 0 0; font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= stats.ACCOUNT_CHANGE || 0 %></p>
-      </div>
-      <div style="background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 8px; padding: 1rem;">
-        <h3 style="margin: 0; font-size: 0.875rem; color: var(--muted-foreground);">SECURITY</h3>
-        <p style="margin: 0.5rem 0 0 0; font-size: 1.5rem; font-weight: bold; color: var(--primary);"><%= stats.SECURITY || 0 %></p>
-      </div>
+    <div class="mini-stats">
+      <% CATEGORY_STATS.forEach(([key, label]) => { %>
+        <div class="mini-stat"><div class="mini-stat-label"><%= label %></div><div class="mini-stat-value"><%= (counts[key] || 0).toLocaleString('en-US') %></div></div>
+      <% }) %>
     </div>
 
-    <!-- Filters -->
-    <form action="/admin/audit-logs" method="GET" class="filter-section">
-      <div class="filter-group">
-        <label for="category">Category</label>
-        <select name="category" id="category">
-          <option value="">All Categories</option>
-          <% categories.forEach(cat => { %>
-            <option value="<%= cat %>" <%= filters.category === cat ? 'selected' : '' %>><%= cat %></option>
-          <% }) %>
-        </select>
+    <section class="filter-bar card">
+      <div class="filter-field grow">
+        <strong>Maintenance</strong>
+        <span>Run the nightly jobs now: a database backup, or deleting entries older than the retention period.</span>
       </div>
-
-      <div class="filter-group">
-        <label for="action">Action</label>
-        <select name="action" id="action">
-          <option value="">All Actions</option>
-          <% actions.forEach(act => { %>
-            <option value="<%= act %>" <%= filters.action === act ? 'selected' : '' %>><%= act %></option>
-          <% }) %>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <label for="userId">User ID</label>
-        <input type="number" name="userId" id="userId" value="<%= filters.userId || '' %>" placeholder="Filter by user ID">
-      </div>
-
-      <div class="filter-group">
-        <label for="search">Search</label>
-        <input type="text" name="search" id="search" value="<%= filters.search || '' %>" placeholder="Search description, username...">
-      </div>
-
       <div class="filter-actions">
-        <button type="submit" class="btn" style="color: var(--primary-foreground);">Apply Filters</button>
-        <a href="/admin/audit-logs" class="btn" style="background: var(--status-error-bg); color: var(--status-error-text);">Clear</a>
+        <button type="button" class="btn btn-small btn-secondary" data-maintenance="backup">Back up database</button>
+        <button type="button" class="btn btn-small btn-secondary" data-maintenance="cleanup">Clean up old entries</button>
+      </div>
+    </section>
+
+    <form class="filter-bar card" method="GET" action="/admin/audit-logs">
+      <label class="filter-field grow">Search
+        <input type="search" class="form-input" name="search" value="<%= filters.search || '' %>" placeholder="Description, username…">
+      </label>
+      <label class="filter-field">Category
+        <select class="form-input" name="category">
+          <option value="">All categories</option>
+          <% categories.forEach(cat => { %>
+            <option value="<%= cat %>"<%= filters.category === cat ? ' selected' : '' %>><%= cat %></option>
+          <% }) %>
+        </select>
+      </label>
+      <label class="filter-field">Action
+        <select class="form-input" name="action">
+          <option value="">All actions</option>
+          <% actions.forEach(act => { %>
+            <option value="<%= act %>"<%= filters.action === act ? ' selected' : '' %>><%= act %></option>
+          <% }) %>
+        </select>
+      </label>
+      <label class="filter-field">User ID
+        <input type="number" class="form-input" name="userId" value="<%= filters.userId || '' %>" min="1">
+      </label>
+      <div class="filter-actions">
+        <button type="submit" class="btn btn-small">Apply</button>
+        <% if (hasFilters) { %><a href="/admin/audit-logs" class="btn btn-small btn-ghost">Reset</a><% } %>
       </div>
     </form>
 
-    <!-- Audit Logs Table -->
     <% if (logs.length === 0) { %>
-      <div class="empty-state">
-        <p>No audit logs found</p>
-      </div>
+      <div class="empty-state"><p>No log entries found.</p></div>
     <% } else { %>
-      <div class="table-container">
+      <div class="table-container scroll">
         <div class="table-wrapper">
           <table>
             <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>User</th>
-                <th>Action</th>
-                <th>Category</th>
-                <th>Target</th>
-                <th>Details</th>
-                <th>IP Address</th>
-              </tr>
+              <tr><th>Time</th><th>User</th><th>Action</th><th>Target</th><th>Details</th><th>IP address</th></tr>
             </thead>
             <tbody>
-              <% logs.forEach(log => { %>
+              <% logs.forEach(log => { const time = utc(log.createdAt); %>
                 <tr>
-                  <td><%= new Date(new Date(log.createdAt).getTime() + (60 * 60 * 1000)).toLocaleString('en-GB') %></td>
-                  <td>
+                  <td class="nowrap"><time datetime="<%= time.iso %>" data-local><%= time.text %></time></td>
+                  <td class="nowrap">
                     <% if (log.userId) { %>
-                      <strong><%= log.username %></strong><br>
-                      <small style="color: var(--muted-foreground);">ID: <%= log.userId %></small>
+                      <strong><%= log.username %></strong>
+                      <span class="cell-sub">ID <%= log.userId %></span>
+                    <% } else if (log.username) { %>
+                      <%= log.username %>
                     <% } else { %>
-                      <span style="color: var(--muted-foreground);">System</span>
+                      <span class="muted">System</span>
                     <% } %>
                   </td>
                   <td>
-                    <span class="badge <%= log.action.includes('FAILED') || log.action.includes('DELETE') || log.action.includes('BAN') || log.action.includes('BLOCK') ? 'badge-max' : 'badge-active' %>">
-                      <%= log.action %>
-                    </span>
+                    <span class="badge <%= isAlarming(log.action) ? 'badge-max' : 'badge-muted' %>"><%= log.action %></span>
+                    <span class="cell-sub"><%= log.category %></span>
                   </td>
-                  <td><%= log.category %></td>
                   <td>
                     <% if (log.targetType && log.targetId) { %>
-                      <strong><%= log.targetType %></strong> #<%= log.targetId %><br>
-                      <small style="color: var(--muted-foreground);"><%= log.targetDescription || '' %></small>
+                      <strong><%= log.targetType %></strong> #<%= log.targetId %>
+                      <span class="cell-sub" title="<%= log.targetDescription || '' %>"><%= log.targetDescription || '' %></span>
                     <% } else { %>
-                      <span style="color: var(--muted-foreground);">-</span>
+                      <span class="muted">—</span>
                     <% } %>
                   </td>
                   <td>
                     <% if (log.details) { %>
-                      <div class="log-details" onclick="showDetails('<%= log.id %>')" title="Click to view full details">
-                        <%= log.details.substring(0, 50) %><%= log.details.length > 50 ? '...' : '' %>
-                      </div>
+                      <button type="button" class="log-details" data-details="<%= log.details %>" title="Show all details"><%= log.details.length > 50 ? log.details.substring(0, 50) + '…' : log.details %></button>
                     <% } else { %>
-                      <span style="color: var(--muted-foreground);">-</span>
+                      <span class="muted">—</span>
                     <% } %>
                   </td>
-                  <td>
-                    <small style="color: var(--muted-foreground); font-family: var(--font-mono);">
-                      <%= log.ipAddress ? log.ipAddress.substring(0, 15) : '-' %>
-                    </small>
-                  </td>
+                  <td class="nowrap mono"><%= log.ipAddress || '—' %></td>
                 </tr>
               <% }) %>
             </tbody>
@@ -208,111 +132,34 @@
         </div>
       </div>
 
-      <!-- Pagination -->
       <% if (pagination.totalPages > 1) { %>
-        <div class="pagination">
-          <div class="pagination-info">
-            Showing <%= (pagination.currentPage - 1) * pagination.limit + 1 %>-<%= Math.min(pagination.currentPage * pagination.limit, pagination.totalLogs) %> of <%= pagination.totalLogs %> logs
-          </div>
-          <div class="pagination-controls">
-            <% if (pagination.hasPrev) { %>
-              <a href="?page=<%= pagination.currentPage - 1 %>&limit=<%= pagination.limit %><%= filters.category ? '&category=' + filters.category : '' %><%= filters.action ? '&action=' + filters.action : '' %><%= filters.userId ? '&userId=' + filters.userId : '' %><%= filters.search ? '&search=' + encodeURIComponent(filters.search) : '' %>" class="btn" style="color: var(--primary-foreground);">Previous</a>
-            <% } %>
+        <div class="table-footer">
+          <span><%= (pagination.currentPage - 1) * pagination.limit + 1 %>–<%= Math.min(pagination.currentPage * pagination.limit, pagination.totalLogs) %> of <%= pagination.totalLogs %></span>
+          <nav class="pager" aria-label="Pages">
+            <% if (pagination.hasPrev) { %><a href="?<%= query({ page: pagination.currentPage - 1, limit: pagination.limit }) %>" class="btn btn-small btn-secondary">Previous</a><% } %>
             <span>Page <%= pagination.currentPage %> of <%= pagination.totalPages %></span>
-            <% if (pagination.hasNext) { %>
-              <a href="?page=<%= pagination.currentPage + 1 %>&limit=<%= pagination.limit %><%= filters.category ? '&category=' + filters.category : '' %><%= filters.action ? '&action=' + filters.action : '' %><%= filters.userId ? '&userId=' + filters.userId : '' %><%= filters.search ? '&search=' + encodeURIComponent(filters.search) : '' %>" class="btn" style="color: var(--primary-foreground);">Next</a>
-            <% } %>
-          </div>
+            <% if (pagination.hasNext) { %><a href="?<%= query({ page: pagination.currentPage + 1, limit: pagination.limit }) %>" class="btn btn-small btn-secondary">Next</a><% } %>
+          </nav>
         </div>
       <% } %>
     <% } %>
   </main>
 
-  <!-- Details Modal -->
-  <div id="detailsModal" class="modal-overlay" style="display: none;">
+  <div id="detailsModal" class="modal-overlay">
     <div class="modal">
-      <h3>Log Details</h3>
-      <pre id="detailsContent" style="background: var(--info-bg); padding: 1rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;"></pre>
-      <button class="btn" onclick="closeModal('detailsModal')" style="width: 100%; margin-top: 1rem; background: var(--foreground); color: var(--background);">Close</button>
+      <div class="modal-header">
+        <h3>Log details</h3>
+        <button type="button" class="modal-close" data-close-modal="detailsModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
+      </div>
+      <div class="modal-body">
+        <pre class="log-details-content" id="detailsContent"></pre>
+      </div>
     </div>
   </div>
 
-  <script>
-    // Store log details in data attributes
-    const logDetails = {
-      <% logs.forEach((log, index) => { %>
-        '<%= log.id %>': <%- log.details ? JSON.stringify(JSON.stringify(log.details)) : '"{}"' %><%= index < logs.length - 1 ? ',' : '' %>
-      <% }) %>
-    };
+  <%- include('partials/confirm-modal') %>
 
-    function showDetails(logId) {
-      const details = logDetails[logId];
-      try {
-        const parsed = JSON.parse(details);
-        document.getElementById('detailsContent').textContent = JSON.stringify(parsed, null, 2);
-      } catch (e) {
-        document.getElementById('detailsContent').textContent = details;
-      }
-      openModal('detailsModal');
-    }
-
-    async function triggerBackup() {
-      if (!confirm('Create a manual database backup now?')) return;
-
-      try {
-        const res = await fetch('/api/admin/maintenance/backup', { method: 'POST' });
-        const data = await res.json();
-
-        if (data.success) {
-          alert('✅ ' + data.message);
-          location.reload();
-        } else {
-          alert('❌ Error: ' + (data.error || 'Failed to create backup'));
-        }
-      } catch (error) {
-        alert('❌ Error: ' + error.message);
-      }
-    }
-
-    async function triggerCleanup() {
-      if (!confirm('Clean up old audit logs now? This will delete logs older than the configured retention period.')) return;
-
-      try {
-        const res = await fetch('/api/admin/maintenance/cleanup', { method: 'POST' });
-        const data = await res.json();
-
-        if (data.success) {
-          alert('✅ ' + data.message);
-          location.reload();
-        } else {
-          alert('❌ Error: ' + (data.error || 'Failed to cleanup audit logs'));
-        }
-      } catch (error) {
-        alert('❌ Error: ' + error.message);
-      }
-    }
-
-    function openModal(id) {
-      document.getElementById(id).style.display = 'flex';
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).style.display = 'none';
-    }
-
-    // Close modal on ESC key
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        closeModal('detailsModal');
-      }
-    });
-
-    // Close modal on outside click
-    document.getElementById('detailsModal').addEventListener('click', (e) => {
-      if (e.target.id === 'detailsModal') {
-        closeModal('detailsModal');
-      }
-    });
-  </script>
+  <script src="/js/main.js"></script>
+  <script src="/js/admin-audit-logs.js"></script>
 <%- include('partials/layout-end', { shell: 'admin' }) %>
 </html>

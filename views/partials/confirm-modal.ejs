@@ -1,0 +1,15 @@
+<%# The dialog confirmAction() in public/js/main.js fills in; without it, it falls back to the browser's confirm(). %>
+<div id="confirmModal" class="modal-overlay">
+  <div class="modal modal-narrow" role="alertdialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+    <div class="modal-header">
+      <h3 id="confirmModalTitle">Confirm</h3>
+    </div>
+    <div class="modal-body">
+      <p id="confirmModalMessage" class="confirm-message"></p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="confirmModalCancelBtn" class="btn btn-secondary">Cancel</button>
+      <button type="button" id="confirmModalConfirmBtn" class="btn btn-danger">Delete</button>
+    </div>
+  </div>
+</div>

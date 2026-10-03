@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Analytics shares · Admin', styles: ['tables', 'forms'] }) %>
+  <%- include('partials/head', { title: 'Analytics shares · Admin', styles: ['tables', 'modals', 'admin-pages'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-analytics-shares' }) %>
 
@@ -12,19 +12,20 @@
   <main class="main-content-wide">
     <div class="header-section">
       <div>
-        <h2>Analytics Shares</h2>
-        <p><span class="count"><%= total %></span> active share link<%= total !== 1 ? 's' : '' %>. Anyone holding one can view that link's analytics.</p>
+        <h2>Analytics shares</h2>
+        <p><%= total %> active share link<%= total !== 1 ? 's' : '' %>. Anyone holding one can read that item's analytics.</p>
       </div>
     </div>
 
     <% if (links.length === 0) { %>
-      <div style="text-align:center;padding:3rem;color:var(--muted-foreground);">No active share links.</div>
+      <div class="empty-state"><p>No active share links.</p></div>
     <% } else { %>
-    <div class="table-container">
-      <table class="data-table">
+    <div class="table-container scroll">
+      <div class="table-wrapper">
+      <table>
         <thead>
           <tr>
-            <th>Short link</th>
+            <th>Item</th>
             <th>Label</th>
             <th>Created by</th>
             <th>Created</th>
@@ -36,48 +37,39 @@
         </thead>
         <tbody>
           <% links.forEach(link => { %>
-            <tr data-link-id="<%= link.id %>">
+            <tr data-link-id="<%= link.id %>" data-path="<%= link.path %>">
               <td><a href="/analytics/<%= link.targetType %>/<%= link.targetId %>"><%= link.path %></a></td>
               <td><%= link.label || '—' %></td>
               <td><%= link.createdByUsername || '(deleted user)' %></td>
-              <td><%= fmt(link.createdAt) %></td>
-              <td><%= link.expiresAt ? fmt(link.expiresAt) : 'Never' %></td>
+              <td class="nowrap"><%= fmt(link.createdAt) %></td>
+              <td class="nowrap"><%= link.expiresAt ? fmt(link.expiresAt) : 'Never' %></td>
               <td class="text-right"><%= link.viewCount %></td>
-              <td><%= link.lastViewedAt ? fmt(link.lastViewedAt) : 'Never' %></td>
+              <td class="nowrap"><%= link.lastViewedAt ? fmt(link.lastViewedAt) : 'Never' %></td>
               <td class="text-right">
-                <button type="button" class="btn" style="background:var(--secondary);color:var(--foreground);" onclick="revokeLink(<%= link.id %>)">Revoke</button>
+                <button type="button" class="btn btn-small btn-secondary" data-revoke>Revoke</button>
               </td>
             </tr>
           <% }) %>
         </tbody>
       </table>
+      </div>
     </div>
 
     <% if (totalPages > 1) { %>
-      <div style="display:flex;gap:0.5rem;justify-content:center;margin-top:1.5rem;">
-        <% if (page > 1) { %><a class="btn" href="?page=<%= page - 1 %>" style="background:var(--secondary);color:var(--foreground);">Previous</a><% } %>
-        <span style="align-self:center;color:var(--muted-foreground);">Page <%= page %> of <%= totalPages %></span>
-        <% if (page < totalPages) { %><a class="btn" href="?page=<%= page + 1 %>" style="background:var(--secondary);color:var(--foreground);">Next</a><% } %>
+      <div class="table-footer">
+        <nav class="pager" aria-label="Pages">
+          <% if (page > 1) { %><a class="btn btn-small btn-secondary" href="?page=<%= page - 1 %>">Previous</a><% } %>
+          <span>Page <%= page %> of <%= totalPages %></span>
+          <% if (page < totalPages) { %><a class="btn btn-small btn-secondary" href="?page=<%= page + 1 %>">Next</a><% } %>
+        </nav>
       </div>
     <% } %>
     <% } %>
   </main>
 
-  <script>
-    async function revokeLink(id) {
-      if (!confirm('Revoke this share link? Anyone using it will lose access.')) return;
-      try {
-        const res = await fetch(`/api/share-links/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (data.success) {
-          document.querySelector(`tr[data-link-id="${id}"]`).remove();
-        } else {
-          alert('Revoke failed: ' + (data.error || 'Unknown error'));
-        }
-      } catch (e) {
-        alert('Request failed');
-      }
-    }
-  </script>
+  <%- include('partials/confirm-modal') %>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/admin-analytics-shares.js"></script>
 <%- include('partials/layout-end', { shell: 'admin' }) %>
 </html>

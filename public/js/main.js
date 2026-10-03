@@ -45,8 +45,8 @@ function copyToClipboard(text, button) {
     });
 }
 
-// Confirm dialog — uses styled in-app modal when available, falls back to browser confirm
-function confirmAction(message, title = 'Confirm Action', destructive = true) {
+// Confirm dialog — uses styled in-app modal when available (partials/confirm-modal), falls back to browser confirm
+function confirmAction(message, title = 'Confirm Action', destructive = true, confirmLabel = null) {
   const modal = document.getElementById('confirmModal');
   if (!modal) {
     return Promise.resolve(confirm(message));
@@ -56,6 +56,8 @@ function confirmAction(message, title = 'Confirm Action', destructive = true) {
     document.getElementById('confirmModalMessage').textContent = message;
 
     const confirmBtn = document.getElementById('confirmModalConfirmBtn');
+    if (!confirmBtn.dataset.defaultLabel) confirmBtn.dataset.defaultLabel = confirmBtn.textContent;
+    confirmBtn.textContent = confirmLabel || confirmBtn.dataset.defaultLabel;
     if (destructive) {
       confirmBtn.classList.add('btn-danger');
       confirmBtn.classList.remove('btn-primary');
@@ -141,6 +143,14 @@ async function apiRequest(url, options = {}) {
 // ========================================
 // Modal Functions
 // ========================================
+
+// Buttons that open or close a modal: data-open-modal="id" / data-close-modal="id"
+document.addEventListener('click', (e) => {
+  const opener = e.target.closest('[data-open-modal]');
+  if (opener) openModal(opener.dataset.openModal);
+  const closer = e.target.closest('[data-close-modal]');
+  if (closer) closeModal(closer.dataset.closeModal);
+});
 
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
