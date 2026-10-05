@@ -10,7 +10,7 @@
     <div class="header-section">
       <div>
         <h2 class="page-title"><%= paste.title || 'Untitled paste' %></h2>
-        <p><a href="/p/<%= paste.slug %>" target="_blank" rel="noopener">/p/<%= paste.slug %></a></p>
+        <p><a href="/p/<%= paste.slug %>" target="_blank" rel="noopener" id="peLink">/p/<%= paste.slug %></a></p>
       </div>
       <div class="header-actions">
         <a href="<%= backUrl %>" class="btn btn-secondary" data-back>Back</a>
@@ -33,6 +33,7 @@
           <input type="text" id="peLanguage" class="form-input" maxlength="30" value="<%= paste.language || '' %>">
         </div>
       </div>
+      <%- include('partials/slug-edit-field', { id: 'peSlug', prefix: '/p/', value: paste.slug }) %>
       <div class="form-group">
         <label for="peContent" class="form-label">Content</label>
         <textarea id="peContent" class="paste-edit-textarea" spellcheck="false" data-line-numbers><%= paste.content %></textarea>

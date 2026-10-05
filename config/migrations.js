@@ -567,7 +567,30 @@ function migrateFileOwners(db, logger = console) {
   }
 }
 
+const SLUG_TABLES = ['urls', 'bundles', 'pastes', 'files'];
+
+/**
+ * Slugs ignore case (/s/Promo and /s/promo are one short link): a unique NOCASE index per content table.
+ * Slugs that already differ only in case are named in a warning and that table keeps going without the index;
+ * services/slugService.js refuses new look-alikes either way. The next start tries again.
+ */
+function migrateSlugCase(db, logger = console) {
+  for (const table of SLUG_TABLES) {
+    const index = `idx_${table}_slug_nocase`;
+    if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?").get(index)) continue;
+    const lookAlikes = db.prepare(`
+      SELECT group_concat(slug, ', ') AS slugs FROM ${table} GROUP BY slug COLLATE NOCASE HAVING COUNT(*) > 1
+    `).all();
+    if (lookAlikes.length) {
+      logger.warn(`  ⚠️  ${table}: slugs that differ only in case (${lookAlikes.map(r => r.slugs).join('; ')}). ` +
+        'Rename all but one of each to make slugs case-insensitive in the database.');
+      continue;
+    }
+    db.exec(`CREATE UNIQUE INDEX ${index} ON ${table}(slug COLLATE NOCASE)`);
+  }
+}
+
 module.exports = {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners
+  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners, migrateSlugCase
 };

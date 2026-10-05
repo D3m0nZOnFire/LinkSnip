@@ -17,6 +17,8 @@
     bundle: rate(hourly.bundlesPerHour, 'bundles'),
     file: rate(hourly.uploadsPerHour, 'uploads')
   };
+  // The "Short link" field of a mode
+  const slugField = (options) => include('partials/slug-field', { allowed: can.customSlugs, lockedTitle, ...options });
   // An option chip: data-chip names its panel; data-format says how a value reads on the chip
   const chip = ({ id, chip, icon, label, format, allowed = true }) => `
     <button type="button" class="creator-chip${allowed ? '' : ' chip-locked'}" id="${id}" data-chip="${chip}" data-default="${label}"${format ? ` data-format="${format}"` : ''}${allowed ? ' aria-expanded="false"' : ` disabled title="${lockedTitle}"`}>
@@ -87,14 +89,7 @@
           <input type="url" id="longUrl" name="longUrl" class="creator-input creator-input-lg" placeholder="https://example.com/your/long/url"
             value="<%= prefillUrl %>" autocomplete="off" required>
         </div>
-        <div class="creator-zone">
-          <label for="customSlug" class="creator-label">Short link <span class="creator-label-note">optional</span></label>
-          <div class="creator-slug" id="slugWrapper">
-            <span class="creator-slug-prefix"><span class="slug-host" id="slugDomain"></span>/s/</span>
-            <input type="text" id="customSlug" name="customSlug" class="creator-slug-input" placeholder="auto-generated" maxlength="20" autocomplete="off" aria-describedby="slugError">
-          </div>
-          <p class="field-error" id="slugError" hidden>Letters, numbers, - and _ only (20 at most)</p>
-        </div>
+        <%- slugField({ id: 'customSlug', prefix: '/s/', name: 'customSlug' }) %>
 
         <div class="creator-chips-bar">
           <%- chip({ id: 'chip-expiry', chip: 'expiry', icon: 'clock', label: user ? 'No expiry' : '30 days', format: 'days' }) %>
@@ -177,6 +172,7 @@
             <input type="text" id="pasteLanguage" class="creator-input" placeholder="Language label, e.g. javascript (optional)" maxlength="30" autocomplete="off" aria-label="Language label">
           </div>
         </div>
+        <%- slugField({ id: 'pasteSlug', prefix: '/p/' }) %>
 
         <div class="creator-chips-bar">
           <%- chip({ id: 'pchip-expires', chip: 'expires', icon: 'clock', label: user ? 'No expiry' : 'Expiry', format: 'date' }) %>
@@ -232,6 +228,7 @@
           <label for="bundleTitleInput" class="creator-label">Title</label>
           <input type="text" id="bundleTitleInput" class="creator-input" placeholder="e.g. Launch kit" maxlength="100">
         </div>
+        <%- slugField({ id: 'bundleSlug', prefix: '/b/' }) %>
         <div class="creator-zone">
           <span class="creator-label">Links</span>
           <div id="bundleUrlList" class="bundle-rows"></div>
@@ -266,6 +263,7 @@
             <div class="upload-progress-label" id="fileProgressLabel">Uploading…</div>
           </div>
         </div>
+        <%- slugField({ id: 'fileSlug', prefix: '/f/' }) %>
 
         <div class="creator-chips-bar">
           <%- chip({ id: 'fchip-expires', chip: 'expires', icon: 'clock', label: 'No expiry', format: 'date' }) %>

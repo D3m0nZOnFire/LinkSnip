@@ -311,7 +311,7 @@
     const longUrl = value('editLongUrl');
     if (!longUrl) return showToast('The destination is required', 'error');
 
-    const body = { longUrl, customSlug: value('editCustomSlug') || null, maxUses: value('editMaxUses') ? Number(value('editMaxUses')) : null };
+    const body = { longUrl, slug: value('editCustomSlug'), maxUses: value('editMaxUses') ? Number(value('editMaxUses')) : null };
     const days = document.getElementById('editExpirationDays');
     if (days.value !== days.dataset.original) body.expirationDays = days.value ? Number(days.value) : null;
     if (document.getElementById('editActivateDateTime')) {
@@ -359,6 +359,7 @@
       editingBundle = bundle;
       document.getElementById('editBundleName').value = bundle.title || '';
       document.getElementById('editBundleDescription').value = bundle.description || '';
+      document.getElementById('editBundleSlug').value = bundle.slug;
       bundleItems.innerHTML = '';
       (bundle.items || []).forEach(item => addBundleItem(item.url, item.label));
       const tags = tagSelector('editBundleTags');
@@ -380,7 +381,7 @@
       .filter(item => item.url);
     if (items.length < 2) return showToast('A bundle needs at least 2 links', 'error');
 
-    const body = { title, description: value('editBundleDescription') || null, items };
+    const body = { title, description: value('editBundleDescription') || null, items, slug: value('editBundleSlug') };
     const tags = tagSelector('editBundleTags');
     if (tags) body.tags = tags.getValue() || '';
 
@@ -429,6 +430,7 @@
       const { file } = await send(`/api/files/${id}`);
       editingFile = file;
       document.getElementById('editFileName').textContent = file.originalName;
+      document.getElementById('editFileSlug').value = file.slug;
       document.getElementById('editFileExpires').value = file.expiresAt ? file.expiresAt.substring(0, 10) : '';
       document.getElementById('editFileMaxDownloads').value = file.maxDownloads || '';
       const password = document.getElementById('editFilePassword');
@@ -475,6 +477,7 @@
       const body = {
         expiresAt: value('editFileExpires') || null,
         maxDownloads: value('editFileMaxDownloads') || null,
+        slug: value('editFileSlug'),
         sharingMode: value('editFileSharing'),
         allowedUsers: JSON.stringify(allowedUsers.map(user => user.id))
       };

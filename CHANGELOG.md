@@ -4,6 +4,28 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [1.4.1] - 2026-10-05
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. The first start adds a case-insensitive slug index to each content
+  table. If two items of one type have slugs that differ only in case (`Promo` and `promo`), the log names them and
+  that table goes without the index until all but one are renamed; new look-alikes are refused either way.
+- New role permission `customSlugs`: on for `user`, `trusted` and `unlimited`, **off for visitors** (`anonymous`).
+  Visitors could choose a link's slug before; to keep that, switch it on for Anonymous in Admin → Settings → Roles.
+
+### Added
+
+- **Choose the short link of every type**: links, bundles, pastes and files get a "Short link" field on the create
+  page and in their edit forms (dashboard, paste editor). Changing it is logged (`CHANGE_SLUG`). The old address
+  and its QR code stop working.
+- Bulk import of slugs needs `customSlugs` too.
+
+### Changed
+
+- Slugs ignore case: `/s/Promo` and `/s/promo` are the same link. Each type has its own slugs, so `/s/thing` and
+  `/b/thing` can both exist.
+
 ## [1.4.0] - 2026-10-03
 
 ### Upgrading
@@ -141,6 +163,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
+[1.4.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.1.0...v1.2.0

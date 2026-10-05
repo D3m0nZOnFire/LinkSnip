@@ -151,21 +151,6 @@ describe('Paste Model', () => {
 
   });
 
-  // ─── slugExists / generateUniqueSlug ───────────────────────
-  describe('slugExists / generateUniqueSlug', () => {
-    it('reports slug existence within the pastes table', () => {
-      createTestPaste(null, { slug: 'exists' });
-      expect(Paste.slugExists('exists')).toBe(true);
-      expect(Paste.slugExists('missing')).toBe(false);
-    });
-
-    it('generates a unique 5-char slug', () => {
-      const slug = Paste.generateUniqueSlug();
-      expect(slug).toMatch(/^[A-Za-z0-9_-]{5}$/);
-      expect(Paste.slugExists(slug)).toBe(false);
-    });
-  });
-
   // ─── block / unblock ───────────────────────────────────────
   describe('block / unblock', () => {
     it('toggles the isBlocked flag', () => {

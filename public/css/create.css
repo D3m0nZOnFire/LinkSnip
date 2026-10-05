@@ -271,6 +271,15 @@
   border-color: var(--destructive);
 }
 
+/* The role can't choose the slug: shown, not usable */
+.creator-slug.slug-locked {
+  opacity: 0.45;
+}
+
+.creator-slug.slug-locked .creator-slug-input {
+  cursor: not-allowed;
+}
+
 .creator-slug-prefix {
   display: flex;
   align-items: center;

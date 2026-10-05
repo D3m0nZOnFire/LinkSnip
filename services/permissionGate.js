@@ -3,7 +3,7 @@ const RoleService = require('./roleService');
 
 /**
  * Shared rule for the optional features a create/update request can use
- * (password, scheduling, tags):
+ * (password, scheduling, custom short links, tags):
  *
  *   A request that *sets* a feature the user's role lacks is rejected with 403.
  *   Empty values are fine, and removing a password is always allowed.
@@ -14,6 +14,7 @@ const RoleService = require('./roleService');
 const FEATURE_NAMES = {
   passwordProtection: 'password protection',
   scheduling: 'scheduling',
+  customSlugs: 'custom short links',
   tags: 'tags'
 };
 

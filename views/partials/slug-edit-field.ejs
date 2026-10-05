@@ -1,0 +1,10 @@
+<%#
+  The slug in an edit form: { id, prefix ('/s/'), value }. Read-only without the customSlugs permission
+  (sending the stored slug back changes nothing).
+-%>
+<% const slugAllowed = !!(locals.can && can.customSlugs); -%>
+<div class="form-group">
+  <label for="<%= id %>" class="form-label">Short link</label>
+  <input type="text" id="<%= id %>" class="form-input" maxlength="20" pattern="[A-Za-z0-9_-]{1,20}" autocomplete="off" value="<%= locals.value || '' %>" data-slug-input<%= slugAllowed ? '' : ' readonly' %>>
+  <p class="field-help"><% if (slugAllowed) { %><%= prefix %>… 1–20 letters, numbers, - and _. The old address stops working when you change it.<% } else { %>Your account can't change the short link.<% } %></p>
+</div>

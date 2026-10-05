@@ -191,7 +191,7 @@
 
     const body = {
       longUrl,
-      customSlug: field('editCustomSlug').value.trim() || null,
+      slug: field('editCustomSlug').value.trim(),
       maxUses: field('editMaxUses').value ? parseInt(field('editMaxUses').value, 10) : null,
       activateDateTime: field('editActivateDateTime').value || null,
       deactivateDateTime: field('editDeactivateDateTime').value || null

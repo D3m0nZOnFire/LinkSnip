@@ -104,11 +104,7 @@
           <label for="editLongUrl" class="form-label">Destination</label>
           <input type="url" id="editLongUrl" class="form-input" placeholder="https://example.com" required>
         </div>
-        <div class="form-group">
-          <label for="editCustomSlug" class="form-label">Slug</label>
-          <input type="text" id="editCustomSlug" class="form-input" pattern="[A-Za-z0-9_-]{1,20}">
-          <p class="field-help">1–20 characters: letters, numbers, - and _</p>
-        </div>
+        <%- include('partials/slug-edit-field', { id: 'editCustomSlug', prefix: '/s/' }) %>
         <% if (can.tags) { %>
         <div class="form-group">
           <label class="form-label">Tags</label>
@@ -164,6 +160,7 @@
           <label for="editBundleName" class="form-label">Title</label>
           <input type="text" id="editBundleName" class="form-input" maxlength="100" required>
         </div>
+        <%- include('partials/slug-edit-field', { id: 'editBundleSlug', prefix: '/b/' }) %>
         <div class="form-group">
           <label for="editBundleDescription" class="form-label">Description</label>
           <textarea id="editBundleDescription" class="form-input" rows="2" placeholder="Optional"></textarea>
@@ -197,6 +194,7 @@
       </div>
       <form class="modal-body" id="editFileForm" novalidate>
         <p class="field-help" id="editFileName"></p>
+        <%- include('partials/slug-edit-field', { id: 'editFileSlug', prefix: '/f/' }) %>
         <div class="form-row">
           <div class="form-group">
             <label for="editFileExpires" class="form-label">Expires</label>

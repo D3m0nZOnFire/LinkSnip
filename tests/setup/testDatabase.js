@@ -1,6 +1,7 @@
 const Database = require('better-sqlite3');
 const {
-  migrateAnalyticsShareLinks, migrateQuarantine, migrateReports, migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams
+  migrateAnalyticsShareLinks, migrateQuarantine, migrateReports, migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams,
+  migrateSlugCase
 } = require('../../config/migrations');
 
 let db = null;
@@ -194,6 +195,7 @@ function createTestDatabase() {
   migrateTags(db, { log: () => {} });
   migrateIpHashes(db, { log: () => {}, warn: () => {} });
   migrateTeams(db, { log: () => {} });
+  migrateSlugCase(db, { log: () => {}, warn: () => {} });
 
   return db;
 }

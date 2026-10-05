@@ -57,6 +57,14 @@ describe.each(Object.keys(MAKE))('QR codes for a %s', (type) => {
     expect(encoded(spy)).toMatch(new RegExp(`^http://127\\.0\\.0\\.1:\\d+${TARGET[type]}$`));
   });
 
+  it('finds the item by its slug in any case', async () => {
+    MAKE[type]();
+    const spy = jest.spyOn(QRCodeService, 'generateBuffer');
+    const res = await request(app).get(`/qrcode/${type}/${SLUG[type].toUpperCase()}`);
+    expect(res.status).toBe(200);
+    expect(encoded(spy)).toMatch(new RegExp(`${TARGET[type]}$`));
+  });
+
   it('SVG on request', async () => {
     MAKE[type]();
     const res = await request(app).get(`/qrcode/${type}/${SLUG[type]}?format=svg`);

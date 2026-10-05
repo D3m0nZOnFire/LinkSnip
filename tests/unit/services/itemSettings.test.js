@@ -22,7 +22,10 @@ const LIMIT = { url: 'maxUses', bundle: 'maxUses', paste: 'maxViews', file: 'max
 describe('readSettings on create', () => {
   it.each(Object.keys(LIMIT))('%s: nothing sent → every setting empty', async (type) => {
     const { values } = await readSettings(type, {}, { user: USER });
-    expect(values).toEqual({ expiresAt: null, activateAt: null, deactivateAt: null, password: null, [LIMIT[type]]: null });
+    expect(values).toEqual({
+      expiresAt: null, activateAt: null, deactivateAt: null, password: null, [LIMIT[type]]: null,
+      slug: expect.stringMatching(/^[A-Za-z0-9_-]{5}$/)
+    });
   });
 
   it('expiry as days from now', async () => {
@@ -57,7 +60,9 @@ describe('readSettings on create', () => {
     const { values } = await readSettings('url', {
       expirationDays: '', maxUses: '', password: '   ', activateDateTime: '', deactivateDateTime: null
     }, { user: USER });
-    expect(values).toEqual({ expiresAt: null, activateAt: null, deactivateAt: null, password: null, maxUses: null });
+    expect(values).toEqual({
+      expiresAt: null, activateAt: null, deactivateAt: null, password: null, maxUses: null, slug: expect.any(String)
+    });
   });
 
   it('0 expiry days means no expiry', async () => {
@@ -163,7 +168,7 @@ describe('invalid values', () => {
 
 describe('which role-gated features the request uses', () => {
   it('on create: a password or any schedule date', async () => {
-    expect((await readSettings('url', {}, { user: USER })).uses).toEqual({ passwordProtection: false, scheduling: false });
+    expect((await readSettings('url', {}, { user: USER })).uses).toEqual({ passwordProtection: false, scheduling: false, customSlugs: false });
     expect((await readSettings('url', { password: 'x' }, { user: USER })).uses.passwordProtection).toBe(true);
     expect((await readSettings('url', { deactivateDateTime: '2027-01-01T00:00' }, { user: USER })).uses.scheduling).toBe(true);
   });
@@ -172,10 +177,64 @@ describe('which role-gated features the request uses', () => {
     const existing = { activateAt: '2027-01-01T09:00:00.000Z', deactivateAt: null, password: 'h' };
     const uses = async (body) => (await readSettings('url', body, { user: USER, existing })).uses;
 
-    expect(await uses({ activateDateTime: '2027-01-01T09:00' })).toEqual({ passwordProtection: false, scheduling: false });
+    expect(await uses({ activateDateTime: '2027-01-01T09:00' })).toEqual({ passwordProtection: false, scheduling: false, customSlugs: false });
     expect((await uses({ activateDateTime: '2027-02-01T09:00' })).scheduling).toBe(true);
     expect((await uses({ activateDateTime: '' })).scheduling).toBe(false);
     expect((await uses({ removePassword: true })).passwordProtection).toBe(false);
     expect((await uses({ password: 'new' })).passwordProtection).toBe(true);
+  });
+});
+
+// The slug: a random one on create unless one is chosen; on update only a different one counts
+describe('the slug', () => {
+  const { createTestUrl, createTestPaste } = require('../../setup/testHelpers');
+
+  it('create: a chosen slug (slug or customSlug, trimmed) is used and counts as customSlugs', async () => {
+    for (const name of ['slug', 'customSlug']) {
+      const { values, uses } = await readSettings('paste', { [name]: ' mine ' }, { user: USER });
+      expect(values.slug).toBe('mine');
+      expect(uses.customSlugs).toBe(true);
+    }
+  });
+
+  it('create: an empty slug means a random one, not customSlugs', async () => {
+    const { values, uses } = await readSettings('url', { customSlug: '  ' }, { user: USER });
+    expect(values.slug).toMatch(/^[A-Za-z0-9_-]{5}$/);
+    expect(uses.customSlugs).toBe(false);
+  });
+
+  it('create: an invalid slug or one taken in the same type (any case) is a SettingsError', async () => {
+    createTestUrl({ slug: 'Taken' });
+    await expect(readSettings('url', { customSlug: 'bad slug' }, { user: USER })).rejects.toBeInstanceOf(SettingsError);
+    await expect(readSettings('url', { customSlug: 'taken' }, { user: USER })).rejects.toThrow(/already taken/);
+  });
+
+  it('create: a slug taken by another type is fine', async () => {
+    createTestUrl({ slug: 'thing' });
+    expect((await readSettings('bundle', { customSlug: 'thing' }, { user: USER })).values.slug).toBe('thing');
+  });
+
+  it('update: not sent, empty or the stored slug sent back changes nothing', async () => {
+    const existing = createTestPaste(null, { slug: 'mine' });
+    for (const body of [{}, { slug: '' }, { slug: 'mine' }, { customSlug: null }]) {
+      const { values, uses } = await readSettings('paste', body, { user: USER, existing });
+      expect(values.slug).toBeUndefined();
+      expect(uses.customSlugs).toBe(false);
+    }
+  });
+
+  it('update: a new slug (or only a new case) replaces it and counts as customSlugs', async () => {
+    const existing = createTestPaste(null, { slug: 'mine' });
+    for (const slug of ['other', 'Mine']) {
+      const { values, uses } = await readSettings('paste', { slug }, { user: USER, existing });
+      expect(values.slug).toBe(slug);
+      expect(uses.customSlugs).toBe(true);
+    }
+  });
+
+  it('update: a slug taken by another item of the type is refused', async () => {
+    createTestPaste(null, { slug: 'other' });
+    const existing = createTestPaste(null, { slug: 'mine' });
+    await expect(readSettings('paste', { slug: 'OTHER' }, { user: USER, existing })).rejects.toThrow(/already taken/);
   });
 });

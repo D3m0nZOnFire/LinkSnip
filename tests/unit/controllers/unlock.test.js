@@ -72,6 +72,14 @@ describe.each(Object.keys(MAKE))('/unlock/%s/:slug', (type) => {
     expect(res.body.canRemember).toBe(type !== 'bundle');
   });
 
+  it('finds the item by its slug in any case', async () => {
+    MAKE[type]();
+    const { app } = makeApp();
+    const res = await request(app).get(`/unlock/${type}/IT`);
+    expect(res.status).toBe(200);
+    expect(res.body.view).toBe('unlock');
+  });
+
   it('redirects to the item when it has no password', async () => {
     MAKE[type]({ password: null });
     const { app } = makeApp();

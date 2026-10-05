@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const db = require('../config/database');
+const slugService = require('../services/slugService');
 const unlocks = require('../services/unlockService');
 const { sendIfUnavailable } = require('../services/accessService');
 const { CONTENT_TYPES, isTypeEnabled } = require('../services/contentTypes');
@@ -14,7 +14,7 @@ const { logSecurity, ACTIONS } = require('../services/auditService');
 function findRecord(type, slug) {
   if (!isTypeEnabled(type)) return null;
   const info = CONTENT_TYPES[type];
-  const record = db.prepare(`SELECT * FROM ${info.table} WHERE slug = ?`).get(slug);
+  const record = slugService.find(type, slug);
   return record ? { info, record } : null;
 }
 

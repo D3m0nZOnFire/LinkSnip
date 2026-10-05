@@ -221,10 +221,7 @@
           <label for="editLongUrl" class="form-label">Destination</label>
           <input type="url" id="editLongUrl" class="form-input" required>
         </div>
-        <div class="form-group">
-          <label for="editCustomSlug" class="form-label">Slug</label>
-          <input type="text" id="editCustomSlug" class="form-input">
-        </div>
+        <%- include('partials/slug-edit-field', { id: 'editCustomSlug', prefix: '/s/' }) %>
         <div class="form-group">
           <label for="editPassword" class="form-label">New password (optional)</label>
           <input type="password" id="editPassword" class="form-input" autocomplete="new-password" data-toggle-password>

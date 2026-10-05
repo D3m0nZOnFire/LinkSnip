@@ -1,4 +1,5 @@
 const { canEdit, canView } = require('../services/itemPermissions');
+const slugService = require('../services/slugService');
 const RoleService = require('../services/roleService');
 const { isEnabled } = require('../middleware/requireFeature');
 const Bundle = require('../models/Bundle');
@@ -20,7 +21,7 @@ const MAX_ITEMS_ANONYMOUS = 5;
  * Create a new bundle (rate limited, auth optional)
  */
 async function createBundle(req, res) {
-  const { title, description, customSlug, items, tags } = req.body;
+  const { title, description, items, tags } = req.body;
 
   // Parse items — can arrive as JSON string or already parsed by express
   let parsedItems;
@@ -66,7 +67,7 @@ async function createBundle(req, res) {
     }
   }
 
-  // Expiry (with the anonymous cap), schedule, usage limit, password
+  // Slug, expiry (with the anonymous cap), schedule, usage limit, password
   let settings;
   try {
     settings = await readSettings('bundle', req.body, { user: req.user || null });
@@ -86,19 +87,11 @@ async function createBundle(req, res) {
     return res.status(error.status).json({ error: error.message });
   }
 
-  // Generate or validate slug
-  let slug;
-  try {
-    slug = Bundle.getValidSlug(customSlug || null);
-  } catch (err) {
-    return res.status(400).json({ error: err.message });
-  }
-
   // Create bundle
+  const { slug } = settings.values;
   let bundle;
   try {
     bundle = Bundle.create({
-      slug,
       title: title.trim(),
       description: description ? description.trim() : null,
       creatorId: req.user ? req.user.id : null,
@@ -226,6 +219,7 @@ async function updateBundle(req, res) {
   }));
   Bundle.replaceItems(id, cleanItems);
   if (tags !== undefined) Tag.setForItem('bundle', id, Tag.parseTagString(tags));
+  if (settings.values.slug) slugService.logChange(req, 'bundle', bundle, settings.values.slug);
 
   try {
     logAdminAction(ACTIONS.UPDATE_BUNDLE, req, 'bundle', id,
@@ -234,7 +228,7 @@ async function updateBundle(req, res) {
     );
   } catch (e) { /* audit failure is non-critical */ }
 
-  return res.json({ success: true });
+  return res.json({ success: true, slug: settings.values.slug || bundle.slug });
 }
 
 /**
