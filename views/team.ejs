@@ -41,7 +41,7 @@
                 <td class="name-cell"><%= member.username %><% if (member.userId === user.id) { %> <span class="you">(you)</span><% } %></td>
                 <td>
                   <% if (isManager && manages(member.role)) { %>
-                    <select class="form-input member-role-select" data-member-id="<%= member.userId %>" aria-label="Role of <%= member.username %>">
+                    <select data-select class="form-input member-role-select" data-member-id="<%= member.userId %>" aria-label="Role of <%= member.username %>">
                       <% giveable.forEach(role => { %>
                         <option value="<%= role %>" <%= role === member.role ? 'selected' : '' %>><%= label(role) %></option>
                       <% }) %>
@@ -77,7 +77,7 @@
           </div>
           <div class="form-group narrow">
             <label for="inviteRole" class="form-label">Role</label>
-            <select id="inviteRole" class="form-input">
+            <select data-select id="inviteRole" class="form-input">
               <% inviteRoles.forEach(role => { %>
                 <option value="<%= role %>" <%= role === 'member' ? 'selected' : '' %>><%= label(role) %></option>
               <% }) %>

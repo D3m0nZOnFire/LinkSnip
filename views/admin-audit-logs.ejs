@@ -58,7 +58,7 @@
         <input type="search" class="form-input" name="search" value="<%= filters.search || '' %>" placeholder="Description, username…">
       </label>
       <label class="filter-field">Category
-        <select class="form-input" name="category">
+        <select data-select class="form-input" name="category">
           <option value="">All categories</option>
           <% categories.forEach(cat => { %>
             <option value="<%= cat %>"<%= filters.category === cat ? ' selected' : '' %>><%= cat %></option>
@@ -66,7 +66,7 @@
         </select>
       </label>
       <label class="filter-field">Action
-        <select class="form-input" name="action">
+        <select data-select class="form-input" name="action">
           <option value="">All actions</option>
           <% actions.forEach(act => { %>
             <option value="<%= act %>"<%= filters.action === act ? ' selected' : '' %>><%= act %></option>

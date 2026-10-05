@@ -262,7 +262,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `tags` permission through `permissionGate.tagsChanged`.
 - `/tags` and `/tags/:id/analytics` count every type whose feature is on (`enabledTypes()` in `contentTypes.js`):
   `Tag.getAllWithStats`, `Tag.itemsFor`, `Tag.dailyVisits`. Visits are analytics events (bundle item clicks left out).
-- Dashboard: a tag filter (`?tag=`) next to the search; every row shows `partials/tag-chips.ejs`. Import/export stays
+- Dashboard: a tag filter next to the search (several tags: `?tag=a&tag=b`, `&match=all` for items with every one;
+  `itemList.list({ tags, tagMatch })`, `Tag.withItemCounts` for the counts); every row shows `partials/tag-chips.ejs`. Import/export stays
   link-only.
 
 ### Dashboard
@@ -510,6 +511,11 @@ share links · 5:30 expired files · 5:45 country database check.
 - `confirmAction(message, title, destructive, confirmLabel)` returns a Promise: always `await` it (an unawaited one is
   always truthy). Its dialog is `partials/confirm-modal.ejs`. Buttons with `data-open-modal="id"` /
   `data-close-modal="id"` work on every page that loads `main.js`.
+- **Dropdowns**: every `<select>` has `data-select` (a test checks views and scripts): `public/js/customSelect.js` (loaded by
+  `partials/head.ejs`, with `public/css/select.css`) shows a button and a styled list and keeps the hidden native select
+  in sync (picking fires its `change`; `select.value = …` and rebuilt options update the button). Options may carry
+  `data-color` (hex dot) and `data-hint`; the select `multiple`, `data-placeholder`, `data-select-search`,
+  `data-select-match="<hidden input id>"` (Any | All). Selects added later (swapped results, modals) are enhanced too.
 - Modals: `public/css/modals.css`, `openModal(id)` / `closeModal(id)` in `public/js/main.js`; `showToast`,
   `apiRequest`, `setButtonLoading` there too.
 - Password inputs with `data-toggle-password` get an eye toggle. Theme variables in `public/css/tokens.css`

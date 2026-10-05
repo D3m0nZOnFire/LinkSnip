@@ -114,11 +114,25 @@ describe('toolbar and pills', () => {
   });
 
   it('offers the user\'s tags as a filter', async () => {
-    const tag = createTestTag({ name: 'launch', userId: alice.id });
+    const tag = createTestTag({ name: 'launch', userId: alice.id, color: '#60a5fa' });
     tagItem('url', createTestUrl({ slug: 't', creatorId: alice.id }).id, tag.id);
     const html = await render({ tag: 'launch' });
-    expect(html).toMatch(/<select[^>]*name="tag"/);
-    expect(html).toMatch(/<option value="launch" selected>launch<\/option>/);
+    expect(html).toMatch(/<select[^>]*\bmultiple\b[^>]*name="tag"/);
+    expect(html).toMatch(/<option value="launch" data-color="#60a5fa" data-hint="1" selected>launch<\/option>/);
+    expect(html).toMatch(/<input type="hidden" id="dashTagMatch" name="match" value="any">/);
+  });
+
+  it('keeps several tags and "all" in the page links', async () => {
+    const a = createTestTag({ name: 'a', userId: alice.id });
+    const b = createTestTag({ name: 'b', userId: alice.id });
+    for (let i = 0; i < 30; i++) {
+      const url = createTestUrl({ slug: `u${i}`, creatorId: alice.id });
+      tagItem('url', url.id, a.id);
+      tagItem('url', url.id, b.id);
+    }
+    const html = await render({ tag: ['a', 'b'], match: 'all', limit: '25' });
+    expect(html).toMatch(/<input type="hidden" id="dashTagMatch" name="match" value="all">/);
+    expect(html).toContain('href="/dashboard?tag=a&amp;tag=b&amp;match=all&amp;limit=25&amp;page=2"');
   });
 
   it('has no tag filter without tags', async () => {

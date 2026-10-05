@@ -228,6 +228,22 @@ class Tag {
   }
 
   /**
+   * The given tags, each with `itemCount`: how many items of the given types carry it (the dashboard's tag filter).
+   * @param {array} tags
+   * @param {array} types
+   * @returns {array}
+   */
+  static withItemCounts(tags, types = Object.keys(CONTENT_TYPES)) {
+    if (!tags.length || !types.length) return tags.map(tag => ({ ...tag, itemCount: 0 }));
+    const counts = new Map(db.prepare(`
+      SELECT tagId, COUNT(*) AS n FROM taggables
+      WHERE tagId IN (${tags.map(() => '?').join(',')}) AND targetType IN (${types.map(() => '?').join(',')})
+      GROUP BY tagId
+    `).all(...tags.map(tag => tag.id), ...types).map(row => [row.tagId, row.n]));
+    return tags.map(tag => ({ ...tag, itemCount: counts.get(tag.id) || 0 }));
+  }
+
+  /**
    * The items carrying a tag, newest first: { type, id, slug, name, visits, createdAt }
    * (`name` is the type's destination: the long URL, title or file name).
    * @param {number} tagId

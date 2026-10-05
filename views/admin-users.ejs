@@ -27,14 +27,14 @@
         <input type="search" class="form-input" name="search" value="<%= filters.search %>" placeholder="Username or email">
       </label>
       <label class="filter-field">Admin
-        <select class="form-input" name="role" data-auto-submit>
+        <select data-select class="form-input" name="role" data-auto-submit>
           <option value=""<%= filters.role === '' ? ' selected' : '' %>>Everyone</option>
           <option value="admin"<%= filters.role === 'admin' ? ' selected' : '' %>>Admins</option>
           <option value="user"<%= filters.role === 'user' ? ' selected' : '' %>>Not admins</option>
         </select>
       </label>
       <label class="filter-field">Account role
-        <select class="form-input" name="userRole" data-auto-submit>
+        <select data-select class="form-input" name="userRole" data-auto-submit>
           <option value=""<%= filters.userRole === '' ? ' selected' : '' %>>Any role</option>
           <% roles.forEach(r => { %>
             <option value="<%= r.name %>"<%= filters.userRole === r.name ? ' selected' : '' %>><%= r.label %></option>
@@ -42,21 +42,21 @@
         </select>
       </label>
       <label class="filter-field">Status
-        <select class="form-input" name="status" data-auto-submit>
+        <select data-select class="form-input" name="status" data-auto-submit>
           <option value=""<%= filters.status === '' ? ' selected' : '' %>>Any status</option>
           <option value="active"<%= filters.status === 'active' ? ' selected' : '' %>>Active</option>
           <option value="banned"<%= filters.status === 'banned' ? ' selected' : '' %>>Banned</option>
         </select>
       </label>
       <label class="filter-field">Activity
-        <select class="form-input" name="activity" data-auto-submit>
+        <select data-select class="form-input" name="activity" data-auto-submit>
           <% ACTIVITY.forEach(([value, label]) => { %>
             <option value="<%= value %>"<%= filters.activity === value ? ' selected' : '' %>><%= label %></option>
           <% }) %>
         </select>
       </label>
       <label class="filter-field">Sort
-        <select class="form-input" name="sort" data-auto-submit>
+        <select data-select class="form-input" name="sort" data-auto-submit>
           <% SORTS.forEach(([value, label]) => { %>
             <option value="<%= value %>"<%= filters.sort === value ? ' selected' : '' %>><%= label %></option>
           <% }) %>
@@ -210,7 +210,7 @@
         </div>
         <div class="form-group">
           <label for="editUserRole" class="form-label">Account role</label>
-          <select id="editUserRole" class="form-input">
+          <select data-select id="editUserRole" class="form-input">
             <option value="">Default (<%= defaultRoleLabel %>)</option>
             <% roles.forEach(r => { %>
               <option value="<%= r.name %>"><%= r.label %></option>
@@ -253,7 +253,7 @@
         </div>
         <div class="form-group">
           <label for="newUserRole" class="form-label">Account role</label>
-          <select id="newUserRole" class="form-input">
+          <select data-select id="newUserRole" class="form-input">
             <option value="">Default (<%= defaultRoleLabel %>)</option>
             <% roles.forEach(r => { %>
               <option value="<%= r.name %>"><%= r.label %></option>

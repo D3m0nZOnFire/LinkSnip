@@ -177,7 +177,7 @@ function groupConditions(type, group, globalStatus, now) {
 }
 
 // SELECT for one type, rows in the shape every type shares
-function typeQuery(type, { groups, status, dateFrom, dateTo, now, scope, tags }) {
+function typeQuery(type, { groups, status, dateFrom, dateTo, now, scope, tags, tagMatch }) {
   const info = CONTENT_TYPES[type];
   const access = statusSql(type, { alias: 't', now });
   const params = [...access.params];
@@ -189,8 +189,10 @@ function typeQuery(type, { groups, status, dateFrom, dateTo, now, scope, tags })
     params.push(...owned.params);
   }
   if (tags.length) {
-    where.push(`EXISTS (SELECT 1 FROM taggables tg JOIN tags g ON g.id = tg.tagId
-      WHERE tg.targetType = '${type}' AND tg.targetId = t.id AND g.name IN (${tags.map(() => '?').join(', ')}))`);
+    const tagged = `FROM taggables tg JOIN tags g ON g.id = tg.tagId
+      WHERE tg.targetType = '${type}' AND tg.targetId = t.id AND g.name IN (${tags.map(() => '?').join(', ')})`;
+    // any: one of the tags is enough; all: every one of them (tag names are unique per item's owner or team)
+    where.push(tagMatch === 'all' ? `(SELECT COUNT(DISTINCT g.name) ${tagged}) = ${tags.length}` : `EXISTS (SELECT 1 ${tagged})`);
     params.push(...tags);
   }
 
@@ -229,17 +231,18 @@ function unionOf(typeList, options) {
 /**
  * @param {object} options - { type: 'all' | 'url' | …, search, status, hasReports ('yes'|'no'), sort, dateFrom, dateTo,
  *   page, limit (null = all), scope (services/itemScope.js: a user ID, { userId } or { teamId }; none = every item),
- *   tags (tag names; items with any of them), types (only these of the enabled types) }
+ *   tags (tag names), tagMatch ('any' (default): items with one of the tags, 'all': with every one of them),
+ *   types (only these of the enabled types) }
  * @returns {{ rows, total, page, totalPages, limit, counts }} counts: matches per enabled type, whatever `type` shows
  */
 function list({
   type = 'all', search = '', status = '', hasReports = '', sort = 'newest', dateFrom = '', dateTo = '', page = 1,
-  limit = 50, scope = null, tags = [], types: only = null
+  limit = 50, scope = null, tags = [], tagMatch = 'any', types: only = null
 } = {}) {
   const listed = only ? types().filter(t => only.includes(t)) : types();
   const groups = parseSearch(search);
   const options = {
-    groups, status: effectiveStatus(groups, status), dateFrom, dateTo, now: new Date().toISOString(), scope,
+    groups, status: effectiveStatus(groups, status), dateFrom, dateTo, now: new Date().toISOString(), scope, tagMatch,
     tags: [...new Set((tags || []).map(name => String(name).trim().toLowerCase()).filter(Boolean))]
   };
   const reports = hasReports === 'yes' ? 'WHERE reportCount > 0' : hasReports === 'no' ? 'WHERE reportCount = 0' : '';

@@ -284,3 +284,8 @@
 .modal-overlay .modal > .modal-footer {
   flex-shrink: 0;
 }
+
+/* The tag filter grows with the picked names, up to a point */
+.dash-toolbar .dash-tag-select {
+  max-width: 20rem;
+}

@@ -308,6 +308,39 @@ describe('dashboard lists (scope, tags, counts)', () => {
     expect(keys(list({ scope: alice.id, tags: [] }))).toHaveLength(4);
   });
 
+  it('tagMatch all: only items with every given tag, for every type', () => {
+    const launch = createTestTag({ name: 'launch', userId: alice.id });
+    const docs = createTestTag({ name: 'docs', userId: alice.id });
+    const both = createTestUrl({ slug: 'both', creatorId: alice.id });
+    const kit = createTestBundle({ slug: 'kit', creatorId: alice.id });
+    const note = createTestPaste(alice.id, { slug: 'note' });
+    tagItem('url', both.id, launch.id);
+    tagItem('url', both.id, docs.id);
+    tagItem('bundle', kit.id, launch.id);
+    tagItem('bundle', kit.id, docs.id);
+    tagItem('paste', note.id, launch.id);
+
+    expect(keys(list({ scope: alice.id, tags: ['launch', 'docs'], tagMatch: 'all' }))).toEqual(['bundle:kit', 'url:both']);
+    expect(keys(list({ scope: alice.id, tags: ['launch', 'docs'], tagMatch: 'any' }))).toEqual(['bundle:kit', 'paste:note', 'url:both']);
+    expect(keys(list({ scope: alice.id, tags: ['launch', 'LAUNCH'], tagMatch: 'all' }))).toEqual(['bundle:kit', 'paste:note', 'url:both']);
+    expect(keys(list({ scope: alice.id, tags: ['launch', 'nope'], tagMatch: 'all' }))).toEqual([]);
+    expect(list({ scope: alice.id, tags: ['launch', 'docs'], tagMatch: 'all' }).counts).toMatchObject({ url: 1, bundle: 1, paste: 0 });
+  });
+
+  it('tagMatch all in a team scope uses the team\'s tags', () => {
+    db().prepare("UPDATE users SET role = 'trusted' WHERE id = ?").run(alice.id);
+    const team = teamService.create({ id: alice.id, username: 'alice', isAdmin: 0, role: 'trusted' }, 'Acme');
+    const red = createTestTag({ name: 'red', userId: alice.id });
+    const blue = createTestTag({ name: 'blue', userId: alice.id });
+    db().prepare('UPDATE tags SET teamId = ? WHERE id IN (?, ?)').run(team.id, red.id, blue.id);
+    const link = createTestUrl({ slug: 't-link', creatorId: alice.id });
+    toTeam('urls', link.id, team.id);
+    tagItem('url', link.id, red.id);
+    tagItem('url', link.id, blue.id);
+
+    expect(keys(list({ scope: { teamId: team.id }, tags: ['red', 'blue'], tagMatch: 'all' }))).toEqual(['url:t-link']);
+  });
+
   it('counts the matches per type, whatever type is shown', () => {
     createTestUrl({ slug: 'one', creatorId: alice.id, longUrl: 'https://example.com/report' });
     createTestUrl({ slug: 'two', creatorId: alice.id });

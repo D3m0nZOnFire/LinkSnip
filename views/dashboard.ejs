@@ -17,7 +17,7 @@
       <div class="dash-header-actions">
         <% if (dashboardTeams.length) { %>
           <label class="visually-hidden" for="dashboardScope">Show items of</label>
-          <select id="dashboardScope" class="form-input">
+          <select data-select id="dashboardScope" class="form-input">
             <option value=""<%= currentTeam ? '' : ' selected' %>>Personal</option>
             <% dashboardTeams.forEach(team => { %>
               <option value="<%= team.id %>"<%= currentTeam && currentTeam.id === team.id ? ' selected' : '' %>><%= team.name %></option>
@@ -45,14 +45,15 @@
           placeholder="Search slugs, destinations, titles…" autocomplete="off" spellcheck="false">
       </div>
       <% if (tagOptions.length) { %>
-        <label class="visually-hidden" for="dashTag">Tag</label>
-        <select class="form-input" id="dashTag" name="tag">
-          <option value="">All tags</option>
-          <% tagOptions.forEach(tag => { %><option value="<%= tag.name %>"<%= filters.tag === tag.name ? ' selected' : '' %>><%= tag.name %></option><% }) %>
+        <label class="visually-hidden" for="dashTag">Tags</label>
+        <select data-select data-select-search data-select-match="dashTagMatch" data-placeholder="All tags" multiple
+          class="form-input dash-tag-select" id="dashTag" name="tag">
+          <% tagOptions.forEach(tag => { %><option value="<%= tag.name %>" data-color="<%= tag.color || '' %>" data-hint="<%= tag.itemCount %>"<%= filters.tags.includes(tag.name) ? ' selected' : '' %>><%= tag.name %></option><% }) %>
         </select>
+        <input type="hidden" id="dashTagMatch" name="match" value="<%= filters.match %>">
       <% } %>
       <label class="visually-hidden" for="dashSort">Sort</label>
-      <select class="form-input" id="dashSort" name="sort">
+      <select data-select class="form-input" id="dashSort" name="sort">
         <% [['newest', 'Newest'], ['oldest', 'Oldest'], ['most-used', 'Most used'], ['least-used', 'Least used']].forEach(([value, label]) => { %>
           <option value="<%= value %>"<%= filters.sort === value ? ' selected' : '' %>><%= label %></option>
         <% }) %>
@@ -214,7 +215,7 @@
         </div>
         <div class="form-group">
           <label for="editFileSharing" class="form-label">Who can open it</label>
-          <select id="editFileSharing" class="form-input">
+          <select data-select id="editFileSharing" class="form-input">
             <option value="public">Anyone with the link</option>
             <option value="restricted">Only the people listed below</option>
           </select>
@@ -252,7 +253,7 @@
       <form class="modal-body" id="moveToTeamForm">
         <div class="form-group">
           <label for="moveTeamSelect" class="form-label">Team</label>
-          <select id="moveTeamSelect" class="form-input">
+          <select data-select id="moveTeamSelect" class="form-input">
             <% writableTeams.forEach(team => { %><option value="<%= team.id %>"><%= team.name %></option><% }) %>
           </select>
         </div>

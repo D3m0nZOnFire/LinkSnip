@@ -78,8 +78,42 @@ describe('one list for every type', () => {
 
     const view = data(alice, { tag: 'launch' });
     expect(keys(view)).toEqual(['bundle:kit']);
-    expect(view.filters.tag).toBe('launch');
+    expect(view.filters.tags).toEqual(['launch']);
     expect(view.tagOptions.map(t => t.name)).toEqual(['launch']);
+  });
+
+  it('filters by several tags, any (default) or all of them', () => {
+    const db = getTestDatabase();
+    const id = (table, slug) => db.prepare(`SELECT id FROM ${table} WHERE slug = ?`).get(slug).id;
+    const launch = createTestTag({ name: 'launch', userId: alice.id });
+    const docs = createTestTag({ name: 'docs', userId: alice.id });
+    tagItem('bundle', id('bundles', 'kit'), launch.id);
+    tagItem('bundle', id('bundles', 'kit'), docs.id);
+    tagItem('url', id('urls', 'link'), launch.id);
+
+    const any = data(alice, { tag: ['launch', 'Docs'] });
+    expect(keys(any).sort()).toEqual(['bundle:kit', 'url:link']);
+    expect(any.filters).toMatchObject({ tags: ['launch', 'docs'], match: 'any' });
+
+    const all = data(alice, { tag: ['launch', 'docs'], match: 'all' });
+    expect(keys(all)).toEqual(['bundle:kit']);
+    expect(all.filters.match).toBe('all');
+
+    expect(data(alice, { tag: 'launch', match: 'nonsense' }).filters.match).toBe('any');
+    expect(data(alice).filters).toMatchObject({ tags: [], match: 'any' });
+  });
+
+  it('offers each tag with its color and how many items in this list carry it', () => {
+    const db = getTestDatabase();
+    const id = (table, slug) => db.prepare(`SELECT id FROM ${table} WHERE slug = ?`).get(slug).id;
+    const launch = createTestTag({ name: 'launch', userId: alice.id, color: '#34d399' });
+    createTestTag({ name: 'unused', userId: alice.id, color: '#60a5fa' });
+    tagItem('bundle', id('bundles', 'kit'), launch.id);
+    tagItem('paste', id('pastes', 'note'), launch.id);
+
+    const options = data(alice).tagOptions;
+    expect(options.find(t => t.name === 'launch')).toMatchObject({ color: '#34d399', itemCount: 2 });
+    expect(options.find(t => t.name === 'unused')).toMatchObject({ color: '#60a5fa', itemCount: 0 });
   });
 
   it('a user whose role cannot upload sees no files', () => {
