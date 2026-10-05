@@ -4,7 +4,7 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
-## [1.4.2] - 2026-10-05
+## [1.5.0] - 2026-10-05
 
 ### Upgrading
 
@@ -15,6 +15,14 @@ only one that may need more than "pull and restart", and its Upgrading section s
 - **Open button** after creating something: next to Copy, it opens the new item in a new tab. A link opens its info
   page (`/info/…`), a paste, bundle or file its own page. Opening a bundle launches its links, and like any visit it
   counts toward the item's analytics and usage limit.
+- **Filter the dashboard by several tags**: tick any number of tags and choose **Any** (items with one of them) or
+  **All** (items with every one). Each tag shows its color and how many items carry it, and a field filters the list.
+  The address keeps the choice (`?tag=work&tag=travel&match=all`); old `?tag=work` links still work.
+
+### Changed
+
+- **Every dropdown is new**: styled lists with a check on the chosen option, keyboard support (arrows, Enter, Escape,
+  typing to jump) and the same look in light and dark, on phones too.
 
 ## [1.4.1] - 2026-10-05
 
@@ -175,7 +183,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
-[1.4.2]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.4.1...v1.4.2
+[1.5.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.2.0...v1.3.0

@@ -15,7 +15,7 @@ const SORTS = ['newest', 'oldest', 'most-used', 'least-used'];
 class DashboardController {
   /**
    * The user's items (or a team's, ?team=:id): links, bundles, pastes and files in one list (services/itemList.js).
-   * Filters: search, type, tag, sort, limit, page. ?partial=1 renders only the results, for the live search.
+   * Filters: search, type, tag (repeatable) + match (any/all), sort, limit, page. ?partial=1 renders only the results, for the live search.
    * GET /dashboard
    */
   static getUserDashboard(req, res) {
@@ -44,13 +44,15 @@ class DashboardController {
     const filters = {
       search: typeof q.search === 'string' ? q.search.trim() : '',
       type: types.includes(q.type) ? q.type : 'all',
-      tag: typeof q.tag === 'string' ? q.tag.trim().toLowerCase() : '',
+      tags: [...new Set([].concat(q.tag || []).filter(name => typeof name === 'string')
+        .map(name => name.trim().toLowerCase()).filter(Boolean))],
+      match: q.match === 'all' ? 'all' : 'any',
       sort: SORTS.includes(q.sort) ? q.sort : ({ 'most-clicks': 'most-used', 'least-clicks': 'least-used' })[q.sort] || 'newest',
       limit: PAGE_SIZES.includes(Number(q.limit)) ? Number(q.limit) : 50
     };
 
     const result = itemList.list({
-      scope, types, type: filters.type, search: filters.search, tags: filters.tag ? [filters.tag] : [],
+      scope, types, type: filters.type, search: filters.search, tags: filters.tags, tagMatch: filters.match,
       sort: filters.sort, limit: filters.limit, page: q.page
     });
 
@@ -66,7 +68,9 @@ class DashboardController {
       };
     });
 
-    const tagOptions = currentTeam ? Tag.forTeam(currentTeam.id) : Tag.findByUserId(req.user.id).filter(tag => !tag.teamId);
+    const tagOptions = Tag.withItemCounts(
+      currentTeam ? Tag.forTeam(currentTeam.id) : Tag.findByUserId(req.user.id).filter(tag => !tag.teamId), types
+    );
 
     const view = {
       user: req.user,

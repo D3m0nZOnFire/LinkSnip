@@ -59,19 +59,19 @@
         <button type="button" class="icon-btn search-help-btn" aria-expanded="false" aria-controls="searchHelp" title="Search shortcuts">?</button>
       </div>
       <label class="visually-hidden" for="itemStatus">Status</label>
-      <select class="form-input" id="itemStatus" name="status">
+      <select data-select class="form-input" id="itemStatus" name="status">
         <% STATUS_OPTIONS.forEach(([value, label]) => { %>
         <option value="<%= value %>"<%= filters.status === value ? ' selected' : '' %>><%= label %></option>
         <% }) %>
       </select>
       <label class="visually-hidden" for="itemReports">Reports</label>
-      <select class="form-input" id="itemReports" name="hasReports">
+      <select data-select class="form-input" id="itemReports" name="hasReports">
         <option value=""<%= !filters.hasReports ? ' selected' : '' %>>Reports: any</option>
         <option value="yes"<%= filters.hasReports === 'yes' ? ' selected' : '' %>>Reported</option>
         <option value="no"<%= filters.hasReports === 'no' ? ' selected' : '' %>>Not reported</option>
       </select>
       <label class="visually-hidden" for="itemSort">Sort</label>
-      <select class="form-input" id="itemSort" name="sort">
+      <select data-select class="form-input" id="itemSort" name="sort">
         <% SORT_OPTIONS.forEach(([value, label]) => { %>
         <option value="<%= value %>"<%= filters.sort === value ? ' selected' : '' %>><%= label %></option>
         <% }) %>
@@ -166,7 +166,7 @@
             <input type="hidden" name="<%= key %>" value="<%= filters[key] %>">
           <% } } %>
           <label for="pageSize">Per page</label>
-          <select class="form-input" id="pageSize" name="limit" data-autosubmit>
+          <select data-select class="form-input" id="pageSize" name="limit" data-autosubmit>
             <% pageSizes.forEach(size => { %><option value="<%= size %>"<%= filters.limit === size ? ' selected' : '' %>><%= size %></option><% }) %>
           </select>
         </form>

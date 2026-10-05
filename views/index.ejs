@@ -74,7 +74,7 @@
       <!-- Create in a team (sent with every kind of item) -->
       <div class="create-in-team">
         <label for="createInTeam">Create in</label>
-        <select name="teamId" id="createInTeam" class="form-input">
+        <select data-select name="teamId" id="createInTeam" class="form-input">
           <option value="">Personal</option>
           <% createTeams.forEach(team => { %>
             <option value="<%= team.id %>"<%= locals.selectedTeamId === team.id ? ' selected' : '' %>><%= team.name %></option>

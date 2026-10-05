@@ -16,7 +16,7 @@
       <div class="report-fields">
         <div class="form-group">
           <label for="reportReason" class="form-label">Reason</label>
-          <select id="reportReason" name="reason" class="form-input" required>
+          <select data-select id="reportReason" name="reason" class="form-input" required>
             <option value="">Choose a reason…</option>
             <% Object.entries(reportReasons).forEach(([value, label]) => { %>
               <option value="<%= value %>"><%= label %></option>

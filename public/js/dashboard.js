@@ -27,10 +27,13 @@
 
   function addressFromForm() {
     const params = new URLSearchParams();
-    for (const [key, value] of new FormData(form)) {
+    const data = new FormData(form);
+    for (const [key, value] of data) {
       if (!value) continue;
       if ((key === 'sort' && value === 'newest') || (key === 'limit' && value === '50')) continue;
-      params.set(key, value);
+      // match only means something for two tags or more; "any" is the default
+      if (key === 'match' && (value !== 'all' || data.getAll('tag').length < 2)) continue;
+      params.append(key, value);
     }
     const query = params.toString();
     return `/dashboard${query ? `?${query}` : ''}`;
