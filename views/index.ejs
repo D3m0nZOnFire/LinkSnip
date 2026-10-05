@@ -50,6 +50,7 @@
       <div class="creator-success-row">
         <code class="creator-success-url" id="creatorSuccessUrl"><%= success ? success.shortUrl : '' %></code>
         <button type="button" class="btn btn-small" id="creatorCopy"><%- include('partials/icon', { icon: 'copy' }) %> Copy</button>
+        <a class="btn btn-small" id="creatorOpen" href="<%= success ? success.openUrl : '' %>" target="_blank" rel="noopener"><%- include('partials/icon', { icon: 'external' }) %> Open</a>
       </div>
     </div>
 
