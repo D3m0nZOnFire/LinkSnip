@@ -34,7 +34,7 @@ class Url {
    * @returns {object|null} URL record
    */
   static findBySlug(slug) {
-    const stmt = db.prepare('SELECT * FROM urls WHERE slug = ?');
+    const stmt = db.prepare('SELECT * FROM urls WHERE slug = ? COLLATE NOCASE');
     return stmt.get(slug);
   }
 
@@ -215,7 +215,7 @@ class Url {
    * @returns {number} New click count
    */
   static incrementClicks(slug) {
-    const stmt = db.prepare('UPDATE urls SET clicks = clicks + 1 WHERE slug = ?');
+    const stmt = db.prepare('UPDATE urls SET clicks = clicks + 1 WHERE slug = ? COLLATE NOCASE');
     stmt.run(slug);
     
     const url = this.findBySlug(slug);

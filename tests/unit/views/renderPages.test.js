@@ -562,6 +562,48 @@ describe('paste editor (v1.3 part 7a): an app page of section cards with a save 
   });
 });
 
+// The short link of every type can be changed where the item is edited; without customSlugs it shows read-only
+describe('slug fields in the edit forms', () => {
+  const lockSlugs = () => {
+    fs.writeFileSync(paths.ROLES_PATH, JSON.stringify({ roles: { user: { permissions: { customSlugs: false } } } }));
+    configService.reload();
+  };
+  afterEach(() => {
+    fs.rmSync(paths.ROLES_PATH, { force: true });
+    configService.reload();
+  });
+  const input = (html, id) => (html.match(new RegExp(`<input[^>]*id="${id}"[^>]*>`)) || [null])[0];
+
+  it('paste editor: the slug, editable', async () => {
+    const field = input(await renderPage('paste-edit'), 'peSlug');
+    expect(field).toContain(`value="${s.paste.slug}"`);
+    expect(field).toContain('data-slug-input');
+    expect(field).not.toContain('readonly');
+  });
+
+  it('dashboard: a slug field in the link and bundle edit forms', async () => {
+    const html = await renderPage('dashboard');
+    for (const id of ['editCustomSlug', 'editBundleSlug']) {
+      expect(input(html, id)).toContain('data-slug-input');
+      expect(input(html, id)).not.toContain('readonly');
+    }
+  });
+
+  it('without customSlugs the fields are read-only', async () => {
+    lockSlugs();
+    expect(input(await renderPage('paste-edit'), 'peSlug')).toContain('readonly');
+    const html = await renderPage('dashboard');
+    for (const id of ['editCustomSlug', 'editBundleSlug']) expect(input(html, id)).toContain('readonly');
+  });
+
+  it('dashboard: a slug field in the file edit form, for roles that upload', async () => {
+    getTestDatabase().prepare("UPDATE users SET role = 'trusted' WHERE id = ?").run(s.user.id);
+    const { req, data } = await rendered(c('dashboardController').getUserDashboard, request({ ...s.user, role: 'trusted' }));
+    const html = await ejs.renderFile(path.join(VIEWS, 'dashboard.ejs'), { ...appLocals(), ...(await localsFor(req.user)), ...data });
+    expect(input(html, 'editFileSlug')).toContain('data-slug-input');
+  });
+});
+
 describe('admin pages (v1.3 part 7a)', () => {
   it('audit logs: details someone could type (an email at registration) never break out into script', async () => {
     getTestDatabase().prepare(`INSERT INTO audit_logs (action, category, username, ipAddress, details)

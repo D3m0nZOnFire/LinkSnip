@@ -3,7 +3,7 @@ const { DB_PATH, ensureDataDir } = require('./paths');
 const { configureDatabase } = require('./dbSetup');
 const {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners
+  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners, migrateSlugCase
 } = require('./migrations');
 
 // Initialize database (DATA_DIR must exist and be writable)
@@ -476,6 +476,9 @@ migrateTeams(db);
 
 // Files keep their place in a team when the uploader's account is deleted (userId nullable, ON DELETE SET NULL)
 migrateFileOwners(db);
+
+// Slugs ignore case: a unique NOCASE index per content table
+migrateSlugCase(db);
 
 console.log('\n✅ Database initialized and migrations completed successfully\n');
 

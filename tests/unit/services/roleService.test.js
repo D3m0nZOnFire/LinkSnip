@@ -54,6 +54,7 @@ describe('RoleService', () => {
       expect(RoleService.can(null, 'passwordProtection')).toBe(false);
       expect(RoleService.can(null, 'tags')).toBe(false);
       expect(RoleService.can(null, 'importExport')).toBe(false);
+      expect(RoleService.can(null, 'customSlugs')).toBe(false);
     });
 
     it('matches the default permission table for users', () => {
@@ -62,6 +63,7 @@ describe('RoleService', () => {
       expect(RoleService.can(user, 'passwordProtection')).toBe(true);
       expect(RoleService.can(user, 'analyticsShareLinks')).toBe(true);
       expect(RoleService.can(user, 'skipAutoModeration')).toBe(false);
+      expect(RoleService.can(user, 'customSlugs')).toBe(true);
     });
 
     it('lets trusted users upload files and skip auto-moderation', () => {

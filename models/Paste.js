@@ -31,7 +31,7 @@ class Paste {
   }
 
   static findBySlug(slug) {
-    const paste = db.prepare('SELECT * FROM pastes WHERE slug = ?').get(slug);
+    const paste = db.prepare('SELECT * FROM pastes WHERE slug = ? COLLATE NOCASE').get(slug);
     if (paste) paste.tags = Tag.forItem('paste', paste.id);
     return paste;
   }
@@ -77,16 +77,17 @@ class Paste {
     return db.prepare('UPDATE pastes SET views = views + 1 WHERE id = ?').run(id);
   }
 
-  static update(id, { title, language, content, expiresAt, activateAt, deactivateAt, maxViews, password }) {
+  static update(id, { slug, title, language, content, expiresAt, activateAt, deactivateAt, maxViews, password }) {
     const current = this.findById(id);
     if (!current) return null;
 
     db.prepare(`
       UPDATE pastes
-      SET title = ?, language = ?, content = ?, expiresAt = ?, activateAt = ?,
+      SET slug = ?, title = ?, language = ?, content = ?, expiresAt = ?, activateAt = ?,
           deactivateAt = ?, maxViews = ?, password = ?
       WHERE id = ?
     `).run(
+      slug !== undefined ? slug : current.slug,
       title !== undefined ? (title || null) : current.title,
       language !== undefined ? (language || null) : current.language,
       content !== undefined ? content : current.content,
@@ -99,20 +100,6 @@ class Paste {
     );
 
     return this.findById(id);
-  }
-
-  static slugExists(slug) {
-    return !!db.prepare('SELECT id FROM pastes WHERE slug = ?').get(slug);
-  }
-
-  static generateUniqueSlug() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-    for (let attempt = 0; attempt < 10; attempt++) {
-      let slug = '';
-      for (let i = 0; i < 5; i++) slug += chars[Math.floor(Math.random() * chars.length)];
-      if (!this.slugExists(slug)) return slug;
-    }
-    throw new Error('Unable to generate unique paste slug after multiple attempts');
   }
 
   static block(id) {

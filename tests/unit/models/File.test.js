@@ -267,42 +267,4 @@ describe('File Model', () => {
     });
   });
 
-  // ─── slugExists ────────────────────────────────────────────
-  describe('slugExists', () => {
-    it('returns true for a slug that exists', async () => {
-      const user = await createTestUser();
-      createTestFile(user.id, { slug: 'exist1' });
-      expect(File.slugExists('exist1')).toBe(true);
-    });
-
-    it('returns false for a slug that does not exist', () => {
-      expect(File.slugExists('nope99')).toBe(false);
-    });
-  });
-
-  // ─── generateUniqueSlug ────────────────────────────────────
-  describe('generateUniqueSlug', () => {
-    it('returns a 5-character slug', async () => {
-      const slug = File.generateUniqueSlug();
-      expect(typeof slug).toBe('string');
-      expect(slug).toHaveLength(5);
-    });
-
-    it('only uses valid characters', () => {
-      const slug = File.generateUniqueSlug();
-      expect(slug).toMatch(/^[A-Za-z0-9\-_]{5}$/);
-    });
-
-    it('generates a slug that does not already exist', async () => {
-      const slug = File.generateUniqueSlug();
-      expect(File.slugExists(slug)).toBe(false);
-    });
-
-    it('throws after exhausting retries if all slugs are taken', () => {
-      const spy = jest.spyOn(File, 'slugExists').mockReturnValue(true);
-      expect(() => File.generateUniqueSlug()).toThrow('Unable to generate unique file slug');
-      spy.mockRestore();
-    });
-  });
-
 });

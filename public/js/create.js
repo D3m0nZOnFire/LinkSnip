@@ -175,15 +175,18 @@
     });
   }
 
-  // ─── Slug preview and check ───────────────────────────────────────────────
+  // ─── Short link fields (one per mode): the host as a prefix, the format checked as it is typed ──
   const SLUG_RE = /^[A-Za-z0-9_-]{1,20}$/;
-  $('slugDomain').textContent = window.location.host;
-  $('customSlug').addEventListener('input', () => {
-    const value = $('customSlug').value;
-    const bad = !!value && !SLUG_RE.test(value);
-    $('slugWrapper').classList.toggle('slug-error', bad);
-    $('slugError').hidden = !bad;
+  form.querySelectorAll('[data-slug-host]').forEach(host => { host.textContent = window.location.host; });
+  form.querySelectorAll('[data-slug-input]').forEach(input => {
+    input.addEventListener('input', () => {
+      const bad = !!input.value && !SLUG_RE.test(input.value);
+      input.closest('.creator-slug').classList.toggle('slug-error', bad);
+      $(`${input.id}Error`).hidden = !bad;
+    });
   });
+  // The slug typed in a mode's field ('' when none, or when the field is locked)
+  const slugOf = (id) => ($(id) && !$(id).disabled ? $(id).value.trim() : '');
 
   // ─── Dates: what the visitor typed is local time; the server stores UTC ──
   function localToUtc(value) {
@@ -227,6 +230,7 @@
     if (valueOf('pasteTags')) body.tags = valueOf('pasteTags');
     if (valueOf('pasteActivateAt')) body.activateDateTime = localToUtc(valueOf('pasteActivateAt'));
     if (valueOf('pasteDeactivateAt')) body.deactivateDateTime = localToUtc(valueOf('pasteDeactivateAt'));
+    if (slugOf('pasteSlug')) body.slug = slugOf('pasteSlug');
     if (teamId()) body.teamId = teamId();
 
     busy(true, 'Creating…');
@@ -282,6 +286,7 @@
     if (items.length < 2) return showError('A bundle needs at least 2 links.');
     const body = { title, items };
     if (valueOf('bundleTags')) body.tags = valueOf('bundleTags');
+    if (slugOf('bundleSlug')) body.slug = slugOf('bundleSlug');
     if (teamId()) body.teamId = teamId();
 
     busy(true, 'Creating…');
@@ -348,6 +353,7 @@
     const data = new FormData();
     data.append('file', file);
     if (teamId()) data.append('teamId', teamId());
+    if (slugOf('fileSlug')) data.append('slug', slugOf('fileSlug'));
     if (valueOf('fileExpiresAt')) data.append('expiresAt', endOfDay(valueOf('fileExpiresAt')));
     if (valueOf('fileMaxDownloads')) data.append('maxDownloads', valueOf('fileMaxDownloads'));
     if (valueOf('filePassword')) data.append('password', valueOf('filePassword'));

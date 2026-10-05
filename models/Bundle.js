@@ -59,7 +59,7 @@ class Bundle {
    * Find bundle by slug
    */
   static findBySlug(slug) {
-    return withTags(db.prepare('SELECT * FROM bundles WHERE slug = ?').get(slug));
+    return withTags(db.prepare('SELECT * FROM bundles WHERE slug = ? COLLATE NOCASE').get(slug));
   }
 
   /**
@@ -126,7 +126,7 @@ class Bundle {
    * value, null removes it.
    */
   static update(id, changes) {
-    const columns = ['title', 'description', 'maxUses', 'expiresAt', 'password', 'activateAt', 'deactivateAt']
+    const columns = ['slug', 'title', 'description', 'maxUses', 'expiresAt', 'password', 'activateAt', 'deactivateAt']
       .filter(column => changes[column] !== undefined);
     if (columns.length) {
       db.prepare(`UPDATE bundles SET ${columns.map(c => `${c} = ?`).join(', ')} WHERE id = ?`)
@@ -143,49 +143,10 @@ class Bundle {
   }
 
   /**
-   * Check if a slug exists in the bundles table
-   */
-  static slugExists(slug) {
-    const result = db.prepare('SELECT id FROM bundles WHERE slug = ?').get(slug);
-    return !!result;
-  }
-
-  /**
-   * Generate a unique 5-character slug for a bundle
-   */
-  static generateUniqueSlug() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-    for (let attempt = 0; attempt < 10; attempt++) {
-      let slug = '';
-      for (let i = 0; i < 5; i++) {
-        slug += chars[Math.floor(Math.random() * chars.length)];
-      }
-      if (!this.slugExists(slug)) return slug;
-    }
-    throw new Error('Unable to generate unique bundle slug after multiple attempts');
-  }
-
-  /**
-   * Validate and return a slug (custom or auto-generated)
-   */
-  static getValidSlug(customSlug) {
-    if (customSlug) {
-      if (!/^[A-Za-z0-9_-]{1,20}$/.test(customSlug)) {
-        throw new Error('Custom slug must be 1-20 characters (A-Z, a-z, 0-9, -, _)');
-      }
-      if (this.slugExists(customSlug)) {
-        throw new Error('Custom slug already exists. Please choose another.');
-      }
-      return customSlug;
-    }
-    return this.generateUniqueSlug();
-  }
-
-  /**
    * Increment click counter atomically
    */
   static incrementClicks(slug) {
-    return db.prepare('UPDATE bundles SET clicks = clicks + 1 WHERE slug = ?').run(slug);
+    return db.prepare('UPDATE bundles SET clicks = clicks + 1 WHERE slug = ? COLLATE NOCASE').run(slug);
   }
 
   /**

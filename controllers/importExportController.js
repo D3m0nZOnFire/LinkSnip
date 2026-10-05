@@ -1,7 +1,8 @@
 const ImportExportService = require('../services/importExportService');
 const Url = require('../models/Url');
 const Tag = require('../models/Tag');
-const SlugGenerator = require('../services/slugGenerator');
+const slugService = require('../services/slugService');
+const { denyJson } = require('../services/permissionGate');
 const { logSecurity, ACTIONS } = require('../services/auditService');
 const RoleService = require('../services/roleService');
 
@@ -56,6 +57,11 @@ class ImportExportController {
         });
       }
 
+      // Chosen slugs need the same permission as on the create form
+      if (parseResult.data.some(item => item.slug) && !RoleService.can(req.user, 'customSlugs')) {
+        return denyJson(res, 'customSlugs');
+      }
+
       // Process the import
       const results = {
         total: parseResult.data.length,
@@ -70,8 +76,8 @@ class ImportExportController {
         const lineNum = i + 1;
 
         try {
-          // Generate or validate slug
-          const { slug } = SlugGenerator.getValidSlug(item.slug || null);
+          // The chosen slug, or a random one
+          const slug = slugService.resolve('url', item.slug);
 
           // Calculate expiration date
           let expiresAt = null;

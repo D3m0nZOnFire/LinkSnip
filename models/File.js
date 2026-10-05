@@ -34,7 +34,7 @@ class File {
   }
 
   static findBySlug(slug) {
-    const file = db.prepare('SELECT * FROM files WHERE slug = ?').get(slug);
+    const file = db.prepare('SELECT * FROM files WHERE slug = ? COLLATE NOCASE').get(slug);
     if (file) file.tags = Tag.forItem('file', file.id);
     return file;
   }
@@ -93,16 +93,17 @@ class File {
     return db.prepare('UPDATE files SET downloads = downloads + 1 WHERE id = ?').run(id);
   }
 
-  static update(id, { expiresAt, activateAt, deactivateAt, maxDownloads, password, sharingMode, allowedUsers }) {
+  static update(id, { slug, expiresAt, activateAt, deactivateAt, maxDownloads, password, sharingMode, allowedUsers }) {
     const current = this.findById(id);
     if (!current) return null;
 
     db.prepare(`
       UPDATE files
-      SET expiresAt = ?, activateAt = ?, deactivateAt = ?, maxDownloads = ?,
+      SET slug = ?, expiresAt = ?, activateAt = ?, deactivateAt = ?, maxDownloads = ?,
           password = ?, sharingMode = ?, allowedUsers = ?
       WHERE id = ?
     `).run(
+      slug !== undefined ? slug : current.slug,
       expiresAt !== undefined ? (expiresAt || null) : current.expiresAt,
       activateAt !== undefined ? (activateAt || null) : current.activateAt,
       deactivateAt !== undefined ? (deactivateAt || null) : current.deactivateAt,
@@ -114,20 +115,6 @@ class File {
     );
 
     return this.findById(id);
-  }
-
-  static slugExists(slug) {
-    return !!db.prepare('SELECT id FROM files WHERE slug = ?').get(slug);
-  }
-
-  static generateUniqueSlug() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-    for (let attempt = 0; attempt < 10; attempt++) {
-      let slug = '';
-      for (let i = 0; i < 5; i++) slug += chars[Math.floor(Math.random() * chars.length)];
-      if (!this.slugExists(slug)) return slug;
-    }
-    throw new Error('Unable to generate unique file slug after multiple attempts');
   }
 }
 

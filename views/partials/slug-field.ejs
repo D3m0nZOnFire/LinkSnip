@@ -1,0 +1,13 @@
+<%#
+  The "Short link" field of a create mode: the host and the type's prefix, then the slug.
+  { id, prefix ('/s/'), name (form field, links only), allowed (customSlugs), lockedTitle }
+  public/js/create.js fills in the host and checks the format as it is typed.
+-%>
+<div class="creator-zone">
+  <label for="<%= id %>" class="creator-label">Short link <span class="creator-label-note">optional</span></label>
+  <div class="creator-slug<%= allowed ? '' : ' slug-locked' %>">
+    <span class="creator-slug-prefix"><span class="slug-host" data-slug-host></span><%= prefix %></span>
+    <input type="text" id="<%= id %>"<% if (locals.name) { %> name="<%= name %>"<% } %> class="creator-slug-input" placeholder="auto-generated" maxlength="20" autocomplete="off" aria-describedby="<%= id %>Error" data-slug-input<%- allowed ? '' : ` disabled title="${lockedTitle}"` %>>
+  </div>
+  <p class="field-error" id="<%= id %>Error" hidden>Letters, numbers, - and _ only (20 at most)</p>
+</div>

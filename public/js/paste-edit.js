@@ -46,6 +46,7 @@
       content: $('peContent').value,
       expiresAt: $('peExpiresAt').value || null,
       maxViews: $('peMaxViews').value || null,
+      slug: $('peSlug').value.trim(),
       tags: $('peTags').value
     };
     const remove = $('peRemovePassword');
@@ -55,8 +56,13 @@
 
     setButtonLoading(button, true);
     try {
-      await apiRequest(`/api/pastes/${pasteId}`, { method: 'PATCH', body: JSON.stringify(body) });
+      const { paste } = await apiRequest(`/api/pastes/${pasteId}`, { method: 'PATCH', body: JSON.stringify(body) });
       setUnsaved(false);
+      // A new short link: the address at the top follows
+      if (paste && paste.slug) {
+        $('peLink').href = `/p/${paste.slug}`;
+        $('peLink').textContent = `/p/${paste.slug}`;
+      }
       editor.querySelector('.page-title').textContent = body.title.trim() || 'Untitled paste';
       // The password section says whether there is one: show it as saved
       if (body.password || body.removePassword) return window.location.reload();

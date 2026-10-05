@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const configService = require('./configService');
 const { contentType } = require('./contentTypes');
 const { toTime } = require('./accessService');
+const slugService = require('./slugService');
 
 /**
  * The settings every content type has (expiry, schedule, usage limit, password),
@@ -15,10 +16,14 @@ const { toTime } = require('./accessService');
  *   Password: '' or absent keeps it (password fields are never filled in); null or
  *   removePassword removes it. Stored trimmed.
  *
+ * Slug: on create the chosen one, or a random one when none is chosen. On update a different one replaces it
+ *   (only its case is enough); absent, empty or the stored one sent back keeps it. Checked through slugService.
+ *
  * Fields accepted, as the forms and APIs send them:
  *   expiry     expirationDays (days from now) or expiresAt (a date)
  *   schedule   activateDateTime or activateAt, deactivateDateTime or deactivateAt
  *   limit      maxUses, maxViews or maxDownloads (the type's own column)
+ *   slug       slug or customSlug
  * Dates without a timezone are UTC; everything is stored as ISO UTC.
  */
 
@@ -73,11 +78,26 @@ function readExpiry(body, existing) {
   return { value: parseDate(text, 'expiry') };
 }
 
+const SLUG_FIELDS = ['slug', 'customSlug'];
+
+/** { value, chosen } for the slug to store, or null on update when it stays. */
+function readSlug(type, body, existing) {
+  const found = field(body, SLUG_FIELDS);
+  const requested = found && !empty(found[1]) ? String(found[1]).trim() : null;
+  if (existing && (requested === null || requested === existing.slug)) return null;
+  try {
+    return { value: slugService.resolve(type, requested, { exceptId: existing ? existing.id : null }), chosen: requested !== null };
+  } catch (error) {
+    if (error instanceof slugService.SlugError) throw new SettingsError(error.message);
+    throw error;
+  }
+}
+
 /**
  * @param {string} type - content type
  * @param {object} body - the request body
  * @param {object} options - { user (null = anonymous), existing (the stored item, on update) }
- * @returns {Promise<{ values: object, uses: { passwordProtection: boolean, scheduling: boolean } }>}
+ * @returns {Promise<{ values: object, uses: { passwordProtection: boolean, scheduling: boolean, customSlugs: boolean } }>}
  *   values: columns to store. uses: role-gated features the request newly sets.
  * @throws {SettingsError} for a value that can't be read (status 400)
  */
@@ -85,7 +105,7 @@ async function readSettings(type, body = {}, { user = null, existing = null } = 
   const info = contentType(type);
   const creating = !existing;
   const values = {};
-  const uses = { passwordProtection: false, scheduling: false };
+  const uses = { passwordProtection: false, scheduling: false, customSlugs: false };
 
   // Expiry, with the anonymous cap on create
   const expiry = readExpiry(body, existing);
@@ -130,6 +150,13 @@ async function readSettings(type, body = {}, { user = null, existing = null } = 
     uses.passwordProtection = true;
   }
   if (creating && values.password === undefined) values.password = null;
+
+  // Slug, checked last: nothing is awaited between this check and the caller's insert or update
+  const slug = readSlug(type, body, existing);
+  if (slug) {
+    values.slug = slug.value;
+    uses.customSlugs = slug.chosen;
+  }
 
   return { values, uses };
 }

@@ -121,6 +121,7 @@ A role is a named set of permissions and limits. Every account has one; visitors
 | `uploadFiles` | Upload files. | ✗ | ✗ | ✓ | ✓ |
 | `passwordProtection` | Password-protect links, pastes, bundles and files. | ✗ | ✓ | ✓ | ✓ |
 | `scheduling` | Set activation and deactivation times. | ✗ | ✓ | ✓ | ✓ |
+| `customSlugs` | Choose the short link (slug) of links, bundles, pastes and files, when creating or editing them. | ✗ | ✓ | ✓ | ✓ |
 | `tags` | Organize content with tags. | ✗ | ✓ | ✓ | ✓ |
 | `analytics` | View analytics for their own content. | ✗ | ✓ | ✓ | ✓ |
 | `analyticsShareLinks` | Create read-only analytics share links. | ✗ | ✓ | ✓ | ✓ |

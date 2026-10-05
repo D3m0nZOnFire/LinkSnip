@@ -60,7 +60,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - **`middleware/requirePermission.js`**: `requirePermission('uploadFiles')`. Denied: pages redirect (`/login` or `/`),
   `/api/` requests always get JSON 401/403 `{ error: 'permission_denied', permission }` (fetch sends `Accept: */*`).
 - **`services/permissionGate.js`**: rule for optional features in create/update handlers (password, scheduling,
-  tags). Setting a feature the role lacks → 403. Empty values are fine, removing a password is always allowed, and on
+  custom slugs, tags). Setting a feature the role lacks → 403. Empty values are fine, removing a password is always allowed, and on
   update a value equal to the stored one doesn't count (`tagsChanged()` compares tag sets).
 - **Feature switches** (`features.*` in settings.json) sit above roles: `middleware/requireFeature.js` provides
   `featureRoutes(feature, router)` (wraps a whole router in `app.js`) and `requireFeature(feature)` (single routes;
@@ -117,7 +117,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - `config/database.js` opens `DB_PATH`, applies `config/dbSetup.js` (WAL, `busy_timeout = 5000`, foreign keys), and
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
   `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
-  `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`, `migrateFileOwners`); they're idempotent
+  `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`, `migrateFileOwners`, `migrateSlugCase`); they're idempotent
   and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there
   (bio pages included). `tests/unit/config/freshDatabase.test.js` opens a brand-new database in its own process.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
@@ -179,7 +179,23 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   UTC (zone-less input is UTC). Unreadable values throw `SettingsError` (400).
 - Password: `''` or absent keeps it, `null` or `removePassword` removes it, stored trimmed. Unlock also accepts the
   password as typed (links stored it untrimmed before).
-- It also returns `uses` (password / scheduling newly set) for `permissionGate.deniedPermission`.
+- Slug (`slug` or `customSlug`): on create the chosen one or a random one, always in `values.slug`; on update only a
+  different one (a new case is enough). Read last, so nothing is awaited between its check and the insert.
+- It also returns `uses` (password / scheduling / custom slug newly set) for `permissionGate.deniedPermission`.
+
+### Slugs (every content type)
+- `services/slugService.js`: `problem(slug)` (1–20 of `[A-Za-z0-9_-]`), `isTaken(type, slug, { exceptId })`,
+  `find(type, slug)`, `generate(type)` (5 random characters), `resolve(type, requested)` (throws `SlugError`, 400),
+  `logChange(req, type, item, slug)` (`CHANGE_SLUG`; an admin action when a site admin changes someone else's item).
+- Unique **per type** (`/s/thing` and `/b/thing` can both exist) and **ignoring case**: every lookup by slug uses
+  `COLLATE NOCASE` (models' `findBySlug`, `slugService.find` for unlock and QR codes), backed by a unique NOCASE index
+  per table (`migrateSlugCase`; slugs that already differ only in case are named in a warning and that table goes
+  without the index). The case as typed is kept.
+- Choosing one needs the `customSlugs` role permission (off for `anonymous` by default); bulk import too. Renaming
+  breaks the old address (no redirects).
+- UI: `partials/slug-field.ejs` (the create page's "Short link" field per mode, host + prefix) and
+  `partials/slug-edit-field.ejs` (edit forms: dashboard modals, paste editor, Admin → Items; read-only without the
+  permission, so the stored slug is sent back unchanged).
 
 ### Password unlock (every content type)
 - One page and route: `GET/POST /unlock/:type/:slug` (`controllers/unlockController.js`, `routes/unlockRoutes.js`,
@@ -408,7 +424,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Audit logging (`services/auditService.js`)
 - `logAuth`, `logAdminAction`, `logAccountChange`, `logSecurity`. Add new action names to `ACTIONS`. `logAuth(action,
   req, username, details, userId)`: pass the user ID while logging in or registering (`req.user` isn't set yet).
-- Recent ones: `CREATE_USER`, `SETUP_ADMIN`, `UPDATE_SETTINGS`, `CREATE_SHARE_LINK`, `REVOKE_SHARE_LINK`, `BLOCK_FILE`,
+- Recent ones: `CHANGE_SLUG`, `CREATE_USER`, `SETUP_ADMIN`, `UPDATE_SETTINGS`, `CREATE_SHARE_LINK`, `REVOKE_SHARE_LINK`, `BLOCK_FILE`,
   `UNBLOCK_FILE`, `QUARANTINE_URL` / `_BUNDLE` / `_PASTE` / `_FILE`, `CLEAR_QUARANTINE`, `UNLOCK_LOCKOUT`,
   `MIGRATE_REPORTS` (old → new bundle report IDs).
 

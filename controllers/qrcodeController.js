@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const slugService = require('../services/slugService');
 const QRCodeService = require('../services/qrcodeService');
 const { CONTENT_TYPES, isTypeEnabled } = require('../services/contentTypes');
 
@@ -14,7 +14,7 @@ function qrTarget(req) {
   const { type, slug } = req.params;
   if (!isTypeEnabled(type)) return null;
   const info = CONTENT_TYPES[type];
-  const item = db.prepare(`SELECT slug FROM ${info.table} WHERE slug = ?`).get(slug);
+  const item = slugService.find(type, slug);
   if (!item) return null;
   const base = `${req.protocol}://${req.get('host')}`;
   return `${base}${type === 'url' ? info.infoPrefix : info.publicPrefix}${item.slug}`;

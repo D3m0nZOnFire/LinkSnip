@@ -2,7 +2,7 @@ const { canEdit } = require('../services/itemPermissions');
 const Paste = require('../models/Paste');
 const Tag = require('../models/Tag');
 const User = require('../models/User');
-const SlugGenerator = require('../services/slugGenerator');
+const slugService = require('../services/slugService');
 const AnalyticsService = require('../services/analyticsService');
 const { logAccountChange, ACTIONS } = require('../services/auditService');
 const {
@@ -26,7 +26,7 @@ const maxPasteBytes = () => configService.get('pastes.maxSizeKB') * 1024;
  */
 exports.create = async (req, res) => {
   try {
-    const { content, title, language, customSlug, tags } = req.body;
+    const { content, title, language, tags } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({ success: false, error: 'Paste content is required' });
@@ -38,7 +38,7 @@ exports.create = async (req, res) => {
       });
     }
 
-    // Expiry (with the anonymous cap), schedule, view limit, password
+    // Slug, expiry (with the anonymous cap), schedule, view limit, password
     let settings;
     try {
       settings = await readSettings('paste', req.body, { user: req.user || null });
@@ -58,24 +58,9 @@ exports.create = async (req, res) => {
       return res.status(error.status).json({ success: false, error: error.message });
     }
 
-    // Slug
-    let slug;
-    if (customSlug && customSlug.trim()) {
-      const candidate = customSlug.trim();
-      if (!SlugGenerator.isValidSlug(candidate)) {
-        return res.status(400).json({ success: false, error: 'Custom slug must be 1-20 characters (A-Z, a-z, 0-9, -, _)' });
-      }
-      if (Paste.slugExists(candidate)) {
-        return res.status(400).json({ success: false, error: 'Custom slug already exists. Please choose another.' });
-      }
-      slug = candidate;
-    } else {
-      slug = Paste.generateUniqueSlug();
-    }
-
+    const { slug } = settings.values;
     const paste = Paste.create({
       userId: req.user ? req.user.id : null,
-      slug,
       title: title ? String(title).trim().substring(0, 200) : null,
       content,
       language: language ? String(language).trim().substring(0, 30) : null,
@@ -159,6 +144,7 @@ exports.updateSettings = async (req, res) => {
     });
 
     if (tags !== undefined) Tag.setForItem('paste', paste.id, Tag.parseTagString(tags));
+    if (settings.values.slug) slugService.logChange(req, 'paste', paste, settings.values.slug);
 
     logAccountChange(ACTIONS.UPDATE_PASTE, req, { pasteId: paste.id, slug: paste.slug });
 

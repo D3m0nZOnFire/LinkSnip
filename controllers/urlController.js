@@ -1,6 +1,6 @@
 const { actor, canEdit } = require('../services/itemPermissions');
 const Url = require('../models/Url');
-const SlugGenerator = require('../services/slugGenerator');
+const slugService = require('../services/slugService');
 const AnalyticsService = require('../services/analyticsService');
 const Tag = require('../models/Tag');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
@@ -39,7 +39,7 @@ class UrlController {
    * POST /create
    */
   static async createShortUrl(req, res) {
-    const { longUrl, customSlug, tags } = req.body;
+    const { longUrl, tags } = req.body;
 
     // Validation
     if (!longUrl) {
@@ -74,7 +74,7 @@ class UrlController {
       });
     }
 
-    // Expiry (with the anonymous cap), schedule, usage limit, password
+    // Slug, expiry (with the anonymous cap), schedule, usage limit, password
     let settings;
     try {
       settings = await readSettings('url', req.body, { user: req.user || null });
@@ -102,8 +102,7 @@ class UrlController {
     }
 
     try {
-      // Generate or validate slug
-      const { slug } = SlugGenerator.getValidSlug(customSlug || null);
+      const { slug } = settings.values;
 
       // Create URL (allow anonymous creation if no user)
       const url = Url.create({
@@ -181,7 +180,7 @@ class UrlController {
    */
   static async updateUrl(req, res) {
     const { id } = req.params;
-    const { longUrl, customSlug, tags } = req.body;
+    const { longUrl, tags } = req.body;
 
     try {
       const url = Url.findById(id);
@@ -206,24 +205,6 @@ class UrlController {
       const denied = deniedPermission(req.user || null, { ...settings.uses, tags: tagsChanged('url', url.id, tags) });
       if (denied) return denyJson(res, denied);
 
-      // Handle custom slug change
-      let finalSlug = url.slug; // Keep existing slug by default
-
-      if (customSlug && customSlug !== url.slug) {
-        // Validate new slug
-        const SlugGenerator = require('../services/slugGenerator');
-
-        if (!SlugGenerator.isValidSlug(customSlug)) {
-          return res.status(400).json({ error: 'Invalid slug format' });
-        }
-
-        if (SlugGenerator.slugExists(customSlug)) {
-          return res.status(400).json({ error: 'Slug already exists' });
-        }
-
-        finalSlug = customSlug;
-      }
-
       // Validate new longUrl if provided
       let finalLongUrl = url.longUrl; // Keep existing by default
       if (longUrl && longUrl.trim()) {
@@ -241,13 +222,14 @@ class UrlController {
         }
       }
 
-      // Slug, destination and the settings that were sent
-      const changes = { slug: finalSlug, longUrl: finalLongUrl, ...settings.values };
+      // Destination and the settings that were sent (the slug among them)
+      const changes = { longUrl: finalLongUrl, ...settings.values };
       const db = require('../config/database');
       db.prepare(`UPDATE urls SET ${Object.keys(changes).map(c => `${c} = ?`).join(', ')} WHERE id = ?`)
         .run(...Object.values(changes), id);
 
       if (tags !== undefined) Tag.setForItem('url', id, Tag.parseTagString(tags));
+      if (settings.values.slug) slugService.logChange(req, 'url', url, settings.values.slug);
 
       const updatedUrl = Url.findById(id);
       // Attach tags to response

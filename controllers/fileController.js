@@ -1,4 +1,5 @@
 const { canEdit } = require('../services/itemPermissions');
+const slugService = require('../services/slugService');
 const path = require('path');
 const fs = require('fs');
 const File = require('../models/File');
@@ -37,7 +38,7 @@ exports.upload = async (req, res) => {
     const { sharingMode, allowedUsers, tags } = req.body;
     const discardUpload = () => { try { fs.unlinkSync(path.join(UPLOADS_DIR, req.file.filename)); } catch (_) {} };
 
-    // Expiry, schedule, download limit, password
+    // Slug, expiry, schedule, download limit, password
     let settings;
     try {
       settings = await readSettings('file', req.body, { user: req.user });
@@ -69,11 +70,9 @@ exports.upload = async (req, res) => {
       } catch (_) {}
     }
 
-    const slug = File.generateUniqueSlug();
-
+    const { slug } = settings.values;
     const file = File.create({
       userId: req.user.id,
-      slug,
       originalName: req.file.originalname,
       storedName: req.file.filename,
       mimeType: req.file.mimetype,
@@ -207,6 +206,7 @@ exports.updateSettings = async (req, res) => {
     });
 
     if (tags !== undefined) Tag.setForItem('file', file.id, Tag.parseTagString(tags));
+    if (settings.values.slug) slugService.logChange(req, 'file', file, settings.values.slug);
 
     logAccountChange(ACTIONS.UPDATE_FILE, req, { fileId: file.id, slug: file.slug });
 
