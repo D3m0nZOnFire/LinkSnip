@@ -26,10 +26,12 @@
     $('creatorError').hidden = true;
   }
 
-  function showSuccess(label, url) {
+  // openUrl: where the Open button goes (a paste, bundle or file: its own page, the copied address)
+  function showSuccess(label, url, openUrl = url) {
     hideError();
     $('creatorSuccessLabel').textContent = label;
     $('creatorSuccessUrl').textContent = url;
+    $('creatorOpen').href = openUrl;
     $('creatorSuccess').hidden = false;
     $('creatorSuccess').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }

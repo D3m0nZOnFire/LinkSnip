@@ -115,7 +115,8 @@ class UrlController {
       if (teamId) Team.moveItem('url', url.id, teamId);
       if (tags) Tag.setForItem('url', url.id, Tag.parseTagString(tags));
 
-      const shortUrl = `${req.protocol}://${req.get('host')}/s/${slug}`;
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const shortUrl = `${baseUrl}/s/${slug}`;
 
       res.render('index', {
         user: req.user || null,
@@ -123,6 +124,7 @@ class UrlController {
         error: null,
         success: {
           shortUrl,
+          openUrl: `${baseUrl}/info/${slug}`, // the Open button: the safety preview, not the redirect
           longUrl,
           slug
         }

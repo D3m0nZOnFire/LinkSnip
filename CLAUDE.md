@@ -221,6 +221,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   the `[data-panel]` of the same name in its section (`data-format` says how its value reads on the chip). Chips the
   role lacks are disabled. Links post the form; pastes, bundles and files go to their APIs. Schedules are typed in
   local time and sent as UTC. The limit line comes from `limits`.
+  The success box has Copy and Open (new tab): a link opens its info page (`success.openUrl`), the other types the
+  address they copy (`showSuccess(label, url, openUrl = url)`).
 
 ### Pastes
 - `/p/:slug`, `/p/:slug/raw`, `/p-info/:slug`, editor `/pastes/:id/edit` (app page of section cards with a save bar,
