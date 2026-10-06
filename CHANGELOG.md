@@ -4,6 +4,27 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [1.5.1] - 2026-10-06
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. Nothing else to do.
+
+### Fixed
+
+- **Sharing a link in a chat app no longer counts as a visit.** WhatsApp, Telegram, Slack, Discord, iMessage and
+  other apps fetch a link once to build its preview. That fetch counted a click, view or download, recorded an
+  analytics event and used up the usage limit: a paste limited to one view was gone before the recipient opened it.
+  Now it counts nothing, gets no paste content (a download link sends it to the file's page), and the page it gets
+  has no logo or favicon, so the preview no longer shows the site's icon as a big picture.
+
+### Changed
+
+- **Link previews describe what was shared**: a paste, file, bundle, link info page or bio page shared in a chat app
+  shows a text card with its title and what it is ("Paste · 42 lines · markdown", "File · 2.5 MB",
+  "Bundle · 3 links · …", "Short link to example.com", the bio), never its content. Password-protected, restricted,
+  reported or unavailable items show only the site's name and tagline.
+
 ## [1.5.0] - 2026-10-05
 
 ### Upgrading
@@ -183,6 +204,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
+[1.5.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.3.0...v1.4.0

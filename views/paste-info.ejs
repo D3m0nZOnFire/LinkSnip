@@ -64,7 +64,7 @@
         <% if (features.qrCodes) { %>
         <details class="qr-details">
           <summary><%- include('partials/icon', { icon: 'qr' }) %> QR code</summary>
-          <img src="/qrcode/paste/<%= paste.slug %>?theme=light" alt="QR code for <%= shortLabel %>" width="160" height="160" loading="lazy">
+          <% if (!locals.previewBot) { %><img src="/qrcode/paste/<%= paste.slug %>?theme=light" alt="QR code for <%= shortLabel %>" width="160" height="160" loading="lazy"><% } %>
           <p>It opens the paste.</p>
         </details>
         <% } %>

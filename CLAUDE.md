@@ -303,6 +303,13 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   file). `geo.enabled` false: no lookups, no downloads. The analytics country table credits DB-IP (CC BY 4.0).
   Tests build small `.mmdb` files with `tests/setup/mmdbWriter.js`.
 - The visitor IP is `req.ip` (resolved through `TRUST_PROXY`), never a raw `X-Forwarded-For` header.
+- Link preview bots (`services/linkPreviewBots.js` `isPreviewBot(req)`, by user agent: WhatsApp, Telegram, Slack, …)
+  are not visits: public routes count no click/view/download for them, `AnalyticsService.record` skips them, they get
+  no paste content (`/f/:slug/download` redirects them to `/f/:slug`), and `res.locals.previewBot` (`brandingLocals`)
+  makes pages leave out the favicon, logo and other `<img>`s, so a chat preview has no picture to borrow.
+- Chat previews: shared pages pass `share` (`services/sharePreview.js`: `itemShare(type, record, { baseUrl, path,
+  facts })`, null for a locked or not-active item; `share()` for the bio page) to `partials/head`, which writes
+  og:description / og:url from it (else the site tagline). Metadata only, never content; never an `og:image`.
 
 ### QR codes (every content type)
 - `GET /qrcode/:type/:slug` (PNG, `?format=svg`, `?theme=dark`), `/qrcode/:type/:slug/download` (attachment

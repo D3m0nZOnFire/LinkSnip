@@ -3,6 +3,7 @@ const RoleService = require('../services/roleService');
 const User = require('../models/User');
 const Url = require('../models/Url');
 const { recordStatus, isLive } = require('../services/accessService');
+const { share } = require('../services/sharePreview');
 
 class BioPageController {
   /**
@@ -44,7 +45,12 @@ class BioPageController {
         urls,
         socialLinks: bioPage.socialLinks || [],
         baseUrl: `${req.protocol}://${req.get('host')}`,
-        user: req.user || null  // For header
+        user: req.user || null,  // For header
+        share: share({
+          baseUrl: `${req.protocol}://${req.get('host')}`,
+          path: `/bio/${encodeURIComponent(user.username)}`,
+          facts: [bioPage.bio || `Links by ${bioPage.displayName}`]
+        })
       });
 
     } catch (error) {

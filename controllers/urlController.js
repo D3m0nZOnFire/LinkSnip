@@ -9,6 +9,7 @@ const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = requi
 const { readSettings, SettingsError } = require('../services/itemSettings');
 const Team = require('../models/Team');
 const teamService = require('../services/teamService');
+const { isPreviewBot } = require('../services/linkPreviewBots');
 const { TeamError } = teamService;
 
 class UrlController {
@@ -161,8 +162,8 @@ class UrlController {
     const access = checkAccess(req, 'url', url);
     if (!access.allowed) return sendAccessDenied(req, res, 'url', url, access);
 
-    // Increment clicks
-    Url.incrementClicks(slug);
+    // Increment clicks (a chat app building a link preview is not a click)
+    if (!isPreviewBot(req)) Url.incrementClicks(slug);
 
     // Record the visit (async with geolocation)
     try {
