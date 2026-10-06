@@ -11,6 +11,8 @@ const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = requi
 const { readSettings, SettingsError } = require('../services/itemSettings');
 const Team = require('../models/Team');
 const teamService = require('../services/teamService');
+const { isPreviewBot } = require('../services/linkPreviewBots');
+const { itemShare, count } = require('../services/sharePreview');
 const { TeamError } = teamService;
 
 const MAX_ITEMS_REGISTERED = 20;
@@ -281,8 +283,8 @@ async function launchBundle(req, res) {
   const launched = req.session.launchedBundles || [];
   if (!launched.includes(bundle.id)) req.session.launchedBundles = [...launched, bundle.id];
 
-  // Increment click counter
-  Bundle.incrementClicks(slug);
+  // Increment click counter (a chat app building a link preview is not a launch)
+  if (!isPreviewBot(req)) Bundle.incrementClicks(slug);
 
   // Record bundle-level analytics (async, non-blocking)
   AnalyticsService.record(req, 'bundle', bundle.id).catch(() => { /* non-critical */ });
@@ -309,7 +311,8 @@ async function launchBundle(req, res) {
     items,
     creatorUsername,
     baseUrl,
-    currentPage: null
+    currentPage: null,
+    share: itemShare('bundle', bundle, { baseUrl, facts: ['Bundle', count(items.length, 'link'), bundle.description] })
   });
 }
 

@@ -62,6 +62,37 @@ describe('partials/head', () => {
     expect(html).not.toContain('og:description');
   });
 
+  describe('chat previews of a shared item (share: { description, url } from services/sharePreview)', () => {
+    const share = { description: 'Paste · 12 lines · <b>md</b>', url: 'https://lnksnp.ch/p/notes' };
+
+    it("describes the item instead of the site, with its address", async () => {
+      const html = await render({ title: 'Parts list', branding: BRAND, share });
+      expect(html).toContain('<meta property="og:title" content="Parts list · Snipz">');
+      expect(html).toContain('<meta property="og:description" content="Paste · 12 lines · &lt;b&gt;md&lt;/b&gt;">');
+      expect(html).toContain('<meta name="description" content="Paste · 12 lines · &lt;b&gt;md&lt;/b&gt;">');
+      expect(html).toContain('<meta property="og:url" content="https://lnksnp.ch/p/notes">');
+      expect(html).not.toContain('Tiny &lt;links&gt;.');
+    });
+
+    it('says it is a web page and asks for a card without a picture', async () => {
+      const html = await render({ branding: BRAND, share });
+      expect(html).toContain('<meta property="og:type" content="website">');
+      expect(html).toContain('<meta name="twitter:card" content="summary">');
+    });
+
+    it('pages without share keep the generic site preview and no address', async () => {
+      const html = await render({ title: 'Dashboard', branding: BRAND });
+      expect(html).toContain('<meta property="og:description" content="Tiny &lt;links&gt;.">');
+      expect(html).not.toContain('og:url');
+    });
+
+    it('never names a preview image (chat apps would show it big; a text card is the goal)', async () => {
+      for (const locals of [{}, { branding: BRAND }, { branding: BRAND, share }]) {
+        expect(await render(locals)).not.toMatch(/og:image|twitter:image/);
+      }
+    });
+  });
+
   it('preloads the Geist font served by the app itself', async () => {
     const html = await render();
     expect(html).toMatch(/<link rel="preload" href="\/fonts\/Geist-Variable.woff2" as="font" type="font\/woff2" crossorigin>/);

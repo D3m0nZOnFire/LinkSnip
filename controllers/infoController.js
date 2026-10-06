@@ -1,6 +1,7 @@
 const Url = require('../models/Url');
 const Report = require('../models/Report');
 const { recordStatus, isLive, message: accessMessage } = require('../services/accessService');
+const { itemShare } = require('../services/sharePreview');
 
 class InfoController {
   /**
@@ -53,7 +54,12 @@ class InfoController {
         ageInDays,
         validation,
         baseUrl: `${req.protocol}://${req.get('host')}`,
-        user: req.user || null
+        user: req.user || null,
+        share: itemShare('url', url, {
+          baseUrl: `${req.protocol}://${req.get('host')}`,
+          path: `/info/${url.slug}`,
+          facts: [destinationHost ? `Short link to ${destinationHost}` : 'Short link']
+        })
       });
 
     } catch (error) {

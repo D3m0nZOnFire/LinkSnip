@@ -64,4 +64,15 @@ describe('brandingLocals', () => {
     expect(res.locals.branding).toEqual(require('../../../services/brandingService').locals());
     expect(next).toHaveBeenCalled();
   });
+
+  it('tells the views whether a link preview bot is asking (they then show no logo or favicon)', () => {
+    const { brandingLocals } = require('../../../middleware/viewLocals');
+    const as = (userAgent) => {
+      const res = createMockResponse();
+      brandingLocals(createMockRequest({ headers: { 'user-agent': userAgent } }), res, jest.fn());
+      return res.locals.previewBot;
+    };
+    expect(as('WhatsApp/2.23.20.0 A')).toBe(true);
+    expect(as('Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0')).toBe(false);
+  });
 });

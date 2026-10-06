@@ -13,6 +13,8 @@ const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = requi
 const { readSettings, SettingsError } = require('../services/itemSettings');
 const Team = require('../models/Team');
 const teamService = require('../services/teamService');
+const { isPreviewBot } = require('../services/linkPreviewBots');
+const { itemShare } = require('../services/sharePreview');
 const { TeamError } = teamService;
 
 // Ensure uploads directory exists
@@ -248,7 +250,8 @@ exports.preview = async (req, res) => {
     allowedUsernames,
     sizeFormatted: formatBytes(file.size),
     downloadUrl: `/f/${file.slug}/download`,
-    baseUrl: `${req.protocol}://${req.get('host')}`
+    baseUrl: `${req.protocol}://${req.get('host')}`,
+    share: itemShare('file', file, { baseUrl: `${req.protocol}://${req.get('host')}`, facts: ['File', formatBytes(file.size)] })
   });
 };
 
@@ -261,6 +264,9 @@ exports.download = async (req, res) => {
 
   const access = checkAccess(req, 'file', file);
   if (!access.allowed) return sendAccessDenied(req, res, 'file', file, access);
+
+  // A chat app building a link preview gets the preview page, not the file (and uses up no download)
+  if (isPreviewBot(req)) return res.redirect(`/f/${file.slug}`);
 
   const filePath = path.join(UPLOADS_DIR, file.storedName);
   if (!fs.existsSync(filePath)) {

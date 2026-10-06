@@ -56,8 +56,12 @@ beforeEach(async () => {
   s = { admin, user, url, lockedUrl, soonUrl, flaggedUrl, tag, bundle, paste, file, team };
 });
 
+// Set to render the pages as a link preview bot sees them
+let userAgent = null;
+
 function request(user, overrides = {}) {
   return createMockRequest({
+    ...(userAgent ? { headers: { 'user-agent': userAgent } } : {}),
     user: user || null,
     session: user ? { userId: user.id, isAdmin: !!user.isAdmin } : {},
     protocol: 'http',
@@ -670,5 +674,45 @@ describe('analytics switched off (features.analytics)', () => {
     expect(await renderPage('dashboard')).toMatch(/href="\/analytics\//);
     expect(await renderPage('admin-overview')).toMatch(/Visits, last 7 days/);
     expect(await renderPage('tags')).toMatch(/\/tags\/\d+\/analytics/);
+  });
+});
+
+describe('pages as a link preview bot sees them (WhatsApp, Telegram, …)', () => {
+  // Without an og:image the apps take any image they find: the favicon or the logo became a huge preview picture
+  const SHARED_PAGES = ['index', 'url-info', 'paste-view', 'paste-info', 'file-download', 'bundle-launcher', 'unlock',
+    'scheduled', 'quarantine', 'error', 'bio-page'];
+
+  beforeEach(() => { userAgent = 'WhatsApp/2.23.20.0 A'; });
+  afterEach(() => { userAgent = null; });
+
+  it.each(SHARED_PAGES)('%s has no image and no icon to borrow for the preview', async (name) => {
+    const html = await renderPage(name);
+    expect(html).not.toMatch(/<img\b/);
+    expect(html).not.toMatch(/rel="(shortcut )?icon"|rel="apple-touch-icon"/);
+  });
+
+  it('paste-view shows no paste content', async () => {
+    const html = await renderPage('paste-view');
+    expect(html).not.toContain('line one');
+    expect(html).toContain('<title>');
+  });
+
+  it('people still get the logo and favicon', async () => {
+    userAgent = null;
+    const html = await renderPage('url-info');
+    expect(html).toMatch(/<img[^>]*class="brand-logo"/);
+    expect(html).toMatch(/rel="icon"/);
+  });
+});
+
+describe('share previews (og: tags from services/sharePreview)', () => {
+  it('paste-view describes the paste at its address, without its content', async () => {
+    const html = await renderPage('paste-view');
+    expect(html).toContain('<meta property="og:description" content="Paste · 2 lines · markdown">');
+    expect(html).toContain('<meta property="og:url" content="http://localhost:8081/p/notes">');
+  });
+
+  it.each(pages)('%s names no preview image', async (name) => {
+    expect(await renderPage(name)).not.toMatch(/og:image|twitter:image/);
   });
 });

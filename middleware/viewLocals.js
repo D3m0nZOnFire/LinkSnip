@@ -4,6 +4,7 @@ const RoleService = require('../services/roleService');
 const teamService = require('../services/teamService');
 const { PERMISSIONS } = require('../config/schema');
 const { enabledFeatures } = require('./requireFeature');
+const { isPreviewBot } = require('../services/linkPreviewBots');
 
 // A permission tied to a switched-off feature is false for everyone
 const FEATURE_OF_PERMISSION = {
@@ -50,10 +51,12 @@ function viewLocals(req, res, next) {
 
 /**
  * `branding` (name, tagline, logo, favicon, theme stylesheet) for every page. Mounted before the session, so
- * the setup page and early error pages have it too.
+ * the setup page and early error pages have it too. `previewBot`: a chat app building a link preview is asking;
+ * pages then leave out the logo and favicon (and other images), so the preview has no picture to borrow.
  */
 function brandingLocals(req, res, next) {
   res.locals.branding = brandingService.locals();
+  res.locals.previewBot = isPreviewBot(req);
   next();
 }
 

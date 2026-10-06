@@ -14,6 +14,11 @@ const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = requi
 const { readSettings, SettingsError } = require('../services/itemSettings');
 const Team = require('../models/Team');
 const teamService = require('../services/teamService');
+const { isPreviewBot } = require('../services/linkPreviewBots');
+const { itemShare, count } = require('../services/sharePreview');
+
+// The chat preview of a paste: what it is, never what it says
+const pasteFacts = (paste) => ['Paste', count(paste.content.split('\n').length, 'line'), paste.language];
 const { TeamError } = teamService;
 
 // Read per request so edits to settings.json apply without a restart.
@@ -218,20 +223,23 @@ exports.view = (req, res) => {
   const access = checkAccess(req, 'paste', paste);
   if (!access.allowed) return sendAccessDenied(req, res, 'paste', paste, access);
 
-  Paste.incrementViews(paste.id);
+  // A chat app building a link preview: no view counted, and it gets what describes the paste, not its content
+  const previewBot = isPreviewBot(req);
+  if (!previewBot) Paste.incrementViews(paste.id);
 
   // Record view-level analytics (async, non-blocking)
   AnalyticsService.record(req, 'paste', paste.id).catch(() => { /* non-critical */ });
 
   return res.render('paste-view', {
     user: req.user || null,
-    paste,
+    paste: previewBot ? { ...paste, content: '' } : paste,
     owner: (paste.userId && User.findById(paste.userId)) || { username: 'Anonymous' },
-    lines: paste.content.split('\n'),
+    lines: previewBot ? [] : paste.content.split('\n'),
     sizeChars: paste.content.length,
     rawUrl: `/p/${paste.slug}/raw`,
     baseUrl: `${req.protocol}://${req.get('host')}`,
-    canEdit: !!req.user && canEdit(req.user, 'paste', paste)
+    canEdit: !!req.user && canEdit(req.user, 'paste', paste),
+    share: itemShare('paste', paste, { baseUrl: `${req.protocol}://${req.get('host')}`, facts: pasteFacts(paste) })
   });
 };
 
@@ -288,7 +296,10 @@ exports.showInfoPage = (req, res) => {
     showPreview,
     previewLines,
     previewTruncated,
-    baseUrl: `${req.protocol}://${req.get('host')}`
+    baseUrl: `${req.protocol}://${req.get('host')}`,
+    share: itemShare('paste', paste, {
+      baseUrl: `${req.protocol}://${req.get('host')}`, path: `/p-info/${paste.slug}`, facts: pasteFacts(paste)
+    })
   });
 };
 
@@ -303,6 +314,9 @@ exports.raw = (req, res) => {
 
   const access = checkAccess(req, 'paste', paste);
   if (!access.allowed) return sendAccessDenied(req, res, 'paste', paste, access);
+
+  // A chat app building a link preview gets no content and counts no view
+  if (isPreviewBot(req)) return res.type('text/plain; charset=utf-8').send('');
 
   Paste.incrementViews(paste.id);
 

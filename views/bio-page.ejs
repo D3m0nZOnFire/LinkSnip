@@ -42,7 +42,7 @@
             <a href="<%= link.url %>" target="_blank" rel="noopener noreferrer" class="bio-social-link" title="<%= link.platform || link.url %>">
               <% if (iconName.endsWith('-outline') || iconName.startsWith('logo-')) { %>
                 <ion-icon name="<%= iconName %>" class="bio-social-icon"></ion-icon>
-              <% } else { %>
+              <% } else if (!locals.previewBot) { %>
                 <img src="<%= DASHBOARD_ICONS %>/<%= iconName %>-light.svg" data-icon="<%= iconName %>" class="bio-social-icon" alt="">
               <% } %>
               <% if (link.platform) { %><span><%= link.platform %></span><% } %>

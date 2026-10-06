@@ -1,11 +1,16 @@
 <%#
   Shared <head> contents. Pages: include('partials/head', { title, styles: ['tables', ...], noindex })
   and put page-only stylesheet and script tags after it. `branding` comes from middleware/viewLocals.js.
+  No favicon for a link preview bot (`previewBot`): chat apps turn it into a big preview picture.
+  Shared item pages pass `share` ({ description, url } from services/sharePreview.js) for the chat preview; the
+  others describe the site. Never an og:image: the preview is a text card.
 %>
 <%
   const brand = locals.branding || {};
   const siteName = brand.name || 'LinkSnip';
   const fullTitle = locals.title ? `${locals.title} · ${siteName}` : siteName;
+  const share = locals.share || null;
+  const description = share ? share.description : brand.tagline;
 -%>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,15 +18,22 @@
   <meta name="robots" content="noindex, nofollow">
 <% } %>
   <title><%= fullTitle %></title>
-<% if (brand.tagline) { %>
-  <meta name="description" content="<%= brand.tagline %>">
+<% if (description) { %>
+  <meta name="description" content="<%= description %>">
 <% } %>
   <meta property="og:site_name" content="<%= siteName %>">
+  <meta property="og:type" content="website">
   <meta property="og:title" content="<%= fullTitle %>">
-<% if (brand.tagline) { %>
-  <meta property="og:description" content="<%= brand.tagline %>">
+<% if (description) { %>
+  <meta property="og:description" content="<%= description %>">
 <% } %>
+<% if (share && share.url) { %>
+  <meta property="og:url" content="<%= share.url %>">
+<% } %>
+  <meta name="twitter:card" content="summary">
+<% if (!locals.previewBot) { %>
   <link rel="icon" href="<%= brand.faviconUrl || '/logo.png' %>">
+<% } %>
   <link rel="preload" href="/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="<%= brand.themeUrl || '/theme.css' %>">
