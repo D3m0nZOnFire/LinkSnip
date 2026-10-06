@@ -4,6 +4,17 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [1.5.2] - 2026-10-06
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. Nothing else to do.
+
+### Security
+
+- **proxy-addr 2.0.8** (fixes CVE-2026-90711). It is the library Express uses to read the visitor's address behind a
+  reverse proxy (`TRUST_PROXY`), which rate limits, analytics IP hashes and the audit log rely on.
+
 ## [1.5.1] - 2026-10-06
 
 ### Upgrading
@@ -204,6 +215,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
+[1.5.2]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.4.0...v1.4.1
