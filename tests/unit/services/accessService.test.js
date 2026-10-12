@@ -247,6 +247,16 @@ describe('accessService', () => {
       expect(access.checkAccess(visit(session), type, record).status).toBe('password_required');
     });
 
+    it('keepOnce lets a one-time unlock through without using it up', () => {
+      const file = insert('file', { password: 'hash' });
+      const session = { unlockOnce: { type: 'file', id: file.id } };
+
+      expect(access.checkAccess(visit(session), 'file', file, { keepOnce: true }).status).toBe('active');
+      expect(session.unlockOnce).toEqual({ type: 'file', id: file.id });
+      expect(access.checkAccess(visit(session), 'file', file).status).toBe('active');
+      expect(session.unlockOnce).toBeUndefined();
+    });
+
     it('an unlock of one type does not open the same ID of another type', () => {
       const url = insert('url', { password: 'hash' });
       const paste = insert('paste', { password: 'hash' });

@@ -201,7 +201,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - One page and route: `GET/POST /unlock/:type/:slug` (`controllers/unlockController.js`, `routes/unlockRoutes.js`,
   `views/unlock.ejs`). The old `/unlock/:slug`, `/unlock-bundle|paste|file/:slug` answer 308 to the new address.
 - Session (`services/unlockService.js`): `session.unlocked[type]` (remembered IDs) and `session.unlockOnce`
-  (`{ type, id }`, used up by the next visit). "Remember" is a checkbox, except bundles (`alwaysRemember`): their
+  (`{ type, id }`, used up by the next visit; for a file that is the download: `/f/:slug` checks with
+  `checkAccess(…, { keepOnce: true })`). "Remember" is a checkbox, except bundles (`alwaysRemember`): their
   item links (`/bt/:itemId`) need the unlock to last.
 - A wrong password answers **401**: the limiter counts only failed attempts (10 per visitor and item, 30 per visitor,
   15 min), separate from the login limiter. A lockout shows the unlock page (429) and logs one `UNLOCK_LOCKOUT`.

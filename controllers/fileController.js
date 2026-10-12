@@ -228,7 +228,8 @@ exports.preview = async (req, res) => {
   const file = File.findBySlug(req.params.slug);
   if (!file) return res.status(404).render('error', { message: 'File not found', statusCode: 404 });
 
-  const access = checkAccess(req, 'file', file);
+  // A one-time unlock is for the download, so this page leaves it in place
+  const access = checkAccess(req, 'file', file, { keepOnce: true });
   if (!access.allowed) return sendAccessDenied(req, res, 'file', file, access);
 
   const owner = User.findById(file.userId);

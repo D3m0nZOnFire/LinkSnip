@@ -221,6 +221,38 @@ describe('download headers', () => {
   });
 });
 
+describe('a one-time password unlock', () => {
+  // One visitor's session across requests, as express-session would keep it
+  function sessionApp(session) {
+    const app = express();
+    app.use((req, res, next) => {
+      req.user = null;
+      req.session = session;
+      res.render = (view, data) => res.json({ view, ...data });
+      next();
+    });
+    app.use(require('../../../routes/fileRoutes'));
+    return app;
+  }
+
+  it('lasts from the file page to the download, and is used up by the download', async () => {
+    const file = createTestFile(trusted.id, { slug: 'secret', storedName: 'secret.bin', originalName: 'secret.bin', password: '$2b$10$hash' });
+    fs.writeFileSync(path.join(paths.UPLOADS_DIR, 'secret.bin'), 'data');
+    const visitor = sessionApp({ unlockOnce: { type: 'file', id: file.id } });
+
+    const page = await request(visitor).get('/f/secret');
+    expect(page.body.view).toBe('file-download');
+
+    const download = await request(visitor).get('/f/secret/download');
+    expect(download.status).toBe(200);
+    expect(download.headers['content-disposition']).toMatch(/^attachment/);
+
+    const again = await request(visitor).get('/f/secret/download');
+    expect(again.status).toBe(302);
+    expect(again.headers.location).toBe('/unlock/file/secret');
+  });
+});
+
 describe('GET /api/files/:id (the dashboard edit form)', () => {
   const get = (user, id) => request(app).get(`/api/files/${id}`).set('x-user', JSON.stringify(user));
 
