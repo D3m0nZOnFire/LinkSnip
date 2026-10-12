@@ -4,6 +4,22 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [1.5.3] - 2026-10-12
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. Nothing else to do.
+
+### Fixed
+
+- **Password-protected files download again without "Remember".** Unlocking a file without ticking "Remember" sent the
+  visitor back to the password page when they clicked Download: opening the file's page used up the one-time unlock
+  before the download. The file's page now leaves it for the download.
+
+### Changed
+
+- Dependency updates: Chart.js 4.5, dotenv 18.0.5, supertest 7.3.1.
+
 ## [1.5.2] - 2026-10-06
 
 ### Upgrading
@@ -215,6 +231,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
+[1.5.3]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.4.1...v1.5.0
