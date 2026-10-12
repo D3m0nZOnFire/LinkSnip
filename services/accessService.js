@@ -145,9 +145,10 @@ function message(type, status) {
  * evaluate() with the context read from the request: the logged-in user, unlocks
  * in the session, and "Continue anyway" (?confirmed=1) on a quarantine warning,
  * which is remembered in req.session.quarantineAck. A one-time unlock is used up
- * once it lets the visitor through.
+ * once it lets the visitor through, unless `keepOnce` is set: a page in front of
+ * the real visit (a file's page before its download) leaves it for that visit.
  */
-function checkAccess(req, type, record) {
+function checkAccess(req, type, record, { keepOnce = false } = {}) {
   const info = contentType(type);
   const session = req.session || {};
 
@@ -165,7 +166,7 @@ function checkAccess(req, type, record) {
 
   const unlocked = unlocks.isRemembered(session, type, record.id) || unlocks.isOnce(session, type, record.id);
   const result = evaluate(type, record, { user: req.user || null, unlocked, quarantineAck });
-  if (result.allowed) unlocks.useOnce(session, type, record.id);
+  if (result.allowed && !keepOnce) unlocks.useOnce(session, type, record.id);
   return result;
 }
 
