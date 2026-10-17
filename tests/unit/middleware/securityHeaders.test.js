@@ -120,21 +120,6 @@ describe('allowBioIcons (bio page and its settings)', () => {
   });
 });
 
-describe('app.js', () => {
-  const source = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
-
-  it('does not announce Express (X-Powered-By)', () => {
-    expect(source).toContain("app.disable('x-powered-by')");
-  });
-
-  it('sends the headers on every response, static files and the health check included', () => {
-    const headers = source.indexOf('app.use(securityHeaders)');
-    expect(headers).toBeGreaterThan(-1);
-    expect(headers).toBeLessThan(source.indexOf("require('./routes/healthRoutes')"));
-    expect(headers).toBeLessThan(source.indexOf('express.static'));
-  });
-});
-
 describe('docker/Caddyfile', () => {
   it('turns on HSTS (only the HTTPS proxy can know the site is HTTPS-only)', () => {
     const caddyfile = fs.readFileSync(path.join(ROOT, 'docker/Caddyfile'), 'utf8');

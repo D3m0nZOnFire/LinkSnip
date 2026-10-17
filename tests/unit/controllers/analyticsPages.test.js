@@ -19,7 +19,7 @@ afterEach(() => {
   configService.reload();
 });
 
-// Mounted as in app.js; the x-user header stands in for the session + attachUser.
+// Mounted as in createApp.js; the x-user header stands in for the session + attachUser.
 function makeApp() {
   const app = express();
   app.use(express.json());

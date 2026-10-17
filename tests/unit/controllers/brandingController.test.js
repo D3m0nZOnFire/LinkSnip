@@ -22,7 +22,7 @@ beforeEach(async () => {
   admin = await createTestUser({ username: 'boss', isAdmin: 1 });
 });
 
-// The public routes are mounted before sessions in app.js; the admin ones after
+// The public routes are mounted before sessions in createApp.js; the admin ones after
 function appAs(user) {
   const app = express();
   app.use(require('../../../routes/brandingRoutes'));

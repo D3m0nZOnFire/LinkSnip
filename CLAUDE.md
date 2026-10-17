@@ -23,7 +23,10 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 - **Tests first**: write the tests, watch them fail for the right reason, then implement.
 - All database migrations run automatically on startup. No manual migration steps.
-- `app.js` starts the server when required, so tests never load it; `tests/unit/app/appSyntax.test.js` compiles it.
+- `createApp.js` builds the app (middleware order, routers, 404/error handlers) and nothing else; `app.js` checks the
+  secrets, loads config, opens the database, calls `createApp()` with the SQLite session store, listens and starts the
+  scheduled tasks. Tests never load `app.js` (`appSyntax.test.js` compiles it). `tests/integration/app.test.js` runs
+  the real app with supertest: test middleware order and cross-cutting behavior there, not by reading source.
 
 ## Configuration: three layers
 
@@ -63,7 +66,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   custom slugs, tags). Setting a feature the role lacks → 403. Empty values are fine, removing a password is always allowed, and on
   update a value equal to the stored one doesn't count (`tagsChanged()` compares tag sets).
 - **Feature switches** (`features.*` in settings.json) sit above roles: `middleware/requireFeature.js` provides
-  `featureRoutes(feature, router)` (wraps a whole router in `app.js`) and `requireFeature(feature)` (single routes;
+  `featureRoutes(feature, router)` (wraps a whole router in `createApp.js`) and `requireFeature(feature)` (single routes;
   falls through with `next('route')`). A switched-off feature 404s for everyone, admins included. A switch may need
   another (schema `requires`: `analyticsShareLinks` needs `analytics`); `isEnabled(feature)` / `enabledFeatures()`
   in `requireFeature.js` resolve that, and views' `features` come from `enabledFeatures()`.

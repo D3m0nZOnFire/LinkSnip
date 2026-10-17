@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 const express = require('express');
 const request = require('supertest');
 const paths = require('../../../config/paths');
@@ -101,30 +100,5 @@ describe('a private instance', () => {
     expect((await request(app).get('/s/abc')).status).toBe(302);
     setSettings({ access: { loginRequired: false } });
     expect((await request(app).get('/s/abc')).status).toBe(200);
-  });
-});
-
-describe('app.js', () => {
-  const source = fs.readFileSync(path.join(__dirname, '../../../app.js'), 'utf8');
-  const at = (needle) => {
-    const i = source.indexOf(needle);
-    expect(i).toBeGreaterThan(-1);
-    return i;
-  };
-
-  it('checks right after attachUser, before any content route', () => {
-    const check = at('app.use(requireLogin)');
-    expect(check).toBeGreaterThan(at('app.use(attachUser)'));
-    expect(check).toBeLessThan(at('app.use(prefillFromPath('));
-    expect(check).toBeLessThan(at("app.use('/', authRoutes)"));
-    expect(check).toBeLessThan(at("app.use('/', urlRoutes)"));
-  });
-
-  it('lets the health check, static files and branding through (they come before it)', () => {
-    const check = at('app.use(requireLogin)');
-    expect(at("require('./routes/healthRoutes')")).toBeLessThan(check);
-    expect(at('express.static(')).toBeLessThan(check);
-    expect(at("require('./routes/brandingRoutes')")).toBeLessThan(check);
-    expect(at("require('./routes/vendorRoutes')")).toBeLessThan(check);
   });
 });

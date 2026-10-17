@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 const express = require('express');
 const request = require('supertest');
 const paths = require('../../../config/paths');
@@ -130,7 +129,7 @@ describe('Admin → Overview', () => {
 });
 
 describe('pages', () => {
-  // The routes as app.js mounts them, with a logged-in admin
+  // The routes as createApp.js mounts them, with a logged-in admin
   function appWith(router, user) {
     const app = express();
     app.use((req, res, next) => {
@@ -142,11 +141,6 @@ describe('pages', () => {
     app.use((req, res) => res.status(404).send('not found'));
     return app;
   }
-
-  it('app.js mounts the analytics routes behind the switch', () => {
-    const source = fs.readFileSync(path.join(__dirname, '../../../app.js'), 'utf8');
-    expect(source).toMatch(/featureRoutes\('analytics', analyticsRoutes\)/);
-  });
 
   it.each([
     '/tags/1/analytics',

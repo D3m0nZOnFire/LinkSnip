@@ -24,7 +24,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// Mounts routers the way app.js does, behind a fake session and the app's final 404.
+// Mounts routers the way createApp.js does, behind a fake session and the app's final 404.
 function appWith(mount) {
   const app = express();
   app.use(express.json());
