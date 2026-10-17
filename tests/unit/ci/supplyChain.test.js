@@ -50,3 +50,25 @@ describe('dependabot.yml', () => {
     expect(config).toMatch(new RegExp(`package-ecosystem: ${ecosystem}$`, 'm'));
   });
 });
+
+describe('Dockerfile runtime stage', () => {
+  const runtime = read('Dockerfile').split(/^FROM /m).pop();
+
+  it('installs the Debian security updates newer than the base image', () => {
+    expect(runtime).toMatch(/apt-get update[\s\S]*apt-get upgrade -y/);
+    expect(runtime).toMatch(/rm -rf \/var\/lib\/apt\/lists\/\*/);
+  });
+
+  it('removes npm and npx: the app never runs them, and npm bundles vulnerable packages of its own', () => {
+    expect(runtime).toMatch(/rm -rf \/usr\/local\/lib\/node_modules\/npm \/usr\/local\/bin\/npm \/usr\/local\/bin\/npx/);
+  });
+});
+
+describe('docs for the Docker image', () => {
+  // No npm in the image: the admin tool runs as `node scripts/admin.js`
+  it.each(['README.md', 'docs/DEPLOYMENT.md', 'views/setup.ejs', 'scripts/admin.js'])('%s never runs npm in the container', (file) => {
+    const text = read(file);
+    expect(text).not.toMatch(/exec linksnip npm/);
+    expect(text).not.toMatch(/run <code>npm run admin<\/code>/);
+  });
+});

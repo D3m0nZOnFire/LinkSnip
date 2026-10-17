@@ -117,7 +117,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   (Crockford base32, `XXXX-XXXX-XXXX`). `/setup` (`routes/setupRoutes.js`, `views/setup.ejs`) takes the code, a
   username and a password (min 8) and creates the admin in a transaction that re-checks for an existing admin. After
   that `/setup` is a 404 for good; a restored backup with an admin never shows it.
-- **`npm run admin`** (`scripts/admin.js`, logic in `services/adminCommands.js`): `create`, `promote`, `reset`,
+- **`npm run admin`** (`scripts/admin.js`; in Docker `node scripts/admin.js`, the image has no npm; logic in `services/adminCommands.js`): `create`, `promote`, `reset`,
   interactive or with arguments, works with piped input (`docker compose exec`). Audit-logged with `via: 'cli'`.
 
 ## Database

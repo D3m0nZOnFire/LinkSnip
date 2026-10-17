@@ -102,7 +102,7 @@ admin account. Once an admin exists, `/setup` is gone for good.
 To manage admin accounts from the command line (create, promote a user, reset a password):
 
 ```bash
-docker compose exec linksnip npm run admin
+docker compose exec linksnip node scripts/admin.js
 ```
 
 ### HTTPS
@@ -175,7 +175,7 @@ for its fixes only) in `.env`. Every release is also tagged `:latest`.
 - **"SESSION_SECRET is not set"** or **"IP_HASH_SECRET is not set"**: create `.env` as shown in the quick start.
 - **"The data directory /data is not writable"**: the container runs as uid 1000. Fix it with `sudo chown -R 1000:1000 ./data`.
 - **Lost the setup code**: restart the container (`docker compose restart linksnip`) to print a new one, or use
-  `docker compose exec linksnip npm run admin`.
+  `docker compose exec linksnip node scripts/admin.js`.
 - **Health**: `curl http://127.0.0.1:8081/healthz` answers `{"status":"ok"}` when the app and database respond.
 
 ## Development

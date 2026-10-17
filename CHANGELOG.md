@@ -10,6 +10,8 @@ only one that may need more than "pull and restart", and its Upgrading section s
 
 - `docker compose pull && docker compose up -d`. Then set **`legal.contact`** (Admin → Settings → General) to where
   abuse reports and privacy requests should go; until then the new pages say to contact the administrator.
+- The image no longer contains npm. The admin tool is now
+  `docker compose exec linksnip node scripts/admin.js` (it was `... npm run admin`).
 
 ### Added
 
@@ -25,6 +27,8 @@ only one that may need more than "pull and restart", and its Upgrading section s
 
 ### Security
 
+- The image installs Debian's security updates (perl had critical fixes) and drops npm, whose bundled packages had
+  known vulnerabilities.
 - GitHub Actions are pinned to commit SHAs. Published images carry an SBOM and provenance, and CI scans the image
   with Trivy (fixable critical and high vulnerabilities fail the build).
 
