@@ -302,8 +302,7 @@ describe('app pages (v1.3 part 5b): no inline styling, no emoji, the shared look
     const html = await renderPage(name);
     const inline = (html.match(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/json")[^>]*>[\s\S]*?<\/script>/g) || [])
       .filter(script => !/theme|data-theme/.test(script)); // the head's theme bootstrap
-    const own = inline.filter(script => !script.includes('team-invite'));
-    expect(own).toEqual([]);
+    expect(inline).toEqual([]); // the Content-Security-Policy blocks inline scripts
   });
 
   it('tags: the totals in the header, no "Back to Dashboard", the how-to only without tags', async () => {

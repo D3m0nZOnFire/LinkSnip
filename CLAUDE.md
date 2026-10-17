@@ -74,7 +74,12 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 ## Request flow
 
-1. `express.static`, then `GET /healthz` (`SELECT 1`, before sessions)
+1. `middleware/securityHeaders.js` (every response): CSP `script-src 'self'` (no inline scripts or handlers anywhere,
+   data as JSON), `frame-ancestors 'none'`, no `form-action` (an unlock posts, then redirects off-site), plus
+   `X-Frame-Options`, `Referrer-Policy`, `nosniff`; `allowBioIcons` on the two bio routes adds unpkg Ionicons and
+   Dashboard Icons. A route may replace the CSP with `res.set` (file downloads: `sandbox`). HSTS lives in
+   `docker/Caddyfile`. A new external script, image or fetch needs its source added in `securityHeaders.js`, or it is blocked.
+   Then `express.static`, then `GET /healthz` (`SELECT 1`, before sessions)
 2. `middleware/sameOrigin.js` (CSRF): POST/PUT/PATCH/DELETE need `Sec-Fetch-Site: same-origin|none`, or without it an
    `Origin` whose host is the `Host` header; no header at all (curl) passes. Refused: 403 (`cross_site_request` JSON
    on `/api/`, else the error page). No CSRF tokens anywhere: forms and `fetch` need nothing extra.

@@ -4,6 +4,25 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [Unreleased]
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. With the bundled Caddy, HSTS is now on: browsers will refuse plain
+  HTTP for your domain for a year. Behind your own proxy, add `Strict-Transport-Security: max-age=31536000` there once
+  HTTPS works.
+
+### Security
+
+- Every page sends a Content-Security-Policy: scripts only from LinkSnip itself (the bio page also allows the icon
+  CDNs it uses), no framing by other sites, no plugins. Plus `X-Frame-Options`, `Referrer-Policy` and
+  `X-Content-Type-Options` everywhere, and no `X-Powered-By`.
+- The team invite banner's script moved out of the page into `/js/team-invites.js`.
+
+### Added
+
+- `docs/ARCHITECTURE.md`: the design decisions and their trade-offs. The README says how LinkSnip was built with AI.
+
 ## [1.5.4] - 2026-10-17
 
 ### Upgrading
