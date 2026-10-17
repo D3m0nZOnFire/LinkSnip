@@ -73,6 +73,10 @@ submissions get "Request Refused" (403).
 **Upload size:** Caddy has no request size limit by default. Other proxies do (nginx: `client_max_body_size`, 1 MB by
 default); raise theirs to at least your largest `maxFileSizeMB`.
 
+**HSTS:** LinkSnip sends its other security headers itself, but it can't know your site is HTTPS-only. The bundled
+Caddyfile adds `Strict-Transport-Security: max-age=31536000`; once HTTPS works, add it in your proxy too (nginx:
+`add_header Strict-Transport-Security "max-age=31536000" always;`).
+
 ## 3. Bare Node.js (development)
 
 Requires Node.js 22.

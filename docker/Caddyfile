@@ -3,5 +3,7 @@
 # (the domain's DNS must point at this server, and ports 80/443 must be open).
 {$DOMAIN} {
 	encode zstd gzip
+	# Browsers use HTTPS only for this site for a year (LinkSnip can't set this: it doesn't know it's behind HTTPS)
+	header Strict-Transport-Security "max-age=31536000"
 	reverse_proxy linksnip:8081
 }

@@ -120,6 +120,13 @@ describe('partials/team-invites.ejs (dashboard banner)', () => {
   it('renders nothing without invites', async () => {
     expect((await render('partials/team-invites.ejs', { teamInvites: [] })).trim()).toBe('');
   });
+
+  it('loads its script from /js (the Content-Security-Policy blocks inline scripts)', async () => {
+    const html = await render('partials/team-invites.ejs', { teamInvites: [{ id: 9, teamName: 'Beta', role: 'member', invitedBy: 'carol' }] });
+    const inline = html.match(/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/g) || [];
+    expect(inline).toEqual([]);
+    expect(html).toContain('<script src="/js/team-invites.js"></script>');
+  });
 });
 
 // The app's navigation is the sidebar (partials/sidebar)

@@ -13,16 +13,5 @@
     </div>
   <% }) %>
 </section>
-<script>
-  document.querySelectorAll('.team-invite [data-invite-id]').forEach(button => {
-    button.addEventListener('click', async () => {
-      button.disabled = true;
-      const response = await fetch(`/api/team-invites/${button.dataset.inviteId}/${button.dataset.action}`, { method: 'POST' });
-      const data = await response.json().catch(() => ({}));
-      if (data.success && button.dataset.action === 'accept') window.location.href = `/teams/${data.teamId}`;
-      else if (data.success) window.location.reload();
-      else { alert(data.error || 'Something went wrong.'); button.disabled = false; }
-    });
-  });
-</script>
+<script src="/js/team-invites.js"></script>
 <% } %>

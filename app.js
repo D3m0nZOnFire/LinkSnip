@@ -61,14 +61,19 @@ const { viewLocals, appLocals, brandingLocals } = require('./middleware/viewLoca
 const { prefillFromPath } = require('./middleware/prefill');
 const { featureRoutes } = require('./middleware/requireFeature');
 const sameOrigin = require('./middleware/sameOrigin');
+const { securityHeaders } = require('./middleware/securityHeaders');
 const requireLogin = require('./middleware/requireLogin');
 const { sessionOptions } = require('./config/session');
 
 const app = express();
 const PORT = process.env.PORT || 8081;
+app.disable('x-powered-by');
 
 // Trust proxy: number of reverse proxies in front (TRUST_PROXY, default 1)
 app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
+
+// Content-Security-Policy, framing, referrer and sniffing headers on every response (middleware/securityHeaders.js)
+app.use(securityHeaders);
 
 // Health check first: no session, no setup redirect
 app.use(require('./routes/healthRoutes'));

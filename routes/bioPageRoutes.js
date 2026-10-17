@@ -4,16 +4,17 @@ const BioPageController = require('../controllers/bioPageController');
 const { isAuthenticated } = require('../middleware/auth');
 const requirePermission = require('../middleware/requirePermission');
 const { apiLimiter } = require('../middleware/rateLimiter');
+const { allowBioIcons } = require('../middleware/securityHeaders');
 
 const canBioPage = requirePermission('bioPage');
 
 // IMPORTANT: /bio/settings MUST come before /bio/:username to avoid "settings" being treated as a username
 
 // Bio settings page (authenticated) - MUST be first
-router.get('/bio/settings', isAuthenticated, canBioPage, BioPageController.getBioSettings);
+router.get('/bio/settings', isAuthenticated, canBioPage, allowBioIcons, BioPageController.getBioSettings);
 
 // Public bio page (no auth required)
-router.get('/bio/:username', BioPageController.getBioPage);
+router.get('/bio/:username', allowBioIcons, BioPageController.getBioPage);
 
 // API routes (authenticated + rate limited)
 router.put('/api/bio', isAuthenticated, canBioPage, apiLimiter, BioPageController.updateBioPage);
