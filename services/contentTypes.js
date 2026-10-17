@@ -87,15 +87,18 @@ const CONTENT_TYPES = {
   }
 };
 
+// Own keys only: a name from the request like "constructor" or "__proto__" must not find Object's properties
+const lookup = (type) => (Object.hasOwn(CONTENT_TYPES, type) ? CONTENT_TYPES[type] : null);
+
 function contentType(type) {
-  const info = CONTENT_TYPES[type];
+  const info = lookup(type);
   if (!info) throw new Error(`Unknown content type: ${type}`);
   return info;
 }
 
 /** Whether a type exists and its feature switch is on (read live). */
 function isTypeEnabled(type) {
-  const info = CONTENT_TYPES[type];
+  const info = lookup(type);
   return !!info && (!info.feature || !!configService.get(`features.${info.feature}`));
 }
 

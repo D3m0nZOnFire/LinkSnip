@@ -26,7 +26,7 @@ const ENV_VARS = [
 ];
 
 const code = (v) => `\`${JSON.stringify(v)}\``;
-const escape = (text) => String(text).replace(/\|/g, '\\|');
+const escape = (text) => String(text).replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
 const limitCell = (v) => (v === null ? 'unlimited' : v === 0 ? 'none' : String(v));
 
 function table(headers, rows) {

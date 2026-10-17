@@ -31,7 +31,7 @@ const UrlController = require('./controllers/urlController');
 // Import middleware
 const { attachUser } = require('./middleware/auth');
 const requireSetupComplete = require('./middleware/requireSetupComplete');
-const { createUrlLimiter, redirectLimiter, apiLimiter, authLimiter } = require('./middleware/rateLimiter');
+const { createUrlLimiter, createGlobalLimiter } = require('./middleware/rateLimiter');
 const requirePermission = require('./middleware/requirePermission');
 const { viewLocals, appLocals, brandingLocals } = require('./middleware/viewLocals');
 const { prefillFromPath } = require('./middleware/prefill');
@@ -67,6 +67,8 @@ function createApp({ sessionSecret, sessionStore } = {}) {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
   app.use(express.static(path.join(__dirname, 'public')));
+  // Per visitor IP, for everything below (middleware/rateLimiter.js createGlobalLimiter)
+  app.use(createGlobalLimiter());
   app.use(require('./routes/vendorRoutes')); // Chart.js from node_modules (no CDN)
   // Palette CSS, logo and favicon (Admin → Appearance), and `branding` for every page, setup and errors included
   app.use(require('./routes/brandingRoutes'));

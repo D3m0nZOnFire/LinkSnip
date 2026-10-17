@@ -29,6 +29,15 @@ only one that may need more than "pull and restart", and its Upgrading section s
 
 - The image installs Debian's security updates (perl had critical fixes) and drops npm, whose bundled packages had
   known vulnerabilities.
+- Fixes from the first CodeQL scan:
+  - Logo and favicon uploads: an SVG with many comments could freeze the server while its type was checked.
+  - A content type taken from the address or the request (unlock, QR codes, analytics, reports, admin actions) is
+    only looked up among the real ones: names like `constructor` crashed with a 500 instead of a 404.
+  - Changing your username or password and deleting your account check the current password: wrong guesses now
+    count like failed logins (10 per 15 minutes).
+  - A ceiling of 1000 requests per 5 minutes per address for everything except the health check and static files.
+  - Random slugs come from `crypto` (`Math.random` can be predicted from earlier slugs).
+  - Stored upload names keep only plain extensions (letters and digits).
 - GitHub Actions are pinned to commit SHAs. Published images carry an SBOM and provenance, and CI scans the image
   with Trivy (fixable critical and high vulnerabilities fail the build).
 

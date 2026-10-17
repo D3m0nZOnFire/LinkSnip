@@ -162,6 +162,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ## Features
 
 ### Access checks (every content type)
+- Look content types up with `contentType()` / `isTypeEnabled()`, never `CONTENT_TYPES[type]` with a type from the
+  request: they check own keys, so `constructor` or `__proto__` is unknown, not `Object.prototype`.
 - `services/contentTypes.js`: registry of the types sharing the short-link machinery (`url`, `bundle`, `paste`,
   `file`): table, owner/used/limit columns, feature switch, quarantine/restricted/alwaysRemember flags, public/info
   paths. Shared services take a type name and look the rest up here.
@@ -407,6 +409,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Creation limits come from the role and are read per request: `createRoleLimiter(limitName, { prefix, noun })` →
   `createUrlLimiter` (urlsPerHour), `createPasteLimiter`, `createBundleLimiter`, `bulkImportLimiter` (importsPerHour),
   `uploadLimiter`. Keyed per user ID, or per IP for visitors. `null` skips the limiter.
+- `createGlobalLimiter()` (1000 per 5 min per IP) is mounted in `createApp.js` after the health check and static files:
+  every dynamic route is under it. The account routes that check the current password use `authLimiter` too.
 - Fixed infrastructure limiters: `redirectLimiter` (1000/15 min per IP), `authLimiter` (10/15 min, failed attempts
   only; also used for `/setup`), `apiLimiter` (200/15 min, admins skip), `createUnlockLimiter()` (see Password unlock).
 

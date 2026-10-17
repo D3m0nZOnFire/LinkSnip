@@ -36,7 +36,8 @@ function sniff(data) {
   if (data.length >= 12 && data.toString('latin1', 0, 4) === 'RIFF' && data.toString('latin1', 8, 12) === 'WEBP') return 'webp';
   if (starts([0x00, 0x00, 0x01, 0x00])) return 'ico';
   const text = data.toString('utf8', 0, Math.min(data.length, 4096)).replace(/^﻿/, '').trimStart();
-  if (/^(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE svg[^>]*>\s*)?<svg[\s>]/i.test(text)) return 'svg';
+  // A comment's body can't contain "-->": otherwise the comments could be split many ways (exponential backtracking)
+  if (/^(<\?xml[^>]*>\s*)?(<!--(?:(?!-->)[\s\S])*-->\s*)*(<!DOCTYPE svg[^>]*>\s*)?<svg[\s>]/i.test(text)) return 'svg';
   return null;
 }
 

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const UserController = require('../controllers/userController');
 const { isAuthenticated } = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimiter');
 const User = require('../models/User');
 
 // Settings page
@@ -21,8 +22,9 @@ router.get('/api/users/lookup', isAuthenticated, (req, res) => {
 });
 
 // API routes
-router.put('/api/user/username', isAuthenticated, UserController.updateUsername);
-router.put('/api/user/password', isAuthenticated, UserController.updatePassword);
-router.delete('/api/user/account', isAuthenticated, UserController.deleteAccount);
+// They check the current password: wrong guesses count like failed logins (authLimiter, failures only)
+router.put('/api/user/username', isAuthenticated, authLimiter, UserController.updateUsername);
+router.put('/api/user/password', isAuthenticated, authLimiter, UserController.updatePassword);
+router.delete('/api/user/account', isAuthenticated, authLimiter, UserController.deleteAccount);
 
 module.exports = router;

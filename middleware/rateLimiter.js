@@ -72,6 +72,27 @@ const redirectLimiter = rateLimit({
   }
 });
 
+/**
+ * Every dynamic request per visitor IP (mounted in createApp.js after the health check and static files): a ceiling
+ * well above normal use that stops one address flooding pages, downloads or the API. The specific limiters below
+ * stay stricter where it matters.
+ * @param {{ limit?: number, windowMs?: number }} options
+ */
+function createGlobalLimiter({ limit = 1000, windowMs = 5 * 60 * 1000 } = {}) {
+  return rateLimit({
+    windowMs,
+    limit,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => `global_${ipKeyGenerator(req.ip)}`,
+    handler: (req, res) => {
+      const message = 'Too many requests from this address. Please wait a few minutes.';
+      if (req.path.startsWith('/api/')) return res.status(429).json({ error: message });
+      return res.status(429).render('error', { title: 'Too Many Requests', message, code: 429 });
+    }
+  });
+}
+
 // Rate limiter for API endpoints (general protection)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -128,6 +149,7 @@ function createUnlockLimiter({ perItem = 10, perVisitor = 30, windowMs = 15 * 60
 }
 
 module.exports = {
+  createGlobalLimiter,
   createRoleLimiter,
   createUrlLimiter,
   redirectLimiter,
