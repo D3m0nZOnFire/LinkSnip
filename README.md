@@ -193,8 +193,30 @@ npm run seed:demo                      # into ./demo-data (--reset to start over
 DATA_DIR=./demo-data npm run dev       # log in as admin / demo-password
 ```
 
+## How this was built
+
+LinkSnip was built with AI. Most of the code was written by [Claude Code](https://claude.com/claude-code), working
+from my requirements and under my review. This is how I worked with it:
+
+- **I wrote the spec.** I wrote the requirements: what each feature does, who may use it, and which limits apply.
+- **Design was a conversation.** Claude proposed parts of the design and I approved or rejected each one. When it
+  wrote something I didn't understand, or asked a question I couldn't answer yet, I had it explain until I did,
+  before going on. The decisions and their trade-offs are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+- **Tests first.** For each change, the tests are written first and must fail for the right reason. The code comes
+  after, until they pass. If a test fails, the code gets fixed, not the test.
+- **[CLAUDE.md](CLAUDE.md) is the brief.** It records the project's rules and design decisions (where settings live,
+  how permissions are checked, how migrations run) so every session starts from the same ground rules. It's in the
+  repo on purpose.
+- **Small branches and pull requests.** Every change went through a branch, a PR and CI before I merged it. Large
+  releases were split into several PRs (v1.3 landed in seven parts).
+- **I review, test and ship.** I read the changes, try them myself, write the releases and
+  [CHANGELOG](CHANGELOG.md), and run LinkSnip in production at [lnksnp.ch](https://lnksnp.ch).
+
+The history before 1.0 was squashed into the "Initial public release" commit.
+
 ## Documentation
 
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how it's built and why (design decisions and trade-offs)
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): Docker with Caddy, behind an existing proxy, or bare Node
 - [docs/CONFIGURATION.md](docs/CONFIGURATION.md): every setting, permission and limit
 - [docs/PRIVACY.md](docs/PRIVACY.md): what is stored about users and visitors, for how long, and how to keep less
