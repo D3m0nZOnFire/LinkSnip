@@ -101,3 +101,26 @@ describe('createRoleLimiter', () => {
     expect(res.body.retryAfter).toEqual(expect.any(Number));
   });
 });
+
+describe('createGlobalLimiter', () => {
+  const { createGlobalLimiter } = require('../../../middleware/rateLimiter');
+
+  function appWith(limiter) {
+    const app = express();
+    app.use(limiter);
+    app.get('/page', (req, res) => res.send('ok'));
+    app.get('/api/thing', (req, res) => res.json({ ok: true }));
+    return app;
+  }
+
+  it('answers 429 after the limit, as a page or as JSON for /api/', async () => {
+    const app = appWith(createGlobalLimiter({ limit: 3 }));
+    for (let i = 0; i < 3; i++) expect((await request(app).get('/page')).status).toBe(200);
+    const page = await request(app).get('/page');
+    expect(page.status).toBe(429);
+    expect(page.headers['content-type']).toMatch(/html/);
+    const api = await request(app).get('/api/thing');
+    expect(api.status).toBe(429);
+    expect(api.body.error).toMatch(/Too many requests/);
+  });
+});

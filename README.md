@@ -7,6 +7,9 @@
 A self-hosted URL shortener that also shares text, files and groups of links. It runs as one Docker container with a
 SQLite database, and everything it stores lives in a single `data/` folder.
 
+**Try it:** [lnksnp.ch](https://lnksnp.ch) is a public instance (links made without an account expire).
+**Run your own:** one container and one SQLite file, see [Quick start](#quick-start-docker).
+
 ![Dashboard](docs/screenshots/dashboard.png)
 
 ## Features
@@ -25,6 +28,7 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 - **Your own look**: site name, tagline, logo and favicon, and a dark and a light color palette, from the built-in ones or your own
 - **Admin panel**: an overview, every item in one searchable list, users, teams, reports, settings, roles and appearance, and a full audit log
 - **Private instance**: one setting (`access.loginRequired`) and everything needs an account, short links included
+- **Privacy and terms pages** for your visitors, built from your settings (`/privacy`, `/terms`)
 - **Operations**: nightly online backups and cleanup of expired content
 
 ### See it in action
@@ -34,22 +38,23 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 </p>
 
 <p>
+  <img src="docs/gifs/06-dashboard.gif" alt="Dashboard" width="49%"> <img src="docs/gifs/07-analytics.gif" alt="Analytics" width="49%">
+</p>
+
+<details>
+<summary>More: files, bundles, teams, tags, bio pages and the admin panel</summary>
+
+<p>
   <img src="docs/gifs/03-files.gif" alt="Files" width="49%"> <img src="docs/gifs/04-bundles.gif" alt="Bundles" width="49%">
 </p>
 
 <p>
-  <img src="docs/gifs/05-teams.gif" alt="Teams" width="49%"> <img src="docs/gifs/06-dashboard.gif" alt="Dashboard" width="49%">
-</p>
-
-<p>
-  <img src="docs/gifs/07-analytics.gif" alt="Analytics" width="49%"> <img src="docs/gifs/08-tags.gif" alt="Tags" width="49%">
+  <img src="docs/gifs/05-teams.gif" alt="Teams" width="49%"> <img src="docs/gifs/08-tags.gif" alt="Tags" width="49%">
 </p>
 
 <p>
   <img src="docs/gifs/09-bio-page.gif" alt="Bio pages" width="49%"> <img src="docs/gifs/10-admin.gif" alt="Admin panel" width="49%">
 </p>
-
-#### Admin
 
 <p>
   <img src="docs/gifs/11-appearance-palettes.gif" alt="Palettes" width="49%"> <img src="docs/gifs/12-appearance-custom-palette.gif" alt="A custom palette" width="49%">
@@ -62,6 +67,8 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 <p>
   <img src="docs/gifs/15-admin-moderation.gif" alt="Moderation" width="49%">
 </p>
+
+</details>
 
 ## Quick start (Docker)
 
@@ -95,7 +102,7 @@ admin account. Once an admin exists, `/setup` is gone for good.
 To manage admin accounts from the command line (create, promote a user, reset a password):
 
 ```bash
-docker compose exec linksnip npm run admin
+docker compose exec linksnip node scripts/admin.js
 ```
 
 ### HTTPS
@@ -168,7 +175,7 @@ for its fixes only) in `.env`. Every release is also tagged `:latest`.
 - **"SESSION_SECRET is not set"** or **"IP_HASH_SECRET is not set"**: create `.env` as shown in the quick start.
 - **"The data directory /data is not writable"**: the container runs as uid 1000. Fix it with `sudo chown -R 1000:1000 ./data`.
 - **Lost the setup code**: restart the container (`docker compose restart linksnip`) to print a new one, or use
-  `docker compose exec linksnip npm run admin`.
+  `docker compose exec linksnip node scripts/admin.js`.
 - **Health**: `curl http://127.0.0.1:8081/healthz` answers `{"status":"ok"}` when the app and database respond.
 
 ## Development

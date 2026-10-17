@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const path = require('path');
-const crypto = require('crypto');
 const multer = require('multer');
-const { fileUpload } = require('../middleware/fileUpload');
+const { fileUpload, uploadName } = require('../middleware/fileUpload');
 const fs = require('fs');
 const { isAuthenticated, isAdmin } = require('../middleware/auth');
 const requirePermission = require('../middleware/requirePermission');
@@ -17,13 +15,10 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-// Multer disk storage — UUID filenames to prevent collisions/traversal
+// Multer disk storage: UUID file names (middleware/fileUpload.js uploadName)
 const storage = multer.diskStorage({
   destination: UPLOADS_DIR,
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '';
-    cb(null, `${crypto.randomUUID()}${ext}`);
-  }
+  filename: (req, file, cb) => cb(null, uploadName(file.originalname))
 });
 
 const uploadSingle = fileUpload(storage);

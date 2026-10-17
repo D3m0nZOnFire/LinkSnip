@@ -23,7 +23,10 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 - **Tests first**: write the tests, watch them fail for the right reason, then implement.
 - All database migrations run automatically on startup. No manual migration steps.
-- `app.js` starts the server when required, so tests never load it; `tests/unit/app/appSyntax.test.js` compiles it.
+- `createApp.js` builds the app (middleware order, routers, 404/error handlers) and nothing else; `app.js` checks the
+  secrets, loads config, opens the database, calls `createApp()` with the SQLite session store, listens and starts the
+  scheduled tasks. Tests never load `app.js` (`appSyntax.test.js` compiles it). `tests/integration/app.test.js` runs
+  the real app with supertest: test middleware order and cross-cutting behavior there, not by reading source.
 
 ## Configuration: three layers
 
@@ -63,7 +66,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   custom slugs, tags). Setting a feature the role lacks → 403. Empty values are fine, removing a password is always allowed, and on
   update a value equal to the stored one doesn't count (`tagsChanged()` compares tag sets).
 - **Feature switches** (`features.*` in settings.json) sit above roles: `middleware/requireFeature.js` provides
-  `featureRoutes(feature, router)` (wraps a whole router in `app.js`) and `requireFeature(feature)` (single routes;
+  `featureRoutes(feature, router)` (wraps a whole router in `createApp.js`) and `requireFeature(feature)` (single routes;
   falls through with `next('route')`). A switched-off feature 404s for everyone, admins included. A switch may need
   another (schema `requires`: `analyticsShareLinks` needs `analytics`); `isEnabled(feature)` / `enabledFeatures()`
   in `requireFeature.js` resolve that, and views' `features` come from `enabledFeatures()`.
@@ -114,7 +117,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   (Crockford base32, `XXXX-XXXX-XXXX`). `/setup` (`routes/setupRoutes.js`, `views/setup.ejs`) takes the code, a
   username and a password (min 8) and creates the admin in a transaction that re-checks for an existing admin. After
   that `/setup` is a 404 for good; a restored backup with an admin never shows it.
-- **`npm run admin`** (`scripts/admin.js`, logic in `services/adminCommands.js`): `create`, `promote`, `reset`,
+- **`npm run admin`** (`scripts/admin.js`; in Docker `node scripts/admin.js`, the image has no npm; logic in `services/adminCommands.js`): `create`, `promote`, `reset`,
   interactive or with arguments, works with piped input (`docker compose exec`). Audit-logged with `via: 'cli'`.
 
 ## Database
@@ -159,6 +162,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ## Features
 
 ### Access checks (every content type)
+- Look content types up with `contentType()` / `isTypeEnabled()`, never `CONTENT_TYPES[type]` with a type from the
+  request: they check own keys, so `constructor` or `__proto__` is unknown, not `Object.prototype`.
 - `services/contentTypes.js`: registry of the types sharing the short-link machinery (`url`, `bundle`, `paste`,
   `file`): table, owner/used/limit columns, feature switch, quarantine/restricted/alwaysRemember flags, public/info
   paths. Shared services take a type name and look the rest up here.
@@ -404,6 +409,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Creation limits come from the role and are read per request: `createRoleLimiter(limitName, { prefix, noun })` →
   `createUrlLimiter` (urlsPerHour), `createPasteLimiter`, `createBundleLimiter`, `bulkImportLimiter` (importsPerHour),
   `uploadLimiter`. Keyed per user ID, or per IP for visitors. `null` skips the limiter.
+- `createGlobalLimiter()` (1000 per 5 min per IP) is mounted in `createApp.js` after the health check and static files:
+  every dynamic route is under it. The account routes that check the current password use `authLimiter` too.
 - Fixed infrastructure limiters: `redirectLimiter` (1000/15 min per IP), `authLimiter` (10/15 min, failed attempts
   only; also used for `/setup`), `apiLimiter` (200/15 min, admins skip), `createUnlockLimiter()` (see Password unlock).
 
@@ -443,6 +450,16 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Recent ones: `CHANGE_SLUG`, `CREATE_USER`, `SETUP_ADMIN`, `UPDATE_SETTINGS`, `CREATE_SHARE_LINK`, `REVOKE_SHARE_LINK`, `BLOCK_FILE`,
   `UNBLOCK_FILE`, `QUARANTINE_URL` / `_BUNDLE` / `_PASTE` / `_FILE`, `CLEAR_QUARANTINE`, `UNLOCK_LOCKOUT`,
   `MIGRATE_REPORTS` (old → new bundle report IDs).
+
+### Privacy and terms pages
+- `/privacy` and `/terms` (`controllers/legalController.js`, `routes/legalRoutes.js`, `views/privacy.ejs`,
+  `views/terms.ejs`, `public/css/legal.css`) are for users and visitors, built from the live settings (analytics,
+  geo, retention, anonymous expiry, bio pages, reports), so they never promise what the instance doesn't do. Open on a
+  private instance too (`requireLogin` `OPEN_PATHS`); linked from the footer and the register page.
+- `legal.contact` (string setting, the first text field in Admin → Settings): `contactLink()` makes an e-mail a
+  mailto link and an `https://` address a link; anything else is plain text. `partials/legal-contact.ejs` prints it.
+- A setting or feature that changes what is stored or loaded from elsewhere must update `views/privacy.ejs` too
+  (and `docs/PRIVACY.md`, the operator's version).
 
 ### Scheduled tasks (`services/scheduledTasks.js`, node-cron)
 2:00 audit log cleanup (`retention.auditLogDays`) · 2:15 analytics cleanup (`retention.analyticsDays`, null = keep

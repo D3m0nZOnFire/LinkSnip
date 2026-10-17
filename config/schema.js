@@ -70,6 +70,10 @@ const SETTINGS = {
     type: 'integer', min: 0, default: 90, env: 'EXPIRED_URL_GRACE_PERIOD_DAYS',
     description: "Days an expired registered user's link or paste is kept before it is deleted."
   },
+  'legal.contact': {
+    type: 'string', maxLength: 200, default: '',
+    description: 'Where people report abuse and send privacy requests: an e-mail address or an https:// page. Shown on /privacy and /terms (empty: they say to contact the administrator).'
+  },
   // `editor: 'appearance'`: set on Admin → Appearance rather than in the Settings form
   'branding.name': {
     type: 'string', minLength: 1, maxLength: 40, default: 'LinkSnip', editor: 'appearance',

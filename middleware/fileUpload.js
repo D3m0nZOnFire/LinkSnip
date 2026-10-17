@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const path = require('path');
 const multer = require('multer');
 const File = require('../models/File');
 const RoleService = require('../services/roleService');
@@ -22,6 +24,15 @@ function remainingQuotaBytes(user) {
   const quotaMB = RoleService.limit(user, 'storageQuotaMB');
   if (quotaMB === null) return null;
   return Math.max(0, quotaMB * MB - File.totalSizeByUserId(user.id));
+}
+
+/**
+ * Name of an upload on disk: a random UUID, plus the original extension when it is 1 to 16 letters and digits.
+ * The original name is kept in the database for the download; nothing a visitor typed reaches the file system.
+ */
+function uploadName(originalName) {
+  const ext = path.extname(String(originalName || ''));
+  return `${crypto.randomUUID()}${/^\.[A-Za-z0-9]{1,16}$/.test(ext) ? ext : ''}`;
 }
 
 const formatMB = (bytes) => `${Math.round((bytes / MB) * 10) / 10} MB`;
@@ -63,4 +74,4 @@ function fileUpload(storage) {
   };
 }
 
-module.exports = { fileUpload, maxFileBytes, remainingQuotaBytes };
+module.exports = { fileUpload, uploadName, maxFileBytes, remainingQuotaBytes };

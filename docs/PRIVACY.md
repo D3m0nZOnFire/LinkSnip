@@ -4,6 +4,11 @@ What a LinkSnip instance stores about the people who use it and visit it, why, f
 keep less. It's written for the people who run an instance. It can help with a privacy or GDPR review, but it isn't
 legal advice: what you have to tell your users depends on where you are and what you use LinkSnip for.
 
+Your users get their own version at `/privacy` (and the rules at `/terms`), linked from every page's footer. Both are
+built from your live settings, so they follow what you switch on or off. Set `legal.contact` (Admin → Settings →
+General) to the e-mail address or page where abuse reports and privacy requests should go. If your situation needs more
+(a named controller, a legal basis, a jurisdiction), these pages are a starting point, not a replacement.
+
 Everything lives in one place, `DATA_DIR` (the database, uploads, settings, backups). LinkSnip sends nothing about your
 users or visitors anywhere: there is no telemetry, no analytics service and no update check.
 

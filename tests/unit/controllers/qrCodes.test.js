@@ -19,7 +19,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// Mounted as in app.js
+// Mounted as in createApp.js
 function makeApp() {
   const app = express();
   app.use('/', featureRoutes('qrCodes', require('../../../routes/qrcodeRoutes')));

@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const express = require('express');
 const session = require('express-session');
 const request = require('supertest');
@@ -39,25 +37,5 @@ describe('session cookie', () => {
     app.get('/', (req, res) => res.send('home'));
     const res = await request(app).get('/');
     expect(res.headers['set-cookie']).toBeUndefined();
-  });
-});
-
-describe('app.js', () => {
-  const source = fs.readFileSync(path.join(__dirname, '../../../app.js'), 'utf8');
-
-  it('builds the session from config/session.js', () => {
-    expect(source).toMatch(/session\(sessionOptions\(/);
-  });
-
-  it('checks cross-site requests before sessions and routes', () => {
-    const at = (needle) => {
-      const i = source.indexOf(needle);
-      expect(i).toBeGreaterThan(-1);
-      return i;
-    };
-    const check = at('app.use(sameOrigin)');
-    expect(check).toBeLessThan(at('session(sessionOptions('));
-    expect(check).toBeLessThan(at("app.use('/', setupRoutes)"));
-    expect(check).toBeLessThan(at("app.use('/', authRoutes)"));
   });
 });

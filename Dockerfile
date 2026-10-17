@@ -16,6 +16,13 @@ ENV NODE_ENV=production \
     DATA_DIR=/data
 WORKDIR /app
 
+# Security updates newer than the base image. No npm: the app never runs it, and npm bundles vulnerable packages of
+# its own (the admin tool is `node scripts/admin.js`). CI's Trivy scan fails on fixable critical/high ones.
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/* \
+ && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+
 COPY --from=build /app/node_modules ./node_modules
 COPY . .
 

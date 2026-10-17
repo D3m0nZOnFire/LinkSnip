@@ -106,6 +106,8 @@ const PAGES = {
   'scheduled': () => rendered(c('urlController').redirect, request(null, { params: { slug: 'soon' } })),
   'quarantine': () => rendered(c('urlController').redirect, request(null, { params: { slug: 'flagged' } })),
   'logout': () => rendered(c('authController').getLogout, request(s.user)),
+  'privacy': () => rendered(c('legalController').privacyPage, request(null)),
+  'terms': () => rendered(c('legalController').termsPage, request(null)),
   'error': async () => ({ req: request(null), view: 'error', data: { title: 'Page Not Found', message: 'Nope.', code: 404 } }),
   'bio-page': async () => ({ req: request(null), view: 'bio-page', data: bioPageData() }),
   'bio-settings': async () => ({ req: request(s.user), view: 'bio-settings', data: bioSettingsData() }),
@@ -169,7 +171,7 @@ const pages = fs.readdirSync(VIEWS).filter(f => f.endsWith('.ejs')).map(f => f.r
 //   public: slim header, page, footer, for anyone (the item pages, the home page of a visitor)
 //   standalone: page and footer only (login, errors, bio pages)
 const SHELL = Object.fromEntries(pages.map(name => [name,
-  ['url-info', 'paste-view', 'paste-info', 'file-download', 'bundle-launcher', 'unlock'].includes(name) ? 'public'
+  ['url-info', 'paste-view', 'paste-info', 'file-download', 'bundle-launcher', 'unlock', 'privacy', 'terms'].includes(name) ? 'public'
     : ['login', 'register', 'setup', 'logout', 'error', 'scheduled', 'quarantine', 'bio-page'].includes(name) ? 'standalone'
       : name.startsWith('admin') ? 'admin'
         : 'app']));

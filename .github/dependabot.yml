@@ -21,3 +21,8 @@ updates:
       # Stay on Node 22: better-sqlite3 is a native module built for it
       - dependency-name: node
         update-types: [version-update:semver-major]
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly

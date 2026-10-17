@@ -7,7 +7,7 @@
  *   npm run admin -- promote [name]   make an existing user an admin
  *   npm run admin -- reset [name]     set a new password for a user
  *
- * In Docker: docker compose exec linksnip npm run admin
+ * In Docker: docker compose exec linksnip node scripts/admin.js (the image has no npm)
  * Uses the same DATA_DIR as the app, so run it where the app's database lives.
  */
 require('dotenv').config({ quiet: true });

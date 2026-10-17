@@ -112,7 +112,9 @@ rather than a CDN. [PRIVACY.md](PRIVACY.md) lists what's kept and for how long.
 ## Testing
 
 Tests come first: each change starts with tests that fail for the right reason. Jest runs against an in-memory database
-and a temporary `DATA_DIR` per test file. Besides unit tests there are tests that hold the project's rules in place:
+and a temporary `DATA_DIR` per test file. `createApp.js` builds the whole app without listening, so integration tests
+run the real middleware chain (headers, CSRF check, sessions, setup, login, feature switches) with supertest. Besides
+these there are tests that hold the project's rules in place:
 every view renders and has no inline scripts, styles or handlers; the config doc matches the schema; the changelog has
 an entry for the current version; every built-in palette meets contrast. The browser scripts are tested with jsdom.
 

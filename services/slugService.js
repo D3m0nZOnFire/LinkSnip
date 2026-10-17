@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const db = require('../config/database');
 const { contentType } = require('./contentTypes');
 const { log, ACTIONS, CATEGORIES } = require('./auditService');
@@ -49,7 +50,7 @@ const slugService = {
   generate(type) {
     for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
       let slug = '';
-      for (let i = 0; i < RANDOM_LENGTH; i++) slug += CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+      for (let i = 0; i < RANDOM_LENGTH; i++) slug += CHARACTERS[crypto.randomInt(CHARACTERS.length)];
       if (!slugService.isTaken(type, slug)) return slug;
     }
     throw new Error('Unable to generate a unique slug after multiple attempts');

@@ -4,6 +4,43 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [Unreleased]
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. Then set **`legal.contact`** (Admin → Settings → General) to where
+  abuse reports and privacy requests should go; until then the new pages say to contact the administrator.
+- The image no longer contains npm. The admin tool is now
+  `docker compose exec linksnip node scripts/admin.js` (it was `... npm run admin`).
+
+### Added
+
+- **`/privacy` and `/terms`** for your users and visitors, linked from every footer and the register page, and open on
+  a private instance too. Built from your live settings (analytics, countries, retention, expiry of anonymous content,
+  bio page icons, reports). New setting `legal.contact`: an e-mail address or an `https://` page, shown on both.
+- Admin → Settings shows text settings as text fields.
+
+### Changed
+
+- `createApp.js` builds the app; `app.js` only starts it. Integration tests run the real middleware chain.
+- `docker-compose.yml` pins Caddy to 2.11.7 (Dependabot proposes updates).
+
+### Security
+
+- The image installs Debian's security updates (perl had critical fixes) and drops npm, whose bundled packages had
+  known vulnerabilities.
+- Fixes from the first CodeQL scan:
+  - Logo and favicon uploads: an SVG with many comments could freeze the server while its type was checked.
+  - A content type taken from the address or the request (unlock, QR codes, analytics, reports, admin actions) is
+    only looked up among the real ones: names like `constructor` crashed with a 500 instead of a 404.
+  - Changing your username or password and deleting your account check the current password: wrong guesses now
+    count like failed logins (10 per 15 minutes).
+  - A ceiling of 1000 requests per 5 minutes per address for everything except the health check and static files.
+  - Random slugs come from `crypto` (`Math.random` can be predicted from earlier slugs).
+  - Stored upload names keep only plain extensions (letters and digits).
+- GitHub Actions are pinned to commit SHAs. Published images carry an SBOM and provenance, and CI scans the image
+  with Trivy (fixable critical and high vulnerabilities fail the build).
+
 ## [1.6.0] - 2026-10-17
 
 ### Upgrading

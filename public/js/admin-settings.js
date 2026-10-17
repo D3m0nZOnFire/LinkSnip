@@ -8,6 +8,8 @@ function readForm() {
     const key = input.dataset.key;
     if (input.dataset.type === 'boolean') {
       values[key] = input.checked;
+    } else if (input.dataset.type === 'string') {
+      values[key] = input.value.trim();
     } else if (input.value.trim() === '' && input.dataset.nullable === 'true') {
       values[key] = null;
     } else {
@@ -54,3 +56,7 @@ async function saveSettings(event) {
 }
 
 document.getElementById('settingsForm')?.addEventListener('submit', saveSettings);
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { readForm };
+}

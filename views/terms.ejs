@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title, styles: ['public-pages', 'legal'] }) %>
+</head>
+<%- include('partials/layout-start', { shell: 'public' }) %>
+<% const contactHtml = include('partials/legal-contact', { contact }); -%>
+  <main class="public-page legal-page">
+    <h1>Terms</h1>
+    <p class="legal-lead"><%= branding.name %> shortens links and shares text, files and groups of links. By using it, you
+      accept these terms.</p>
+
+    <section>
+      <h2>Don't use it for</h2>
+      <ul>
+        <li>phishing, scams or pretending to be someone else;</li>
+        <li>malware, or links to it;</li>
+        <li>spam;</li>
+        <li>anything illegal, or that infringes copyright or other people's rights;</li>
+        <li>harassment, hate, or sexual content involving minors;</li>
+        <li>breaking, overloading or getting around the limits of this site.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>What can happen to content</h2>
+      <p>Anything that breaks these terms, or that a valid complaint is about, can be blocked, put behind a warning or
+        removed, and the account behind it suspended, at any time and without notice.</p>
+      <p>Content made without an account expires and is deleted:
+        links after <%= urlDays %> days<% if (pastes) { %>, pastes after <%= pasteDays %> days<% } %>.</p>
+    </section>
+
+    <section>
+      <h2>No guarantees</h2>
+      <p>The site is provided as it is. It can be unavailable, links can stop working and data can be lost: keep your own
+        copy of anything that matters.</p>
+    </section>
+
+    <section>
+      <h2>Reporting abuse</h2>
+<% if (reports) { %>
+      <p>Use the Report button on the item's page, or contact <%- contactHtml %>.</p>
+<% } else { %>
+      <p>Contact <%- contactHtml %>.</p>
+<% } %>
+    </section>
+
+    <section>
+      <h2>Changes</h2>
+      <p>These terms can change. This page always shows the current version. See also the <a href="/privacy">privacy
+        page</a>.</p>
+    </section>
+  </main>
+<%- include('partials/layout-end', { shell: 'public' }) %>
+</html>

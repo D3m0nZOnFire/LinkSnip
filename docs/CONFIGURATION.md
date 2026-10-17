@@ -53,6 +53,7 @@ and the last good configuration stays in use.
 | `retention.auditLogDays` | `90` | Days audit log entries are kept. Seeded once from `AUDIT_LOG_RETENTION_DAYS` if set when the file is first created. |
 | `retention.analyticsDays` | `null` | Days analytics events (visits) are kept; older ones are deleted nightly. null keeps them forever. The counters on items (clicks, views, downloads) are not affected. |
 | `retention.expiredGraceDays` | `90` | Days an expired registered user's link or paste is kept before it is deleted. Seeded once from `EXPIRED_URL_GRACE_PERIOD_DAYS` if set when the file is first created. |
+| `legal.contact` | `""` | Where people report abuse and send privacy requests: an e-mail address or an https:// page. Shown on /privacy and /terms (empty: they say to contact the administrator). |
 | `branding.name` | `"LinkSnip"` | Name of the site, shown in the header, page titles and on the login pages. |
 | `branding.tagline` | `"Short links, pastes, files and bundles, with analytics."` | One sentence under the name on the home page and in link previews (search engines, chat apps). Can be empty. |
 | `branding.darkPalette` | `"linksnip-dark"` | Colors in dark mode: a dark palette id (Admin → Appearance lists them). An unknown id falls back to linksnip-dark. |
