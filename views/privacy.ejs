@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title, styles: ['public-pages', 'legal'] }) %>
+</head>
+<%- include('partials/layout-start', { shell: 'public' }) %>
+<% const contactHtml = include('partials/legal-contact', { contact }); -%>
+  <main class="public-page legal-page">
+    <h1>Privacy</h1>
+    <p class="legal-lead">What <%= branding.name %> stores about you when you use it or open something shared on it, and for
+      how long. Nothing is sold or shared, and there are no advertising or tracking services.</p>
+
+    <section>
+      <h2>When you open a link, paste, file or bundle</h2>
+<% if (analytics) { %>
+      <p>The visit is recorded for the statistics of the person who shared it: the time, a keyed hash of your IP address
+        (not the address itself), the page you came from, your browser, operating system and type of device<% if (geo) { %>,
+        and your country, looked up on this server<% } %>. Visits are <% if (analyticsDays) { %>deleted after <%= analyticsDays %> days<% } else { %>kept until the item is deleted<% } %>.</p>
+<% } else { %>
+      <p>No visits are recorded. Items only count how often they were opened.</p>
+<% } %>
+    </section>
+
+    <section>
+      <h2>If you have an account</h2>
+      <p>Your username, your e-mail address if you gave one, your password (as a hash, never in readable form), your sign-up
+        date and when you were last active, and what you create. You can delete your account in Settings; that deletes what
+        you created too (items in a team stay with the team).</p>
+    </section>
+
+    <section>
+      <h2>Cookies</h2>
+      <p>One session cookie, set when you log in or unlock a password-protected item. It expires 7 days
+        after your last visit. There are no other cookies.</p>
+    </section>
+
+    <section>
+      <h2>Security log</h2>
+      <p>Logins, failed logins and admin actions are logged with the IP address and browser, to investigate misuse. They are
+        deleted after <%= auditLogDays %> days.</p>
+    </section>
+<% if (reports) { %>
+
+    <section>
+      <h2>Reports</h2>
+      <p>If you report something, the reason, your description and a keyed hash of your IP address are stored, until an
+        administrator deletes the report or the item is deleted.</p>
+    </section>
+<% } %>
+
+    <section>
+      <h2>Backups</h2>
+      <p>The database is copied every night; each copy is kept for 30 days.</p>
+    </section>
+
+    <section>
+      <h2>Other servers</h2>
+<% if (bioPages) { %>
+      <p>Everything comes from this site, except the icons on bio pages: they load from unpkg.com and cdn.jsdelivr.net (and
+        api.github.com on the bio page settings), which see your IP address.</p>
+<% } else { %>
+      <p>Everything comes from this site. Your browser loads nothing from other servers.</p>
+<% } %>
+    </section>
+
+    <section>
+      <h2>Questions and requests</h2>
+      <p>To ask what is stored about you, or to have it corrected or deleted, contact <%- contactHtml %>.</p>
+    </section>
+  </main>
+<%- include('partials/layout-end', { shell: 'public' }) %>
+</html>

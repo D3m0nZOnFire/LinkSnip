@@ -1,0 +1,2 @@
+<%# legal.contact as LegalController.contactLink() shows it; without one, "the administrator of this site" -%>
+<% if (contact && contact.href) { -%><a href="<%= contact.href %>"<%- contact.href.startsWith('https:') ? ' rel="noopener"' : '' %>><%= contact.text %></a><% } else if (contact) { -%><%= contact.text %><% } else { -%>the administrator of this site<% } -%>

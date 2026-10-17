@@ -447,6 +447,16 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   `UNBLOCK_FILE`, `QUARANTINE_URL` / `_BUNDLE` / `_PASTE` / `_FILE`, `CLEAR_QUARANTINE`, `UNLOCK_LOCKOUT`,
   `MIGRATE_REPORTS` (old → new bundle report IDs).
 
+### Privacy and terms pages
+- `/privacy` and `/terms` (`controllers/legalController.js`, `routes/legalRoutes.js`, `views/privacy.ejs`,
+  `views/terms.ejs`, `public/css/legal.css`) are for users and visitors, built from the live settings (analytics,
+  geo, retention, anonymous expiry, bio pages, reports), so they never promise what the instance doesn't do. Open on a
+  private instance too (`requireLogin` `OPEN_PATHS`); linked from the footer and the register page.
+- `legal.contact` (string setting, the first text field in Admin → Settings): `contactLink()` makes an e-mail a
+  mailto link and an `https://` address a link; anything else is plain text. `partials/legal-contact.ejs` prints it.
+- A setting or feature that changes what is stored or loaded from elsewhere must update `views/privacy.ejs` too
+  (and `docs/PRIVACY.md`, the operator's version).
+
 ### Scheduled tasks (`services/scheduledTasks.js`, node-cron)
 2:00 audit log cleanup (`retention.auditLogDays`) · 2:15 analytics cleanup (`retention.analyticsDays`, null = keep
 forever) · 3:00 backup · 4:00 inactive content cleanup · 5:00 expired

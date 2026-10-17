@@ -25,6 +25,7 @@ const bioPageRoutes = require('./routes/bioPageRoutes');
 const bundleRoutes = require('./routes/bundleRoutes');
 const fileRoutes = require('./routes/fileRoutes');
 const pasteRoutes = require('./routes/pasteRoutes');
+const legalRoutes = require('./routes/legalRoutes');
 const UrlController = require('./controllers/urlController');
 
 // Import middleware
@@ -99,6 +100,7 @@ function createApp({ sessionSecret, sessionStore } = {}) {
 
   // Routes
   app.use('/', authRoutes); // Auth routes have their own rate limiter applied in authRoutes.js
+  app.use('/', legalRoutes); // /privacy and /terms, from the live settings
   app.use('/', urlRoutes); // URL routes (redirect endpoint) have their own rate limiter
   app.use('/', unlockRoutes); // Password unlock for every type: /unlock/:type/:slug
   app.use('/', featureRoutes('bundles', bundleRoutes)); // Bundle routes

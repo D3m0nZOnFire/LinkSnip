@@ -16,7 +16,7 @@ const { logAdminAction, ACTIONS } = require('../services/auditService');
  */
 // Admin → Settings tabs: settings.json sections (the key's first part) per tab; Roles is the roles editor
 const TABS = [
-  { id: 'general', label: 'General', sections: ['access', 'registration', 'geo', 'branding'] },
+  { id: 'general', label: 'General', sections: ['access', 'registration', 'geo', 'legal', 'branding'] },
   { id: 'features', label: 'Features', sections: ['features'] },
   { id: 'content', label: 'Content', sections: ['anonymous', 'pastes', 'files'] },
   { id: 'moderation', label: 'Moderation', sections: ['moderation'] },
@@ -41,6 +41,7 @@ class AdminSettingsController {
         key,
         type: spec.type,
         min: spec.min,
+        maxLength: spec.maxLength,
         nullable: !!spec.nullable,
         description: spec.description,
         editor: spec.editor,
