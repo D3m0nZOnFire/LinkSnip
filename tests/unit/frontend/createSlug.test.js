@@ -1,5 +1,6 @@
 /**
  * @jest-environment jsdom
+ * @jest-environment-options {"customExportConditions": ["node", "require"]}
  */
 const fs = require('fs');
 const path = require('path');
