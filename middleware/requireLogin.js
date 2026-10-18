@@ -9,7 +9,7 @@ const configService = require('../services/configService');
  * Mounted right after attachUser. The health check, static files, Chart.js and branding (theme, logo, favicon) are
  * served before it, so the login page keeps its look.
  */
-const OPEN_PATHS = new Set(['/login', '/register', '/setup', '/logout', '/privacy', '/terms']);
+const OPEN_PATHS = new Set(['/login', '/register', '/setup', '/logout', '/privacy', '/terms', '/abuse']);
 
 module.exports = function requireLogin(req, res, next) {
   if (req.user || OPEN_PATHS.has(req.path) || !configService.get('access.loginRequired')) return next();

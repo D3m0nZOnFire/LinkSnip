@@ -102,7 +102,7 @@ function createApp({ sessionSecret, sessionStore } = {}) {
 
   // Routes
   app.use('/', authRoutes); // Auth routes have their own rate limiter applied in authRoutes.js
-  app.use('/', legalRoutes); // /privacy and /terms, from the live settings
+  app.use('/', legalRoutes); // /privacy and /terms, from the live settings; /abuse goes to the terms' abuse section
   app.use('/', urlRoutes); // URL routes (redirect endpoint) have their own rate limiter
   app.use('/', unlockRoutes); // Password unlock for every type: /unlock/:type/:slug
   app.use('/', featureRoutes('bundles', bundleRoutes)); // Bundle routes
