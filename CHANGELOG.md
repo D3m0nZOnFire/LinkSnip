@@ -4,6 +4,17 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [1.7.1] - 2026-10-18
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. Nothing else to do.
+
+### Added
+
+- **`/abuse`**: a short link to hand out for abuse reports. It redirects to the "Reporting abuse" section of `/terms`
+  (`/terms#abuse`), and is open on a private instance too.
+
 ## [1.7.0] - 2026-10-17
 
 ### Upgrading
@@ -299,6 +310,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
+[1.7.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.5.4...v1.6.0
 [1.5.4]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.5.3...v1.5.4

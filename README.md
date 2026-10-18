@@ -28,7 +28,7 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 - **Your own look**: site name, tagline, logo and favicon, and a dark and a light color palette, from the built-in ones or your own
 - **Admin panel**: an overview, every item in one searchable list, users, teams, reports, settings, roles and appearance, and a full audit log
 - **Private instance**: one setting (`access.loginRequired`) and everything needs an account, short links included
-- **Privacy and terms pages** for your visitors, built from your settings (`/privacy`, `/terms`)
+- **Privacy and terms pages** for your visitors, built from your settings (`/privacy`, `/terms`; `/abuse` links to where to report abuse)
 - **Operations**: nightly online backups and cleanup of expired content
 
 ### See it in action

@@ -98,6 +98,15 @@ describe('/terms', () => {
   });
 });
 
+describe('/abuse', () => {
+  it('is a short link to the abuse section of /terms', async () => {
+    const res = await request(app()).get('/abuse');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('/terms#abuse');
+    expect(await get('/terms')).toMatch(/<section id="abuse">\s*<h2>Reporting abuse<\/h2>/);
+  });
+});
+
 describe('legal.contact', () => {
   it('an e-mail address becomes a mailto link on both pages', async () => {
     setSettings({ legal: { contact: 'abuse@example.com' } });
@@ -128,6 +137,7 @@ describe('everyone can read them', () => {
     setSettings({ access: { loginRequired: true } });
     await get('/privacy');
     await get('/terms');
+    expect((await request(app()).get('/abuse')).headers.location).toBe('/terms#abuse');
   });
 
   it('every footer links to them', async () => {
