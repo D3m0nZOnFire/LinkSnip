@@ -119,6 +119,13 @@ describe('with an admin', () => {
       expect(res.text).toContain('Page Not Found');
     });
 
+    it('a file name a scanner probes for is a 404, not the create page', async () => {
+      for (const address of ['/xmlrpc.php', '/wp-login.php', '/index.html']) {
+        expect([address, (await request(app()).get(address)).status]).toEqual([address, 404]);
+        expect([address, (await request(app()).post(address)).status]).toEqual([address, 404]);
+      }
+    });
+
     it('a link in the path opens the create page with it filled in', async () => {
       const res = await request(app()).get('/https://example.com/some/page');
       expect(res.status).toBe(200);

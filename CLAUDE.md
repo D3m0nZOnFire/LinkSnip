@@ -225,7 +225,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   (4:00), registered users' after `retention.expiredGraceDays` (the "Deletes in Nd" badge on links and pastes:
   `services/retentionService.js` `deletesInDays`, shown by `partials/deletion-badge.ejs`).
 - URL prefill (`middleware/prefill.js`, before the routes): `/https://example.com/a?b=1`, `/example.com/a` (first
-  segment a host name) or an encoded link opens the create page (`/`) with it in the Link tab; a merged `https:/` is
+  segment a host name, not a file name like `xmlrpc.php` or `index.html`) or an encoded link opens the create page (`/`) with it in the Link tab; a merged `https:/` is
   repaired. Only http(s), at most 2048 characters; LinkSnip's own paths never match.
 - Create page (`views/index.ejs`, `public/css/create.css`, `public/js/create.js`): logged-in users get a plain
   "Create" page, visitors the hero. Modes Link / Text / Bundle / File are `[data-section]`s; a chip `[data-chip]` opens
