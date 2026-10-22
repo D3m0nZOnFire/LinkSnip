@@ -29,6 +29,20 @@ describe('urlFromPath', () => {
     }
   });
 
+  // Scanners probe /xmlrpc.php, /wp-login.php, …: a file name is not a host name, so they get the 404 page
+  it('leaves file names alone (extensions that are not domain endings)', () => {
+    for (const path of ['/xmlrpc.php', '/wp-login.php', '/index.html', '/home.htm', '/default.aspx', '/login.jsp',
+      '/test.cgi', '/sitemap.xml', '/config.json', '/robots.txt', '/backup.sql', '/settings.ini', '/xmlrpc.php?rsd']) {
+      expect([path, urlFromPath(path)]).toEqual([path, null]);
+    }
+  });
+
+  it('still takes hosts whose ending looks like a file extension', () => {
+    expect(urlFromPath('/github.io/x')).toBe('https://github.io/x');
+    expect(urlFromPath('/bit.ly')).toBe('https://bit.ly');
+    expect(urlFromPath('/example.sh')).toBe('https://example.sh');
+  });
+
   it('only takes http and https', () => {
     expect(urlFromPath('/javascript:alert(1)')).toBeNull();
     expect(urlFromPath('/ftp://example.com')).toBeNull();

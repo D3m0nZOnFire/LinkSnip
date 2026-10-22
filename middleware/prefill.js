@@ -6,6 +6,8 @@
 const MAX_URL_LENGTH = 2048; // what browsers accept
 // The first part of a link typed without https://: a host name like www.example.com
 const HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}(:\d+)?$/i;
+// File extensions that are no domain ending: /xmlrpc.php or /index.html is a file name (scanners probe them), not a host
+const FILE_EXTENSION = /\.(php\d?|phtml|html?|aspx?|jsp|cgi|xml|json|txt|sql|ini|env|bak|log|ya?ml|cfg|conf)(:\d+)?$/i;
 
 /**
  * @param {string} originalUrl - path and query string, e.g. "/https://www.youtube.com/watch?v=x&t=1s"
@@ -20,10 +22,11 @@ function urlFromPath(originalUrl) {
 
   let candidate;
   const scheme = /^(https?):\/*(.*)$/i.exec(raw);
+  const host = raw.split(/[/?#]/)[0];
   if (scheme) {
     // Some proxies merge "//" in a path into "/": put it back
     candidate = `${scheme[1].toLowerCase()}://${scheme[2]}`;
-  } else if (HOST.test(raw.split(/[/?#]/)[0])) {
+  } else if (HOST.test(host) && !FILE_EXTENSION.test(host)) {
     candidate = `https://${raw}`;
   } else {
     return null;

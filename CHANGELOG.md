@@ -4,6 +4,18 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [1.7.2] - 2026-10-22
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. Nothing else to do.
+
+### Fixed
+
+- File names in the address (`/xmlrpc.php`, `/wp-login.php`, `/index.html`, …) get the 404 page. They were taken for a
+  link typed without `https://` and opened the create page with a 200, so scanners probing for WordPress or PHP seemed
+  to find something.
+
 ## [1.7.1] - 2026-10-18
 
 ### Upgrading
@@ -310,6 +322,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
+[1.7.2]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.5.4...v1.6.0
