@@ -66,14 +66,15 @@ function createTestUrl(overrides = {}) {
     isQuarantined: 0,
     password: null,
     activateAt: null,
-    deactivateAt: null
+    deactivateAt: null,
+    isPrivate: 0
   };
 
   const urlData = { ...defaults, ...overrides };
 
   const stmt = db.prepare(`
-    INSERT INTO urls (slug, longUrl, creatorId, clicks, maxUses, expiresAt, isBlocked, isQuarantined, password, activateAt, deactivateAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO urls (slug, longUrl, creatorId, clicks, maxUses, expiresAt, isBlocked, isQuarantined, password, activateAt, deactivateAt, isPrivate)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result = stmt.run(
@@ -87,7 +88,8 @@ function createTestUrl(overrides = {}) {
     urlData.isQuarantined,
     urlData.password,
     urlData.activateAt,
-    urlData.deactivateAt
+    urlData.deactivateAt,
+    urlData.isPrivate
   );
 
   return {
@@ -284,15 +286,16 @@ function createTestBundle(overrides = {}) {
     isQuarantined: 0,
     password: null,
     activateAt: null,
-    deactivateAt: null
+    deactivateAt: null,
+    isPrivate: 0
   };
 
   const data = { ...defaults, ...overrides };
 
   const result = db.prepare(`
-    INSERT INTO bundles (slug, title, description, creatorId, clicks, maxUses, expiresAt, isBlocked, isQuarantined, password, activateAt, deactivateAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(data.slug, data.title, data.description, data.creatorId, data.clicks, data.maxUses, data.expiresAt, data.isBlocked, data.isQuarantined, data.password, data.activateAt, data.deactivateAt);
+    INSERT INTO bundles (slug, title, description, creatorId, clicks, maxUses, expiresAt, isBlocked, isQuarantined, password, activateAt, deactivateAt, isPrivate)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(data.slug, data.title, data.description, data.creatorId, data.clicks, data.maxUses, data.expiresAt, data.isBlocked, data.isQuarantined, data.password, data.activateAt, data.deactivateAt, data.isPrivate);
 
   return { id: result.lastInsertRowid, ...data };
 }
@@ -343,10 +346,9 @@ function createTestFile(userId, overrides = {}) {
     maxDownloads: null,
     downloads: 0,
     password: null,
-    sharingMode: 'public',
-    allowedUsers: '[]',
     isBlocked: 0,
-    isQuarantined: 0
+    isQuarantined: 0,
+    isPrivate: 0
   };
 
   const data = { ...defaults, ...overrides };
@@ -354,12 +356,12 @@ function createTestFile(userId, overrides = {}) {
   const result = db.prepare(`
     INSERT INTO files
       (userId, slug, originalName, storedName, mimeType, size, expiresAt, activateAt, deactivateAt,
-       maxDownloads, downloads, password, sharingMode, allowedUsers, isBlocked, isQuarantined)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       maxDownloads, downloads, password, isBlocked, isQuarantined, isPrivate)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     userId, data.slug, data.originalName, data.storedName, data.mimeType, data.size,
     data.expiresAt, data.activateAt, data.deactivateAt, data.maxDownloads, data.downloads,
-    data.password, data.sharingMode, data.allowedUsers, data.isBlocked, data.isQuarantined
+    data.password, data.isBlocked, data.isQuarantined, data.isPrivate
   );
 
   return { id: result.lastInsertRowid, userId, ...data };
@@ -380,18 +382,19 @@ function createTestPaste(userId = null, overrides = {}) {
     views: 0,
     password: null,
     isBlocked: 0,
-    isQuarantined: 0
+    isQuarantined: 0,
+    isPrivate: 0
   };
 
   const data = { ...defaults, ...overrides };
 
   const result = db.prepare(`
     INSERT INTO pastes
-      (userId, slug, title, content, language, expiresAt, activateAt, deactivateAt, maxViews, views, password, isBlocked, isQuarantined)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (userId, slug, title, content, language, expiresAt, activateAt, deactivateAt, maxViews, views, password, isBlocked, isQuarantined, isPrivate)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     userId, data.slug, data.title, data.content, data.language, data.expiresAt,
-    data.activateAt, data.deactivateAt, data.maxViews, data.views, data.password, data.isBlocked, data.isQuarantined
+    data.activateAt, data.deactivateAt, data.maxViews, data.views, data.password, data.isBlocked, data.isQuarantined, data.isPrivate
   );
 
   return { id: result.lastInsertRowid, userId, ...data };

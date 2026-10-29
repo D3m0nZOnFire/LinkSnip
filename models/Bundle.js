@@ -8,10 +8,10 @@ class Bundle {
   /**
    * Create a new bundle
    */
-  static create({ slug, title, description, creatorId, maxUses, expiresAt, password, activateAt, deactivateAt }) {
+  static create({ slug, title, description, creatorId, maxUses, expiresAt, password, activateAt, deactivateAt, isPrivate }) {
     const stmt = db.prepare(`
-      INSERT INTO bundles (slug, title, description, creatorId, maxUses, expiresAt, password, activateAt, deactivateAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO bundles (slug, title, description, creatorId, maxUses, expiresAt, password, activateAt, deactivateAt, isPrivate)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -23,7 +23,8 @@ class Bundle {
       expiresAt || null,
       password || null,
       activateAt || null,
-      deactivateAt || null
+      deactivateAt || null,
+      isPrivate ? 1 : 0
     );
 
     return this.findById(result.lastInsertRowid);
@@ -126,7 +127,7 @@ class Bundle {
    * value, null removes it.
    */
   static update(id, changes) {
-    const columns = ['slug', 'title', 'description', 'maxUses', 'expiresAt', 'password', 'activateAt', 'deactivateAt']
+    const columns = ['slug', 'title', 'description', 'maxUses', 'expiresAt', 'password', 'activateAt', 'deactivateAt', 'isPrivate']
       .filter(column => changes[column] !== undefined);
     if (columns.length) {
       db.prepare(`UPDATE bundles SET ${columns.map(c => `${c} = ?`).join(', ')} WHERE id = ?`)

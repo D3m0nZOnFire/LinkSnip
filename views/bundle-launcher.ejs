@@ -19,6 +19,7 @@
       </div>
 
       <div class="item-facts">
+        <%- include('partials/private-fact', { isPrivate: bundle.isPrivate }) %>
         <% if (creatorUsername) { %><span><%- include('partials/icon', { icon: 'bio' }) %> <%= creatorUsername %></span><% } %>
         <span><%= items.length %> link<%= items.length === 1 ? '' : 's' %></span>
       </div>

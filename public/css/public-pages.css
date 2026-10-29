@@ -460,15 +460,6 @@ h1.short-link {
   font-family: var(--font-sans);
 }
 
-.file-shared {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-top: var(--spacing-md);
-  color: var(--muted-foreground);
-  font-size: var(--text-sm);
-}
-
 /* ─── Bundle ───────────────────────────────────────────────────────────────── */
 .file-badge .icon {
   width: 1.3rem;

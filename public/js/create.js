@@ -160,6 +160,18 @@
     });
   }
 
+  // ─── Public / Private ─────────────────────────────────────────────────────
+  function setPrivate(toggle, on) {
+    $(toggle.dataset.privateToggle).value = on ? '1' : '';
+    toggle.setAttribute('aria-pressed', String(on));
+    setChip(toggle, on ? 'Private' : 'Public', on);
+  }
+
+  form.querySelectorAll('[data-private-toggle]').forEach(toggle => {
+    toggle.dataset.default = 'Public';
+    toggle.addEventListener('click', () => setPrivate(toggle, toggle.getAttribute('aria-pressed') !== 'true'));
+  });
+
   function resetSection(name) {
     const section = form.querySelector(`[data-section="${name}"]`);
     section.querySelectorAll('input:not([type="radio"]), textarea').forEach(input => {
@@ -175,6 +187,7 @@
       chip.classList.remove('chip-active');
       chip.setAttribute('aria-expanded', 'false');
     });
+    section.querySelectorAll('[data-private-toggle]').forEach(toggle => setPrivate(toggle, false));
   }
 
   // ─── Short link fields (one per mode): the host as a prefix, the format checked as it is typed ──
@@ -233,6 +246,7 @@
     if (valueOf('pasteActivateAt')) body.activateDateTime = localToUtc(valueOf('pasteActivateAt'));
     if (valueOf('pasteDeactivateAt')) body.deactivateDateTime = localToUtc(valueOf('pasteDeactivateAt'));
     if (slugOf('pasteSlug')) body.slug = slugOf('pasteSlug');
+    if (valueOf('pastePrivate')) body.isPrivate = valueOf('pastePrivate');
     if (teamId()) body.teamId = teamId();
 
     busy(true, 'Creating…');
@@ -289,6 +303,7 @@
     const body = { title, items };
     if (valueOf('bundleTags')) body.tags = valueOf('bundleTags');
     if (slugOf('bundleSlug')) body.slug = slugOf('bundleSlug');
+    if (valueOf('bundlePrivate')) body.isPrivate = valueOf('bundlePrivate');
     if (teamId()) body.teamId = teamId();
 
     busy(true, 'Creating…');
@@ -314,7 +329,6 @@
 
   // ─── File ─────────────────────────────────────────────────────────────────
   const fileInput = $('fileInput');
-  let allowedUsers = [];
 
   const fileSize = (bytes) => bytes < 1024 ? `${bytes} B`
     : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
@@ -324,29 +338,6 @@
     $('fileSelectedSize').textContent = file ? fileSize(file.size) : '';
     $('fileSelectedInfo').hidden = !file;
     $('fileDropZone').hidden = !!file;
-  }
-
-  function renderShare() {
-    const wrap = $('fileShareChips');
-    const typer = $('fileShareTyper');
-    wrap.querySelectorAll('.user-chip').forEach(chip => chip.remove());
-    allowedUsers.forEach(user => {
-      const chip = document.createElement('span');
-      chip.className = 'user-chip';
-      chip.textContent = `@${user.username}`;
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.textContent = '×';
-      remove.setAttribute('aria-label', `Remove ${user.username}`);
-      remove.addEventListener('click', () => {
-        allowedUsers = allowedUsers.filter(other => other.id !== user.id);
-        renderShare();
-      });
-      chip.appendChild(remove);
-      wrap.insertBefore(chip, typer);
-    });
-    const count = allowedUsers.length;
-    setChip($('fchip-share'), count ? `${count} ${count === 1 ? 'person' : 'people'}` : '', count > 0);
   }
 
   async function submitFile() {
@@ -362,8 +353,7 @@
     if (valueOf('fileTags')) data.append('tags', valueOf('fileTags'));
     if (valueOf('fileActivateAt')) data.append('activateAt', localToUtc(valueOf('fileActivateAt')));
     if (valueOf('fileDeactivateAt')) data.append('deactivateAt', localToUtc(valueOf('fileDeactivateAt')));
-    data.append('allowedUsers', JSON.stringify(allowedUsers.map(user => user.id)));
-    data.append('sharingMode', allowedUsers.length ? 'restricted' : 'public');
+    if (valueOf('filePrivate')) data.append('isPrivate', valueOf('filePrivate'));
 
     const progress = $('fileProgressWrap');
     const fill = $('fileProgressFill');
@@ -390,8 +380,6 @@
         showSuccess('Your file is ready to share', body.fileUrl);
         resetSection('file');
         showChosenFile(null);
-        allowedUsers = [];
-        renderShare();
       } else {
         showError(body.error || 'The upload failed. Please try again.');
       }
@@ -420,28 +408,6 @@
       showChosenFile(file);
     });
     $('fileSelectedInfo').addEventListener('click', () => fileInput.click());
-
-    const typer = $('fileShareTyper');
-    $('fileShareChips').addEventListener('click', () => typer.focus());
-    typer.addEventListener('keydown', async (event) => {
-      if (event.key !== 'Enter' && event.key !== ',') return;
-      event.preventDefault();
-      const error = $('fileShareError');
-      const username = typer.value.trim().replace(/^@/, '');
-      if (!username) return;
-      try {
-        const response = await fetch(`/api/users/lookup?username=${encodeURIComponent(username)}`);
-        const data = await response.json();
-        if (!data.found) throw new Error(`There is no user called ${username}.`);
-        if (!allowedUsers.some(user => user.id === data.id)) allowedUsers.push({ id: data.id, username: data.username });
-        typer.value = '';
-        error.hidden = true;
-        renderShare();
-      } catch (lookupError) {
-        error.textContent = lookupError.message;
-        error.hidden = false;
-      }
-    });
   }
 
   // ─── Submit ───────────────────────────────────────────────────────────────

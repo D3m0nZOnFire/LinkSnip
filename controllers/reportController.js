@@ -1,6 +1,6 @@
 const Report = require('../models/Report');
 const moderation = require('../services/moderationService');
-const { recordStatus, isLive } = require('../services/accessService');
+const { recordStatus, isLive, privateStatus } = require('../services/accessService');
 const { CONTENT_TYPES, contentType, isTypeEnabled } = require('../services/contentTypes');
 const { logSecurity, ACTIONS } = require('../services/auditService');
 
@@ -34,8 +34,9 @@ class ReportController {
       return res.status(400).json({ error: 'Invalid report reason' });
     }
 
+    // A private item is unknown to anyone who can't open it
     const item = findTarget(type, id);
-    if (!item) return res.status(404).json({ error: 'Not found' });
+    if (!item || privateStatus(type, item, req.user || null)) return res.status(404).json({ error: 'Not found' });
 
     // Blocked, scheduled, expired or used up: there is nothing live to report
     if (!isLive(recordStatus(type, item))) {

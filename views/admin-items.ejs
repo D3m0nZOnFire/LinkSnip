@@ -10,7 +10,7 @@
   const USES = { url: ['click', 'clicks'], bundle: ['open', 'opens'], paste: ['view', 'views'], file: ['download', 'downloads'] };
   const STATUS_OPTIONS = [
     ['', 'Any status'], ['active', 'Active'], ['blocked', 'Blocked'], ['expired', 'Expired'], ['scheduled', 'Scheduled'],
-    ['max-uses', 'Limit reached'], ['quarantined', 'Under review'], ['anonymous', 'Anonymous'], ['password-protected', 'Password-protected']
+    ['max-uses', 'Limit reached'], ['quarantined', 'Under review'], ['anonymous', 'Anonymous'], ['password-protected', 'Password-protected'], ['private', 'Private']
   ];
   const SORT_OPTIONS = [['newest', 'Newest'], ['oldest', 'Oldest'], ['most-used', 'Most used'], ['least-used', 'Least used'], ['most-reports', 'Most reports']];
   // The address of this list with some filters changed (page back to 1 unless given)
@@ -95,8 +95,9 @@
             <tr><td><code>@user:alice</code></td><td>Owned by alice; <code>@user:alice,bob</code> either</td></tr>
             <tr><td><code>@user:!alice</code></td><td>Not owned by alice</td></tr>
             <tr><td><code>@anon</code></td><td>No owner (made without an account)</td></tr>
-            <tr><td><code>@status:expired</code></td><td>active · blocked · expired · scheduled · max-uses · quarantined · anonymous · password-protected</td></tr>
+            <tr><td><code>@status:expired</code></td><td>active · blocked · expired · scheduled · max-uses · quarantined · anonymous · password-protected · private</td></tr>
             <tr><td><code>@protected</code></td><td>Password-protected</td></tr>
+            <tr><td><code>@private</code></td><td>Private (only the owner, the team and admins open it)</td></tr>
             <tr><td><code>@uses:&gt;10</code></td><td>More than 10 clicks, opens, views or downloads (<code>&lt;</code> fewer, <code>@uses:0</code> never)</td></tr>
             <tr><td><code>A | B</code></td><td>Matches A or B</td></tr>
           </tbody>
@@ -137,6 +138,7 @@
             </div>
             <div class="item-badges">
               <% if (item.hasPassword) { %><span class="item-lock" title="Password-protected"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span class="visually-hidden">Password-protected</span></span><% } %>
+              <%- include('partials/private-badge', { isPrivate: item.isPrivate }) %>
               <%- include('partials/deletion-badge', { days: item.deletesInDays, noun: TYPE_LABELS[item.type].slice(0, -1).toLowerCase() }) %>
               <%- include('partials/status-badge', { status: item.accessStatus }) %>
             </div>
@@ -222,6 +224,7 @@
           <input type="url" id="editLongUrl" class="form-input" required>
         </div>
         <%- include('partials/slug-edit-field', { id: 'editCustomSlug', prefix: '/s/' }) %>
+        <%- include('partials/private-field', { id: 'editUrlPrivate', noun: 'link' }) %>
         <div class="form-group">
           <label for="editPassword" class="form-label">New password (optional)</label>
           <input type="password" id="editPassword" class="form-input" autocomplete="new-password" data-toggle-password>

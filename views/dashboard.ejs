@@ -106,6 +106,7 @@
           <input type="url" id="editLongUrl" class="form-input" placeholder="https://example.com" required>
         </div>
         <%- include('partials/slug-edit-field', { id: 'editCustomSlug', prefix: '/s/' }) %>
+        <%- include('partials/private-field', { id: 'editUrlPrivate', noun: 'link' }) %>
         <% if (can.tags) { %>
         <div class="form-group">
           <label class="form-label">Tags</label>
@@ -162,6 +163,7 @@
           <input type="text" id="editBundleName" class="form-input" maxlength="100" required>
         </div>
         <%- include('partials/slug-edit-field', { id: 'editBundleSlug', prefix: '/b/' }) %>
+        <%- include('partials/private-field', { id: 'editBundlePrivate', noun: 'bundle' }) %>
         <div class="form-group">
           <label for="editBundleDescription" class="form-label">Description</label>
           <textarea id="editBundleDescription" class="form-input" rows="2" placeholder="Optional"></textarea>
@@ -196,6 +198,7 @@
       <form class="modal-body" id="editFileForm" novalidate>
         <p class="field-help" id="editFileName"></p>
         <%- include('partials/slug-edit-field', { id: 'editFileSlug', prefix: '/f/' }) %>
+        <%- include('partials/private-field', { id: 'editFilePrivate', noun: 'file' }) %>
         <div class="form-row">
           <div class="form-group">
             <label for="editFileExpires" class="form-label">Expires</label>
@@ -212,20 +215,6 @@
           <input type="password" id="editFilePassword" class="form-input" autocomplete="new-password" placeholder="Leave empty to keep it" data-toggle-password>
           <% } %>
           <label class="checkbox-line" id="editFileRemoveLine"><input type="checkbox" id="editFileRemovePassword"> Remove the password</label>
-        </div>
-        <div class="form-group">
-          <label for="editFileSharing" class="form-label">Who can open it</label>
-          <select data-select id="editFileSharing" class="form-input">
-            <option value="public">Anyone with the link</option>
-            <option value="restricted">Only the people listed below</option>
-          </select>
-        </div>
-        <div class="form-group" id="editFileUsersGroup">
-          <label for="editFileUserInput" class="form-label">People</label>
-          <div class="user-chips-input-wrap" id="editFileUsers">
-            <input type="text" id="editFileUserInput" class="user-chips-text-input" placeholder="Type a username and press Enter…" autocomplete="off">
-          </div>
-          <p class="field-help" id="editFileUsersError" role="alert"></p>
         </div>
         <% if (can.tags) { %>
         <div class="form-group">

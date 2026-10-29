@@ -24,6 +24,7 @@
       </div>
 
       <div class="item-facts">
+        <%- include('partials/private-fact', { isPrivate: file.isPrivate }) %>
         <span><%- include('partials/icon', { icon: 'bio' }) %> <%= owner.username %></span>
         <span><%= sizeFormatted %></span>
         <span><%= file.mimeType %></span>
@@ -32,10 +33,6 @@
         <% if (file.expiresAt) { %><span>Expires <%= day(file.expiresAt) %></span><% } %>
       </div>
       <%- include('partials/tag-chips', { tags: file.tags || [] }) %>
-
-      <% if (file.sharingMode === 'restricted' && allowedUsernames.length > 0) { %>
-        <p class="file-shared"><%- include('partials/icon', { icon: 'teams' }) %> Shared with <%= allowedUsernames.map(u => '@' + u).join(', ') %></p>
-      <% } %>
 
       <div class="item-actions">
         <a href="<%= downloadUrl %>" class="btn btn-large"><%- include('partials/icon', { icon: 'download' }) %> Download</a>

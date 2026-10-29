@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const slugService = require('../services/slugService');
 const unlocks = require('../services/unlockService');
 const { sendIfUnavailable } = require('../services/accessService');
+const { sendNotFound } = require('../middleware/notFound');
 const { CONTENT_TYPES, isTypeEnabled } = require('../services/contentTypes');
 const { logSecurity, ACTIONS } = require('../services/auditService');
 
@@ -43,7 +44,6 @@ function renderPage(req, res, type, found, error, status = 200) {
   });
 }
 
-const notFound = (res) => res.status(404).render('error', { title: 'Not Found', message: 'This page does not exist.', code: 404 });
 
 /**
  * GET /unlock/:type/:slug
@@ -51,7 +51,7 @@ const notFound = (res) => res.status(404).render('error', { title: 'Not Found', 
 exports.showUnlockPage = (req, res) => {
   const { type, slug } = req.params;
   const found = findRecord(type, slug);
-  if (!found) return notFound(res);
+  if (!found) return sendNotFound(req, res);
 
   if (sendIfUnavailable(req, res, type, found.record)) return;
   if (!found.record.password) return res.redirect(`${found.info.publicPrefix}${slug}`);
@@ -65,7 +65,7 @@ exports.showUnlockPage = (req, res) => {
 exports.unlock = async (req, res) => {
   const { type, slug } = req.params;
   const found = findRecord(type, slug);
-  if (!found) return notFound(res);
+  if (!found) return sendNotFound(req, res);
 
   const { info, record } = found;
   if (sendIfUnavailable(req, res, type, record)) return;

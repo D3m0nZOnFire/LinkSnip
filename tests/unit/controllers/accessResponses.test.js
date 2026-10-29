@@ -118,17 +118,17 @@ describe('password redirects go to the shared unlock page', () => {
   });
 });
 
-describe('restricted files', () => {
+describe('private files', () => {
   it('sends visitors who are not logged in to the login page and back', async () => {
-    createTestFile(owner.id, { slug: 'it', sharingMode: 'restricted', allowedUsers: '[]' });
+    createTestFile(owner.id, { slug: 'it', isPrivate: 1 });
     const res = await call(fileController.download, visit('it', { originalUrl: '/f/it/download' }));
     expect(res.redirect).toHaveBeenCalledWith(`/login?next=${encodeURIComponent('/f/it/download')}`);
   });
 
-  it('refuses users who are not on the list with a 403', async () => {
-    createTestFile(owner.id, { slug: 'it', sharingMode: 'restricted', allowedUsers: '[]' });
+  it('answers anyone else with a 404, as if it did not exist', async () => {
+    createTestFile(owner.id, { slug: 'it', isPrivate: 1 });
     const res = await call(fileController.preview, visit('it', { user: { id: 999, isAdmin: 0 } }));
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(404);
   });
 });
 

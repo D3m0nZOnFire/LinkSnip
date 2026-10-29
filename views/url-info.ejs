@@ -50,6 +50,7 @@
       <% } %>
 
       <div class="item-facts">
+        <%- include('partials/private-fact', { isPrivate: url.isPrivate }) %>
         <span><%- include('partials/icon', { icon: 'clock' }) %> <%= ageInDays === 0 ? 'Created today' : `Created ${ageInDays} day${ageInDays === 1 ? '' : 's'} ago` %></span>
         <% if (validation.status === 'expired') { %><span>Expired</span><% } %>
         <% if (validation.status === 'limit_reached') { %><span>Click limit reached</span><% } %>

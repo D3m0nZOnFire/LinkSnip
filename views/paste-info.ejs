@@ -27,6 +27,7 @@
       <p class="item-title"><%= paste.title ? paste.title : 'Untitled paste' %></p>
 
       <div class="item-facts">
+        <%- include('partials/private-fact', { isPrivate: paste.isPrivate }) %>
         <span><%- include('partials/icon', { icon: 'bio' }) %> <%= owner.username %></span>
         <span><%- include('partials/icon', { icon: 'clock' }) %> <%= ageInDays === 0 ? 'Created today' : `Created ${ageInDays} day${ageInDays === 1 ? '' : 's'} ago` %></span>
         <span><%- include('partials/icon', { icon: 'eye' }) %> <%= paste.views.toLocaleString('en-US') %><%= paste.maxViews ? ` / ${paste.maxViews.toLocaleString('en-US')}` : '' %> view<%= paste.views === 1 && !paste.maxViews ? '' : 's' %></span>

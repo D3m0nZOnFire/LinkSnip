@@ -91,6 +91,7 @@
       </div>
       <div class="item-badges">
         <% if (item.hasPassword) { %><span class="item-lock" title="Password-protected"><%- include('icon', { icon: 'lock' }) %><span class="visually-hidden">Password-protected</span></span><% } %>
+        <%- include('private-badge', { isPrivate: item.isPrivate }) %>
         <%- include('deletion-badge', { days: item.deletesInDays, noun: NOUNS[item.type] }) %>
         <%- include('status-badge', { status: item.accessStatus }) %>
       </div>
