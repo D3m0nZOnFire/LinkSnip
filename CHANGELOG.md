@@ -34,6 +34,11 @@ only one that may need more than "pull and restart", and its Upgrading section s
 - The files' per-person sharing list ("Only the people listed below") and the username lookup behind it
   (`/api/users/lookup`), replaced by private items for every type.
 
+### Security
+
+- body-parser 2.4.0 (CVE-2026-111181) and multer 2.5.0 (CVE-2026-113872): a crafted request could stop the server.
+  ip-address 10.7.5 (GHSA-rxp7-6hxx-x8q5).
+
 ## [1.7.2] - 2026-10-22
 
 ### Upgrading
