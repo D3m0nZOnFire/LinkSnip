@@ -19,12 +19,12 @@ function share({ baseUrl, path, facts }) {
 }
 
 /**
- * The preview of an item, or null (the generic site preview) for one that is locked (password, restricted file),
+ * The preview of an item, or null (the generic site preview) for one that is locked (password, private item),
  * reported or unavailable.
  * @param {object} options - { baseUrl, path (default: the item's public address), facts }
  */
 function itemShare(type, record, { baseUrl, path, facts }) {
-  const locked = record.password || (contentType(type).restricted && record.sharingMode === 'restricted');
+  const locked = record.password || record.isPrivate;
   if (locked || recordStatus(type, record) !== 'active') return null;
   return share({ baseUrl, path: path || `${contentType(type).publicPrefix}${record.slug}`, facts });
 }

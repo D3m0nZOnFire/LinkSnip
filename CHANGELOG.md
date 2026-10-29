@@ -4,6 +4,41 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [1.8.0] - 2026-10-29
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. The database is updated on the first start.
+- Files shared with "Only the people listed below" become **private**: only the owner, the file's team and admins can
+  open them. The people on those lists lose access; the log names the files that had any (`… were shared with other
+  people`). Move such a file into a team to share it with several people.
+
+### Added
+
+- **Private items**: links, pastes, bundles and files can be made private, on the create page (the Public / Private
+  chip) or in their edit form. A private item opens only for people who see it in their dashboard: the owner, the
+  members of its team, and admins. No password to type: a visitor who isn't logged in is sent to the login page and
+  comes back, and anyone else gets the same "page not found" as an address that doesn't exist. Its info page, QR code,
+  unlock page and item clicks follow the same rule; private links stay off the bio page and get no chat preview.
+- Admin → Items and the dashboard show a "Private" badge; `@private` (or the "Private" status) lists them.
+- Bulk import and export carry it: an `isPrivate` column (CSV and text, `yes` / `no`) or field (JSON) on import, and a
+  `Private` column (CSV) or `isPrivate` field (JSON) in exports. The CSV template has the column.
+
+### Changed
+
+- Unknown slugs on public pages (`/s/…`, `/b/…`, `/p/…`, `/f/…`, `/info/…`, `/p-info/…`, `/unlock/…`, `/bt/…`) get
+  the site's 404 page, so a private item and a missing one look the same.
+
+### Removed
+
+- The files' per-person sharing list ("Only the people listed below") and the username lookup behind it
+  (`/api/users/lookup`), replaced by private items for every type.
+
+### Security
+
+- body-parser 2.4.0 (CVE-2026-111181) and multer 2.5.0 (CVE-2026-113872): a crafted request could stop the server.
+  ip-address 10.7.5 (GHSA-rxp7-6hxx-x8q5).
+
 ## [1.7.2] - 2026-10-22
 
 ### Upgrading
@@ -322,6 +357,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
+[1.8.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.2...v1.8.0
 [1.7.2]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.6.0...v1.7.0

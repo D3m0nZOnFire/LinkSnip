@@ -1,0 +1,2 @@
+<%# The "Private" fact on a public item page: only people who see the item in their dashboard get here %>
+<% if (locals.isPrivate) { %><span><%- include('icon', { icon: 'lock' }) %> Private</span><% } %>

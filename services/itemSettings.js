@@ -5,7 +5,7 @@ const { toTime } = require('./accessService');
 const slugService = require('./slugService');
 
 /**
- * The settings every content type has (expiry, schedule, usage limit, password),
+ * The settings every content type has (expiry, schedule, usage limit, password, private),
  * read from a create or update request the same way for all of them.
  *
  *   Create: every setting is returned (null when not sent). Anonymous items get the
@@ -15,6 +15,8 @@ const slugService = require('./slugService');
  *   unchanged: the paste and file forms show the expiry as a date only.
  *   Password: '' or absent keeps it (password fields are never filled in); null or
  *   removePassword removes it. Stored trimmed.
+ *   isPrivate: '1' / 'on' / true makes the item private (0 on create when not sent). Refused
+ *   for visitors who aren't logged in: an anonymous item has no owner who could open it.
  *
  * Slug: on create the chosen one, or a random one when none is chosen. On update a different one replaces it
  *   (only its case is enough); absent, empty or the stored one sent back keeps it. Checked through slugService.
@@ -150,6 +152,15 @@ async function readSettings(type, body = {}, { user = null, existing = null } = 
     uses.passwordProtection = true;
   }
   if (creating && values.password === undefined) values.password = null;
+
+  // Private: only people who see the item in their dashboard open it. An anonymous item has no owner to log in as.
+  if (sent(body, 'isPrivate')) {
+    const isPrivate = [true, 'true', '1', 'on', 1].includes(body.isPrivate) ? 1 : 0;
+    if (isPrivate && !user) throw new SettingsError('Log in to make an item private.');
+    values.isPrivate = isPrivate;
+  } else if (creating) {
+    values.isPrivate = 0;
+  }
 
   // Slug, checked last: nothing is awaited between this check and the caller's insert or update
   const slug = readSlug(type, body, existing);

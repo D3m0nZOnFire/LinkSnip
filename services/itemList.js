@@ -14,7 +14,9 @@ const { scopeCondition } = require('./itemScope');
  *   @user:alice       owned by alice (@user:alice,bob: either; @user:anon or @anon: no owner)
  *   @user:!alice      not owned by alice
  *   @status:expired   active · blocked · expired · scheduled · max-uses · quarantined · anonymous · password-protected
+ *                     · private
  *   @protected        password-protected
+ *   @private          private (only the owner, the item's team and admins open it)
  *   @uses:>N  @uses:<N  @uses:N   clicks, views or downloads (@clicks: works too)
  */
 
@@ -56,7 +58,7 @@ const SORTS = {
 /**
  * The search box → groups of conditions (see the syntax above).
  * @returns {Array<{ cleanSearch, creatorUsernames, excludeCreatorUsernames, groupStatus, isAnonymous, isProtected,
- *   minClicks, maxClicks }>}
+ *   isPrivate, minClicks, maxClicks }>}
  */
 function parseSearch(search = '') {
   return String(search).split('|').map(s => s.trim()).map(groupSearch => {
@@ -66,6 +68,7 @@ function parseSearch(search = '') {
     let groupStatus = '';
     let isAnonymous = false; // ANDs with @status: rather than replacing it
     let isProtected = false;
+    let isPrivate = false;
     let minClicks = null;
     let maxClicks = null;
 
@@ -96,6 +99,9 @@ function parseSearch(search = '') {
         case 'protected':
           isProtected = true;
           break;
+        case 'private':
+          isPrivate = true;
+          break;
         case 'clicks':
         case 'uses':
           if (value.startsWith('>')) minClicks = parseInt(value.slice(1), 10);
@@ -105,13 +111,15 @@ function parseSearch(search = '') {
       }
     }
 
-    return { cleanSearch, creatorUsernames, excludeCreatorUsernames, groupStatus, isAnonymous, isProtected, minClicks, maxClicks };
+    return {
+      cleanSearch, creatorUsernames, excludeCreatorUsernames, groupStatus, isAnonymous, isProtected, isPrivate, minClicks, maxClicks
+    };
   });
 }
 
 /** The status dropdown counts only when the search has no status tokens of its own */
 function effectiveStatus(groups, status) {
-  return groups.some(g => g.groupStatus || g.isAnonymous || g.isProtected) ? '' : (status || '');
+  return groups.some(g => g.groupStatus || g.isAnonymous || g.isProtected || g.isPrivate) ? '' : (status || '');
 }
 
 /** The types the list can show (features on), in a fixed order */
@@ -120,6 +128,7 @@ function types() {
 }
 
 const hasPassword = "(t.password IS NOT NULL AND t.password <> '')";
+const isPrivate = '(COALESCE(t.isPrivate, 0) <> 0)';
 
 // One group's conditions for one type, ANDed
 function groupConditions(type, group, globalStatus, now) {
@@ -161,6 +170,7 @@ function groupConditions(type, group, globalStatus, now) {
   }
 
   if (group.isProtected) conditions.push(hasPassword);
+  if (group.isPrivate) conditions.push(isPrivate);
 
   const status = group.groupStatus || globalStatus || '';
   if (STATUS_FILTERS[status]) {
@@ -171,6 +181,8 @@ function groupConditions(type, group, globalStatus, now) {
     conditions.push(`${owner} IS NULL`);
   } else if (status === 'password-protected') {
     conditions.push(hasPassword);
+  } else if (status === 'private') {
+    conditions.push(isPrivate);
   }
 
   return { conditions, params };
@@ -210,7 +222,7 @@ function typeQuery(type, { groups, status, dateFrom, dateTo, now, scope, tags, t
     SELECT '${type}' AS type, t.id, t.slug, ${LABEL[type]} AS label, t.createdAt,
            COALESCE(t.${info.usedColumn}, 0) AS uses, t.${info.limitColumn} AS usageLimit,
            t.${info.ownerColumn} AS ownerId, u.username AS ownerUsername, u.isAdmin AS ownerIsAdmin,
-           CASE WHEN ${hasPassword} THEN 1 ELSE 0 END AS hasPassword,
+           CASE WHEN ${hasPassword} THEN 1 ELSE 0 END AS hasPassword, CASE WHEN ${isPrivate} THEN 1 ELSE 0 END AS isPrivate,
            COALESCE(t.isBlocked, 0) AS isBlocked, ${info.quarantine ? 'COALESCE(t.isQuarantined, 0)' : '0'} AS isQuarantined,
            t.expiresAt, t.activateAt, t.deactivateAt, t.teamId, ${type === 'file' ? 't.size' : 'NULL'} AS size,
            (SELECT COUNT(*) FROM reports r

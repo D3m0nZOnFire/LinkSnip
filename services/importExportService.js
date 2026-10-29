@@ -1,6 +1,10 @@
 const Papa = require('papaparse');
 const { stringify } = require('csv-stringify/sync');
 
+// isPrivate in a file: anything else refuses the line, so a typo never leaves a link public
+const PRIVATE_WORDS = ['1', 'true', 'yes', 'on', 'private'];
+const PUBLIC_WORDS = ['', '0', 'false', 'no', 'off', 'public'];
+
 /**
  * Import/Export Service for LinkSnip
  *
@@ -15,7 +19,7 @@ const { stringify } = require('csv-stringify/sync');
  * 3. With tags: longUrl,slug,tags (tags separated by semicolons: tag1;tag2;tag3)
  * 4. With expiration: longUrl,slug,tags,expirationDays
  * 5. With max uses: longUrl,slug,tags,expirationDays,maxUses
- * 6. Full format: longUrl,slug,tags,expirationDays,maxUses
+ * 6. Full format: longUrl,slug,tags,expirationDays,maxUses,isPrivate (yes/no; empty is no)
  *
  * IMPORTANT: Tags must be separated by SEMICOLONS (;) not commas, since commas
  * are used to separate CSV columns. Example: "marketing;campaign;email"
@@ -52,7 +56,7 @@ class ImportExportService {
 
   /**
    * Parse JSON format
-   * Expects array of objects with: longUrl, slug?, tags?, expirationDays?, maxUses?
+   * Expects array of objects with: longUrl, slug?, tags?, expirationDays?, maxUses?, isPrivate?
    */
   static parseJSON(content) {
     try {
@@ -72,20 +76,25 @@ class ImportExportService {
       data.forEach((item, index) => {
         const lineNum = index + 1;
 
-        if (typeof item === 'string') {
-          // Simple array of URLs
-          results.push(this.createURLObject(item));
-        } else if (typeof item === 'object' && item.longUrl) {
-          // Object with longUrl and optional fields
-          results.push(this.createURLObject(
-            item.longUrl,
-            item.slug,
-            item.tags,
-            item.expirationDays,
-            item.maxUses
-          ));
-        } else {
-          errors.push(`Line ${lineNum}: Invalid format - missing longUrl field`);
+        try {
+          if (typeof item === 'string') {
+            // Simple array of URLs
+            results.push(this.createURLObject(item));
+          } else if (item && typeof item === 'object' && item.longUrl) {
+            // Object with longUrl and optional fields
+            results.push(this.createURLObject(
+              item.longUrl,
+              item.slug,
+              item.tags,
+              item.expirationDays,
+              item.maxUses,
+              item.isPrivate
+            ));
+          } else {
+            errors.push(`Line ${lineNum}: Invalid format - missing longUrl field`);
+          }
+        } catch (error) {
+          errors.push(`Line ${lineNum}: ${error.message}`);
         }
       });
 
@@ -151,7 +160,7 @@ class ImportExportService {
         const expirationDays = row[3] ? parseInt(row[3]) : undefined;
         const maxUses = row[4] ? parseInt(row[4]) : undefined;
 
-        results.push(this.createURLObject(longUrl, slug, tags, expirationDays, maxUses));
+        results.push(this.createURLObject(longUrl, slug, tags, expirationDays, maxUses, row[5]));
       } catch (error) {
         errors.push(`Line ${lineNum}: ${error.message}`);
       }
@@ -178,19 +187,24 @@ class ImportExportService {
 
       if (!trimmed) return;
 
-      // Check if line contains comma (might be CSV-like)
-      if (trimmed.includes(',')) {
-        const parts = trimmed.split(',').map(p => p.trim());
-        results.push(this.createURLObject(
-          parts[0],
-          parts[1],
-          parts[2],
-          parts[3] ? parseInt(parts[3]) : undefined,
-          parts[4] ? parseInt(parts[4]) : undefined
-        ));
-      } else {
-        // Just a URL
-        results.push(this.createURLObject(trimmed));
+      try {
+        // Check if line contains comma (might be CSV-like)
+        if (trimmed.includes(',')) {
+          const parts = trimmed.split(',').map(p => p.trim());
+          results.push(this.createURLObject(
+            parts[0],
+            parts[1],
+            parts[2],
+            parts[3] ? parseInt(parts[3]) : undefined,
+            parts[4] ? parseInt(parts[4]) : undefined,
+            parts[5]
+          ));
+        } else {
+          // Just a URL
+          results.push(this.createURLObject(trimmed));
+        }
+      } catch (error) {
+        errors.push(`Line ${lineNum}: ${error.message}`);
       }
     });
 
@@ -224,7 +238,7 @@ class ImportExportService {
   /**
    * Create standardized URL object
    */
-  static createURLObject(longUrl, slug, tags, expirationDays, maxUses) {
+  static createURLObject(longUrl, slug, tags, expirationDays, maxUses, isPrivate) {
     // Validate URL format
     try {
       new URL(longUrl);
@@ -237,8 +251,20 @@ class ImportExportService {
       slug: slug && slug.trim() !== '' ? slug.trim() : undefined,
       tags: tags && tags.trim() !== '' ? tags.trim() : undefined,
       expirationDays: expirationDays && !isNaN(expirationDays) && expirationDays > 0 ? parseInt(expirationDays) : undefined,
-      maxUses: maxUses && !isNaN(maxUses) && maxUses > 0 ? parseInt(maxUses) : undefined
+      maxUses: maxUses && !isNaN(maxUses) && maxUses > 0 ? parseInt(maxUses) : undefined,
+      isPrivate: this.readPrivate(isPrivate)
     };
+  }
+
+  /**
+   * isPrivate from a file: true/false or a yes/no word (empty or missing is public)
+   */
+  static readPrivate(value) {
+    if (value === undefined || value === null || typeof value === 'boolean') return !!value;
+    const word = String(value).trim().toLowerCase();
+    if (PRIVATE_WORDS.includes(word)) return true;
+    if (PUBLIC_WORDS.includes(word)) return false;
+    throw new Error(`isPrivate must be yes or no, not "${value}"`);
   }
 
   /**
@@ -292,7 +318,8 @@ class ImportExportService {
       'Expires At': url.expiresAt || 'Never',
       'Created At': url.createdAt,
       'Tags': url.tags ? url.tags.map(t => t.name).join(';') : '',
-      'Status': url.isBlocked ? 'Blocked' : 'Active'
+      'Status': url.isBlocked ? 'Blocked' : 'Active',
+      'Private': url.isPrivate ? 'Yes' : 'No'
     }));
 
     return stringify(data, {
@@ -305,7 +332,8 @@ class ImportExportService {
         'Expires At',
         'Created At',
         'Tags',
-        'Status'
+        'Status',
+        'Private'
       ]
     });
   }
@@ -325,7 +353,8 @@ class ImportExportService {
       expiresAt: url.expiresAt || null,
       createdAt: url.createdAt,
       tags: url.tags ? url.tags.map(t => t.name) : [],
-      isBlocked: url.isBlocked ? true : false
+      isBlocked: url.isBlocked ? true : false,
+      isPrivate: !!url.isPrivate
     }));
 
     return JSON.stringify(data, null, 2);
@@ -338,11 +367,11 @@ class ImportExportService {
    */
   static generateImportTemplate() {
     const template = [
-      ['longUrl', 'slug', 'tags', 'expirationDays', 'maxUses'],
-      ['https://example.com/page1', 'example1', 'marketing;campaign;email', '30', '100'],
-      ['https://example.com/page2', 'example2', 'social-media;twitter', '60', ''],
-      ['https://example.com/page3', '', 'product;launch', '', '50'],
-      ['https://example.com/page4', '', '', '', '']
+      ['longUrl', 'slug', 'tags', 'expirationDays', 'maxUses', 'isPrivate'],
+      ['https://example.com/page1', 'example1', 'marketing;campaign;email', '30', '100', 'no'],
+      ['https://example.com/page2', 'example2', 'social-media;twitter', '60', '', 'yes'],
+      ['https://example.com/page3', '', 'product;launch', '', '50', ''],
+      ['https://example.com/page4', '', '', '', '', '']
     ];
 
     return stringify(template, { header: false });

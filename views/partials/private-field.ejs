@@ -1,0 +1,8 @@
+<%#
+  The Private checkbox of an edit form: { id, noun ('link'), checked }. Same wording everywhere; the scripts send it
+  as isPrivate ('1' / '0').
+-%>
+<div class="form-group">
+  <label class="check-line"><input type="checkbox" id="<%= id %>"<%= locals.checked ? ' checked' : '' %>> Private</label>
+  <p class="field-help">Only you, the <%= noun %>'s team and admins can open it, when logged in. Anyone else gets "page not found".</p>
+</div>

@@ -52,13 +52,12 @@ describe('seedDemo', () => {
   });
 
   it('stores the uploads of the files', () => {
-    const files = db().prepare('SELECT storedName, size, allowedUsers FROM files').all();
+    const files = db().prepare('SELECT storedName, size FROM files').all();
     expect(files.length).toBeGreaterThanOrEqual(6);
     for (const file of files) {
       expect(fs.statSync(path.join(paths.UPLOADS_DIR, file.storedName)).size).toBe(file.size);
-      expect(Array.isArray(JSON.parse(file.allowedUsers))).toBe(true); // as File.create stores it
     }
-    expect(count("SELECT COUNT(*) AS n FROM files WHERE sharingMode = 'restricted'")).toBe(1);
+    expect(count('SELECT COUNT(*) AS n FROM files WHERE isPrivate = 1')).toBe(1);
   });
 
   it('adds a month of visits, and the counters match them', () => {

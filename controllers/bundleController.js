@@ -7,6 +7,7 @@ const Tag = require('../models/Tag');
 const AnalyticsService = require('../services/analyticsService');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
 const { checkAccess, sendAccessDenied } = require('../services/accessService');
+const { sendNotFound } = require('../middleware/notFound');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 const { readSettings, SettingsError } = require('../services/itemSettings');
 const Team = require('../models/Team');
@@ -268,14 +269,9 @@ async function launchBundle(req, res) {
   const { slug } = req.params;
   const bundle = Bundle.findBySlug(slug);
 
-  if (!bundle) {
-    return res.status(404).render('error', {
-      message: 'Bundle Not Found',
-      error: { status: 404, stack: `No bundle found for /b/${slug}` }
-    });
-  }
+  if (!bundle) return sendNotFound(req, res);
 
-  // Blocked, scheduled, expired, used up, quarantine warning, password
+  // Private, blocked, scheduled, expired, used up, quarantine warning, password
   const access = checkAccess(req, 'bundle', bundle);
   if (!access.allowed) return sendAccessDenied(req, res, 'bundle', bundle, access);
 

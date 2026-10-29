@@ -3,11 +3,11 @@ const Tag = require('./Tag');
 const { scopeCondition } = require('../services/itemScope');
 
 class File {
-  static create({ userId, slug, originalName, storedName, mimeType, size, expiresAt, activateAt, deactivateAt, maxDownloads, password, sharingMode, allowedUsers }) {
+  static create({ userId, slug, originalName, storedName, mimeType, size, expiresAt, activateAt, deactivateAt, maxDownloads, password, isPrivate }) {
     const stmt = db.prepare(`
       INSERT INTO files
-        (userId, slug, originalName, storedName, mimeType, size, expiresAt, activateAt, deactivateAt, maxDownloads, password, sharingMode, allowedUsers)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (userId, slug, originalName, storedName, mimeType, size, expiresAt, activateAt, deactivateAt, maxDownloads, password, isPrivate)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const result = stmt.run(
       userId,
@@ -21,8 +21,7 @@ class File {
       deactivateAt || null,
       maxDownloads || null,
       password || null,
-      sharingMode || 'public',
-      JSON.stringify(allowedUsers || [])
+      isPrivate ? 1 : 0
     );
     return this.findById(result.lastInsertRowid);
   }
@@ -93,14 +92,14 @@ class File {
     return db.prepare('UPDATE files SET downloads = downloads + 1 WHERE id = ?').run(id);
   }
 
-  static update(id, { slug, expiresAt, activateAt, deactivateAt, maxDownloads, password, sharingMode, allowedUsers }) {
+  static update(id, { slug, expiresAt, activateAt, deactivateAt, maxDownloads, password, isPrivate }) {
     const current = this.findById(id);
     if (!current) return null;
 
     db.prepare(`
       UPDATE files
       SET slug = ?, expiresAt = ?, activateAt = ?, deactivateAt = ?, maxDownloads = ?,
-          password = ?, sharingMode = ?, allowedUsers = ?
+          password = ?, isPrivate = ?
       WHERE id = ?
     `).run(
       slug !== undefined ? slug : current.slug,
@@ -109,8 +108,7 @@ class File {
       deactivateAt !== undefined ? (deactivateAt || null) : current.deactivateAt,
       maxDownloads !== undefined ? (maxDownloads || null) : current.maxDownloads,
       password !== undefined ? password : current.password,
-      sharingMode !== undefined ? sharingMode : current.sharingMode,
-      allowedUsers !== undefined ? JSON.stringify(allowedUsers) : current.allowedUsers,
+      isPrivate !== undefined ? (isPrivate ? 1 : 0) : current.isPrivate,
       id
     );
 

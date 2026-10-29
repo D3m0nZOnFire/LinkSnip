@@ -45,4 +45,12 @@ describe('a fresh database', () => {
       .map(r => r.tbl_name);
     expect(indexes.sort()).toEqual(['bundles', 'files', 'pastes', 'urls']);
   });
+
+  it('has isPrivate on every content table, and no file sharing list', () => {
+    for (const table of ['urls', 'bundles', 'pastes', 'files']) {
+      expect(columnsOfFreshDatabase(table)).toContain('isPrivate');
+    }
+    expect(columnsOfFreshDatabase('files')).not.toContain('allowedUsers');
+    expect(columnsOfFreshDatabase('files')).not.toContain('sharingMode');
+  });
 });
