@@ -18,6 +18,7 @@
       </div>
 
       <div class="item-facts">
+        <%- include('partials/private-fact', { isPrivate: paste.isPrivate }) %>
         <span><%- include('partials/icon', { icon: 'bio' }) %> <%= owner.username %></span>
         <span><%- include('partials/icon', { icon: 'calendar' }) %> <%= day(paste.createdAt) %></span>
         <span><%- include('partials/icon', { icon: 'eye' }) %> <%= paste.views.toLocaleString('en-US') %><%= paste.maxViews ? ` / ${paste.maxViews.toLocaleString('en-US')}` : '' %> view<%= paste.views === 1 && !paste.maxViews ? '' : 's' %></span>

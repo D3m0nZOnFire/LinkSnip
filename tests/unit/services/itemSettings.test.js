@@ -23,7 +23,7 @@ describe('readSettings on create', () => {
   it.each(Object.keys(LIMIT))('%s: nothing sent → every setting empty', async (type) => {
     const { values } = await readSettings(type, {}, { user: USER });
     expect(values).toEqual({
-      expiresAt: null, activateAt: null, deactivateAt: null, password: null, [LIMIT[type]]: null,
+      expiresAt: null, activateAt: null, deactivateAt: null, password: null, [LIMIT[type]]: null, isPrivate: 0,
       slug: expect.stringMatching(/^[A-Za-z0-9_-]{5}$/)
     });
   });
@@ -61,7 +61,7 @@ describe('readSettings on create', () => {
       expirationDays: '', maxUses: '', password: '   ', activateDateTime: '', deactivateDateTime: null
     }, { user: USER });
     expect(values).toEqual({
-      expiresAt: null, activateAt: null, deactivateAt: null, password: null, maxUses: null, slug: expect.any(String)
+      expiresAt: null, activateAt: null, deactivateAt: null, password: null, maxUses: null, isPrivate: 0, slug: expect.any(String)
     });
   });
 
@@ -236,5 +236,25 @@ describe('the slug', () => {
     createTestPaste(null, { slug: 'other' });
     const existing = createTestPaste(null, { slug: 'mine' });
     await expect(readSettings('paste', { slug: 'OTHER' }, { user: USER, existing })).rejects.toThrow(/already taken/);
+  });
+});
+
+describe('private', () => {
+  it.each([['1', 1], ['on', 1], [true, 1], ['true', 1], ['0', 0], ['', 0], [false, 0], ['false', 0]])(
+    'create: isPrivate %p → %p', async (sentValue, stored) => {
+      const { values } = await readSettings('paste', { isPrivate: sentValue }, { user: USER });
+      expect(values.isPrivate).toBe(stored);
+    });
+
+  it('update: changes only when sent', async () => {
+    const existing = { id: 1, isPrivate: 1, slug: 'x' };
+    expect((await readSettings('url', {}, { user: USER, existing })).values).not.toHaveProperty('isPrivate');
+    expect((await readSettings('url', { isPrivate: '0' }, { user: USER, existing })).values.isPrivate).toBe(0);
+    expect((await readSettings('url', { isPrivate: '1' }, { user: { id: 2, isAdmin: 1 }, existing: { id: 1, isPrivate: 0, slug: 'x' } })).values.isPrivate).toBe(1);
+  });
+
+  it('visitors who are not logged in cannot make an item private (it would have no owner)', async () => {
+    await expect(readSettings('url', { isPrivate: '1' }, { user: null })).rejects.toThrow(SettingsError);
+    expect((await readSettings('url', { isPrivate: '0' }, { user: null })).values.isPrivate).toBe(0);
   });
 });

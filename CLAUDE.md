@@ -92,7 +92,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
    visitors reach only `/login`, `/register`, `/setup`, `/logout`; pages → `/login?next=…`, `/` and forms → `/login`,
    `/api/` → 401 `login_required`; no exception for `/stats`), then `middleware/viewLocals.js` (`can`, `features`,
    `registrationOpen`, `writableTeams`; `appLocals()` sets `appVersion` and `reportReasons` on `app.locals`)
-6. Routers (feature routers wrapped in `featureRoutes`), then the home routes, 404 and error handlers
+6. Routers (feature routers wrapped in `featureRoutes`), then the home routes, bare slugs (`/:slug`), 404 and error
+   handlers
 
 ## Accounts
 
@@ -125,7 +126,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - `config/database.js` opens `DB_PATH`, applies `config/dbSetup.js` (WAL, `busy_timeout = 5000`, foreign keys), and
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
   `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
-  `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`, `migrateFileOwners`, `migrateSlugCase`); they're idempotent
+  `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`, `migrateFileOwners`, `migrateSlugCase`,
+  `migrateItemPrivacy`); they're idempotent
   and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there
   (bio pages included). `tests/unit/config/freshDatabase.test.js` opens a brand-new database in its own process.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
@@ -138,11 +140,11 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 - **users**: `isAdmin`, `isBanned`, `role`, `email`, `lastActive`
 - **urls**: `slug`, `longUrl`, `creatorId` (→ users, SET NULL), `clicks`, `maxUses`, `expiresAt`, `activateAt`,
-  `deactivateAt` (datetime-local + `:00.000Z`, no timezone conversion), `password` (bcrypt), `isBlocked`, `isQuarantined`
+  `deactivateAt` (datetime-local + `:00.000Z`, no timezone conversion), `password` (bcrypt), `isBlocked`, `isQuarantined`,
+  `isPrivate`
 - **pastes**, **files**, **bundles** (+ `bundle_items`): same access fields as urls, `isQuarantined` included. Every
   owner column is nullable with ON DELETE SET NULL (`files.userId` since `migrateFileOwners`, a table rebuild).
-  Pastes use `userId`/`views`/`maxViews`, files `userId`/`downloads`/`maxDownloads`/`size`/`sharingMode`/
-  `allowedUsers`
+  Pastes use `userId`/`views`/`maxViews`, files `userId`/`downloads`/`maxDownloads`/`size`
 - **analytics_events** (every type): one row per visit, `targetType` + `targetId`, `subTargetId` (a bundle item click;
   NULL for everything else), `timestamp`, `ipHash` (keyed hash, never raw IPs), `referrer`, `userAgent`, `browser`, `os`,
   `device`, `country`. Delete triggers remove an item's events (and a bundle item's clicks). (Replaced `analytics`,
@@ -165,23 +167,41 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - Look content types up with `contentType()` / `isTypeEnabled()`, never `CONTENT_TYPES[type]` with a type from the
   request: they check own keys, so `constructor` or `__proto__` is unknown, not `Object.prototype`.
 - `services/contentTypes.js`: registry of the types sharing the short-link machinery (`url`, `bundle`, `paste`,
-  `file`): table, owner/used/limit columns, feature switch, quarantine/restricted/alwaysRemember flags, public/info
+  `file`): table, owner/used/limit columns, feature switch, quarantine/alwaysRemember flags, public/info
   paths. Shared services take a type name and look the rest up here.
-- `services/accessService.js` is the one access check. Statuses in order: `blocked` → `scheduled` → `expired` →
-  `limit_reached` → `quarantined` → `login_required` / `forbidden` (restricted files) → `password_required` → `active`.
+- `services/accessService.js` is the one access check. Statuses in order: `login_required` / `not_found` (private
+  items) → `blocked` → `scheduled` → `expired` → `limit_reached` → `quarantined` → `password_required` → `active`.
   - Public routes: `checkAccess(req, type, record)` (reads the user, session unlocks and `?confirmed=1`), then
-    `sendAccessDenied(req, res, type, record, result)`: blocked/forbidden 403, scheduled 404 (`views/scheduled.ejs`),
+    `sendAccessDenied(req, res, type, record, result)`: blocked 403, scheduled 404 (`views/scheduled.ejs`),
     expired/limit_reached 410, quarantined → `views/quarantine.ejs`, password → `/unlock/:type/:slug`,
-    login_required → `/login?next=…`. Unlock pages call `sendIfUnavailable()` first.
-  - `recordStatus(type, record)` is the record-only part (first five statuses); info pages and the bio page use it with
+    login_required → `/login?next=…`, not_found → `sendNotFound`. Unlock pages call `sendIfUnavailable()` first.
+  - An unknown slug on a public route answers `sendNotFound(req, res)` (`middleware/notFound.js`, also the app's 404
+    handler), never its own message: a private item and a missing one must look the same.
+  - `recordStatus(type, record)` is the record-only part (blocked … quarantined); info pages and the bio page use it with
     `isLive(status)`. `statusSql(type)` computes the same in SQL for list filters; a test keeps the two identical.
   - List pages attach `accessStatus` with `withAccessStatus(type, rows)`; templates show it via
     `partials/status-badge.ejs`. Never recompute a status in a template.
   - Dates without a timezone are UTC (as SQLite reads them); SQL compares with `julianday()`.
 
+### Private items (every content type)
+- `isPrivate` (0/1) on urls, bundles, pastes and files (`migrateItemPrivacy`, which also turned the files' old
+  `sharingMode: 'restricted'` into private and dropped `sharingMode` / `allowedUsers`). Private = only people
+  `canView()` allows (owner, the item's team, site admins), when logged in. No role permission; anonymous items can't
+  be private (`readSettings` refuses, 400).
+- `accessService.privateStatus(type, record, user)`: null, `login_required` (no user) or `not_found`. Checked first in
+  `evaluate()`. Routes without `checkAccess` use `sendIfPrivate(req, res, type, record)` (info pages) or
+  `privateStatus` directly (QR codes and `POST /api/reports` answer like an unknown item, for visitors too). The bio
+  page leaves private links out; `itemShare` gives them no preview.
+- Set through `services/itemSettings.js` (`isPrivate`: `'1'`/`'on'`/`true`, else 0; on update only when sent). UI:
+  the create page's Public / Private chip (`[data-private-toggle]`, logged-in users only), `partials/private-field.ejs`
+  in every edit form (dashboard modals, paste editor, Admin → Items), `partials/private-fact.ejs` on public pages,
+  `partials/private-badge.ejs` on list rows, `@private` / status `private` in `itemList`.
+- Bulk import reads `isPrivate` (6th CSV/text column, JSON field; yes/no words or a boolean, anything else refuses
+  the file: `ImportExportService.readPrivate`); exports write it (CSV `Private` Yes/No, JSON `isPrivate`).
+
 ### Item settings (every content type)
-- `services/itemSettings.js` `readSettings(type, body, { user, existing })` reads expiry, schedule, usage limit and
-  password from every create and update handler. Create: all settings (null when not sent), plus the anonymous expiry
+- `services/itemSettings.js` `readSettings(type, body, { user, existing })` reads expiry, schedule, usage limit,
+  password and private from every create and update handler. Create: all settings (null when not sent), plus the anonymous expiry
   cap from the registry (`anonymousExpirySetting`). Update (`existing`): only what is sent; empty removes, a new value
   replaces, the stored value sent back is unchanged (the paste/file forms show the expiry as a date only).
 - Accepted names: `expirationDays` (days) or `expiresAt` (date); `activateDateTime`/`activateAt`,
@@ -220,13 +240,16 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Short links
 - `POST /create` (form), `GET /s/:slug` redirect with analytics, `/info/:slug` public preview.
 - Admin → Items filter (`?status=`, `@status:`): active, blocked, expired, scheduled, max-uses (= `limit_reached`),
-  quarantined, plus anonymous and password-protected; for every type.
+  quarantined, plus anonymous, password-protected and private; for every type.
 - Anonymous links always expire within `anonymous.urlExpirationDays`; expired anonymous content is deleted nightly
   (4:00), registered users' after `retention.expiredGraceDays` (the "Deletes in Nd" badge on links and pastes:
   `services/retentionService.js` `deletesInDays`, shown by `partials/deletion-badge.ejs`).
 - URL prefill (`middleware/prefill.js`, before the routes): `/https://example.com/a?b=1`, `/example.com/a` (first
   segment a host name, not a file name like `xmlrpc.php` or `index.html`) or an encoded link opens the create page (`/`) with it in the Link tab; a merged `https:/` is
   repaired. Only http(s), at most 2048 characters; LinkSnip's own paths never match.
+- Bare slugs (`routes/bareSlugRoutes.js`, mounted last, right before the 404): `/:slug` answers 302 to the item's
+  public address, trying the enabled types in registry order (link first). Items `privateStatus` refuses are skipped,
+  so they 404 like an unknown slug; the target route checks everything else. Any route above it wins.
 - Create page (`views/index.ejs`, `public/css/create.css`, `public/js/create.js`): logged-in users get a plain
   "Create" page, visitors the hero. Modes Link / Text / Bundle / File are `[data-section]`s; a chip `[data-chip]` opens
   the `[data-panel]` of the same name in its section (`data-format` says how its value reads on the chip). Chips the
@@ -245,16 +268,14 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 ### Files
 - Upload `POST /api/files/upload` (permission `uploadFiles`, `uploadLimiter`), preview `/f/:slug`, download
-  `/f/:slug/download`. `GET /api/files/:id` (who may edit it) gives the dashboard's edit form the settings, allowed
-  people as `{ id, username }`, tags and `hasPassword` (never the hash).
+  `/f/:slug/download`. `GET /api/files/:id` (who may edit it) gives the dashboard's edit form the settings
+  (`isPrivate` included), tags and `hasPassword` (never the hash).
 - `middleware/fileUpload.js` builds multer per request: byte limit = min(role `maxFileSizeMB` capped by
   `files.globalMaxFileSizeMB`, remaining `storageQuotaMB`). Oversized uploads are cut off while streaming (413);
   `unlimited`/admins bypass both.
 - All `/f/*` responses send `X-Content-Type-Options: nosniff`; downloads also `Content-Security-Policy: sandbox`
   and are always attachments. Any file type is allowed.
 - Admin → Items (type Files) can block/unblock (blocked → 403) and delete (the upload too).
-- `sharingMode: 'restricted'` + `allowedUsers`: only the owner, listed users and admins (the `login_required` /
-  `forbidden` access statuses).
 
 ### Bundles and bio pages
 - Bundles: `/b/:slug` launcher, `/bt/:itemId` per-item tracking redirect (checks the bundle's access).
@@ -423,7 +444,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   the dashboard: one
   query per enabled type from the registry, `UNION ALL` for "all", status from `statusSql`, pending report counts,
   tags, `deletesInDays`). Type pills, search syntax (`parseSearch`: `@user:a,b`, `@user:!a`, `@anon`, `@status:`,
-  `@protected`, `@uses:>N` / `<N` / `N` (strict; `@clicks:` too), `|` for OR), status, reports, sort, date range,
+  `@protected`, `@private`, `@uses:>N` / `<N` / `N` (strict; `@clicks:` too), `|` for OR), status, reports, sort, date range,
   25/50/100 per page. Row actions: info, analytics, QR, edit (links: modal on `/api/urls/:id`; pastes: their
   editor), block/unblock, delete; select mode for bulk block/unblock/delete. `/admin/links`, `/admin/files`,
   `/admin/pastes` redirect to it (filters kept).

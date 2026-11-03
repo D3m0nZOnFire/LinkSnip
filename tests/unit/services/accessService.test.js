@@ -4,6 +4,7 @@
 process.env.TZ = 'Europe/Zurich';
 
 const access = require('../../../services/accessService');
+const { sendNotFound } = require('../../../middleware/notFound');
 const { getTestDatabase } = require('../../setup/testDatabase');
 const {
   createTestUrl, createTestBundle, createTestPaste, createTestFile,
@@ -104,8 +105,8 @@ describe('accessService', () => {
   });
 
   describe('recordStatus', () => {
-    it('ignores the password and the visitor, like the SQL', () => {
-      const file = { id: 1, userId: 2, isBlocked: 0, downloads: 0, maxDownloads: null, password: 'hash', sharingMode: 'restricted', allowedUsers: '[]' };
+    it('ignores the password, privacy and the visitor, like the SQL', () => {
+      const file = { id: 1, userId: 2, isBlocked: 0, downloads: 0, maxDownloads: null, password: 'hash', isPrivate: 1 };
       expect(access.recordStatus('file', file, NOW)).toBe('active');
     });
   });
@@ -144,53 +145,61 @@ describe('accessService', () => {
     });
   });
 
-  describe('evaluate: restricted files', () => {
+  describe('evaluate: private items', () => {
     const OWNER = 10;
-    const file = (fields) => ({
-      id: 1, slug: 'doc', userId: OWNER, isBlocked: 0, downloads: 0, maxDownloads: null,
-      sharingMode: 'restricted', allowedUsers: '[7]', password: null, ...fields
+    const OWNER_COLUMN = { url: 'creatorId', bundle: 'creatorId', paste: 'userId', file: 'userId' };
+    const record = (type, fields) => ({
+      id: 1, slug: 'doc', [OWNER_COLUMN[type]]: OWNER, isBlocked: 0, isQuarantined: 0, isPrivate: 1, password: null, ...fields
     });
-    const status = (record, user, extra = {}) => access.evaluate('file', record, { now: NOW, user, ...extra }).status;
+    const status = (type, rec, user, extra = {}) => access.evaluate(type, rec, { now: NOW, user, ...extra }).status;
+    const TYPE_NAMES = ['url', 'bundle', 'paste', 'file'];
 
-    it('sends visitors who are not logged in to the login page', () => {
-      expect(status(file(), null)).toBe('login_required');
-    });
-
-    it('refuses logged-in users who are not on the list', () => {
-      expect(status(file(), { id: 99, isAdmin: 0 })).toBe('forbidden');
+    it.each(TYPE_NAMES)('%s: sends visitors who are not logged in to the login page', (type) => {
+      expect(status(type, record(type), null)).toBe('login_required');
     });
 
-    it('lets in the owner, listed users and admins', () => {
-      expect(status(file(), { id: OWNER, isAdmin: 0 })).toBe('active');
-      expect(status(file(), { id: 7, isAdmin: 0 })).toBe('active');
-      expect(status(file(), { id: 99, isAdmin: 1 })).toBe('active');
+    it.each(TYPE_NAMES)('%s: a logged-in stranger finds nothing', (type) => {
+      expect(status(type, record(type), { id: 99, isAdmin: 0 })).toBe('not_found');
     });
 
-    it('accepts allowedUsers as an array too, and treats a broken list as empty', () => {
-      expect(status(file({ allowedUsers: [7] }), { id: 7 })).toBe('active');
-      expect(status(file({ allowedUsers: 'not json' }), { id: 7 })).toBe('forbidden');
+    it.each(TYPE_NAMES)('%s: lets in the owner and admins', (type) => {
+      expect(status(type, record(type), { id: OWNER, isAdmin: 0 })).toBe('active');
+      expect(status(type, record(type), { id: 99, isAdmin: 1 })).toBe('active');
     });
 
-    it('refuses before asking for a password the visitor could not use', () => {
-      expect(status(file({ password: 'hash' }), { id: 99 })).toBe('forbidden');
-      expect(status(file({ password: 'hash' }), { id: 7 })).toBe('password_required');
-      expect(status(file({ password: 'hash' }), { id: 7 }, { unlocked: true })).toBe('active');
+    it('hides every other status from strangers: they never learn the item exists', () => {
+      expect(status('url', record('url', { isBlocked: 1 }), { id: 99 })).toBe('not_found');
+      expect(status('url', record('url', { expiresAt: PAST }), null)).toBe('login_required');
+      expect(status('url', record('url', { activateAt: FUTURE }), { id: 99 })).toBe('not_found');
+      expect(status('url', record('url', { isQuarantined: 1 }), { id: 99 })).toBe('not_found');
     });
 
-    it('still reports the hard statuses first', () => {
-      expect(status(file({ isBlocked: 1 }), { id: 99 })).toBe('blocked');
-      expect(status(file({ expiresAt: PAST }), null)).toBe('expired');
+    it('shows the owner the other statuses as usual', () => {
+      expect(status('url', record('url', { isBlocked: 1 }), { id: OWNER })).toBe('blocked');
+      expect(status('url', record('url', { expiresAt: PAST }), { id: OWNER })).toBe('expired');
+      expect(status('url', record('url', { isQuarantined: 1 }), { id: OWNER })).toBe('quarantined');
     });
 
-    it('ignores the list for public files', () => {
-      expect(status(file({ sharingMode: 'public' }), null)).toBe('active');
+    it('still asks the owner for the password', () => {
+      expect(status('paste', record('paste', { password: 'hash' }), { id: OWNER })).toBe('password_required');
+      expect(status('paste', record('paste', { password: 'hash' }), { id: OWNER }, { unlocked: true })).toBe('active');
+      expect(status('paste', record('paste', { password: 'hash' }), { id: 99 })).toBe('not_found');
+    });
+
+    it('an item without an owner is private to admins', () => {
+      expect(status('url', record('url', { creatorId: null }), { id: 99 })).toBe('not_found');
+      expect(status('url', record('url', { creatorId: null }), { id: 99, isAdmin: 1 })).toBe('active');
+    });
+
+    it('ignores everything for public items', () => {
+      expect(status('file', record('file', { isPrivate: 0 }), null)).toBe('active');
     });
   });
 
   describe('isLive', () => {
     it('is false only for statuses where the record itself is unavailable', () => {
       for (const s of ['blocked', 'scheduled', 'expired', 'limit_reached']) expect(access.isLive(s)).toBe(false);
-      for (const s of ['active', 'quarantined', 'password_required', 'login_required', 'forbidden']) expect(access.isLive(s)).toBe(true);
+      for (const s of ['active', 'quarantined', 'password_required', 'login_required']) expect(access.isLive(s)).toBe(true);
     });
   });
 
@@ -203,7 +212,7 @@ describe('accessService', () => {
     });
 
     it('has a message for every status that shows an error page', () => {
-      for (const s of ['blocked', 'scheduled', 'expired', 'limit_reached', 'forbidden']) {
+      for (const s of ['blocked', 'scheduled', 'expired', 'limit_reached']) {
         expect(access.message('paste', s)).toMatch(/^This paste|this paste/);
       }
     });
@@ -274,10 +283,30 @@ describe('accessService', () => {
       expect(session.unlockOnce).toEqual({ type: 'url', id: url.id });
     });
 
-    it('passes the logged-in user on for restricted files', () => {
-      const file = insert('file', { sharingMode: 'restricted', allowedUsers: '[]' });
-      expect(access.checkAccess(visit(), 'file', file).status).toBe('login_required');
-      expect(access.checkAccess(visit({}, {}, { id: 555, isAdmin: 0 }), 'file', file).status).toBe('forbidden');
+    it.each(['url', 'bundle', 'paste', 'file'])('%s: passes the logged-in user on for private items', (type) => {
+      const record = insert(type, { isPrivate: 1 });
+      expect(access.checkAccess(visit(), type, record).status).toBe('login_required');
+      expect(access.checkAccess(visit({}, {}, { id: 555, isAdmin: 0 }), type, record).status).toBe('not_found');
+      expect(access.checkAccess(visit({}, {}, { id: 555, isAdmin: 1 }), type, record).status).toBe('active');
+    });
+  });
+
+  describe('sendIfUnavailable (unlock pages)', () => {
+    const run = (record, user) => {
+      const res = createMockResponse();
+      const req = createMockRequest({ user, get: () => undefined, originalUrl: `/unlock/paste/${record.slug}` });
+      return { sent: access.sendIfUnavailable(req, res, 'paste', record), res };
+    };
+
+    it('never shows the password page of a private item to someone who may not open it', () => {
+      const paste = insert('paste', { isPrivate: 1, password: 'hash' });
+      const stranger = run(paste, { id: 555, isAdmin: 0 });
+      expect(stranger.sent).toBe(true);
+      expect(stranger.res.statusCode).toBe(404);
+      const visitor = run(paste, null);
+      expect(visitor.sent).toBe(true);
+      expect(visitor.res.redirect).toHaveBeenCalledWith(`/login?next=${encodeURIComponent(`/unlock/paste/${paste.slug}`)}`);
+      expect(run(paste, { id: 555, isAdmin: 1 }).sent).toBe(false);
     });
   });
 
@@ -311,10 +340,13 @@ describe('accessService', () => {
       expect(res._viewData).toEqual(expect.objectContaining({ code: 410, message: access.message('url', status) }));
     });
 
-    it('forbidden → 403 error page', () => {
-      const res = send('file', rec, 'forbidden');
-      expect(res.statusCode).toBe(403);
-      expect(res._viewData).toEqual(expect.objectContaining({ code: 403, message: access.message('file', 'forbidden') }));
+    it('not_found → the same 404 page as an address that does not exist', () => {
+      const res = send('file', rec, 'not_found');
+      const unknown = createMockResponse();
+      sendNotFound(createMockRequest(), unknown);
+      expect(res.statusCode).toBe(404);
+      expect(res._view).toBe(unknown._view);
+      expect(res._viewData).toEqual(unknown._viewData);
     });
 
     it('login_required → login page that comes back here', () => {

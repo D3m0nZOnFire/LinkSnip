@@ -47,7 +47,8 @@
       expiresAt: $('peExpiresAt').value || null,
       maxViews: $('peMaxViews').value || null,
       slug: $('peSlug').value.trim(),
-      tags: $('peTags').value
+      tags: $('peTags').value,
+      isPrivate: $('pePrivate').checked ? '1' : '0'
     };
     const remove = $('peRemovePassword');
     const password = $('pePassword').value;

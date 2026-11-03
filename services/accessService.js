@@ -1,15 +1,20 @@
 const { contentType } = require('./contentTypes');
 const { canView } = require('./itemPermissions');
 const unlocks = require('./unlockService');
+const { sendNotFound } = require('../middleware/notFound');
 
 /**
  * One access check for every content type (links, bundles, pastes, files).
  *
  * Statuses, in the order they are checked:
- *   blocked → scheduled → expired → limit_reached → quarantined
- *   → login_required / forbidden (restricted files) → password_required → active
+ *   login_required / not_found (private items) → blocked → scheduled → expired
+ *   → limit_reached → quarantined → password_required → active
  *
- * The first five depend on the record alone (recordStatus). statusSql() computes
+ * A private item opens only for people who see it in their dashboard (canView: the owner, the item's
+ * team, admins). It is checked first, so nobody else learns anything about it: a logged-in stranger
+ * gets the same 404 page as an address that doesn't exist.
+ *
+ * blocked … quarantined depend on the record alone (recordStatus). statusSql() computes
  * the same five in SQL for list filters; a test keeps the two in step. The rest
  * depend on the visitor (session, login) and only exist in evaluate().
  *
@@ -58,22 +63,11 @@ function recordStatus(type, record, now = new Date()) {
   return 'active';
 }
 
-function allowedUserIds(record) {
-  if (Array.isArray(record.allowedUsers)) return record.allowedUsers;
-  try {
-    const ids = JSON.parse(record.allowedUsers || '[]');
-    return Array.isArray(ids) ? ids : [];
-  } catch (_) {
-    return [];
-  }
-}
-
-/** For restricted files: null when the user may open it, otherwise the status. */
-function restrictedStatus(type, info, record, user) {
-  if (!info.restricted || record.sharingMode !== 'restricted') return null;
+/** For private items: null when the user may open it, otherwise login_required or not_found. */
+function privateStatus(type, record, user) {
+  if (!record.isPrivate) return null;
   if (!user) return 'login_required';
-  if (canView(user, type, record) || allowedUserIds(record).includes(user.id)) return null;
-  return 'forbidden';
+  return canView(user, type, record) ? null : 'not_found';
 }
 
 /**
@@ -82,15 +76,14 @@ function restrictedStatus(type, info, record, user) {
  * @returns {{ status: string, allowed: boolean }}
  */
 function evaluate(type, record, ctx = {}) {
-  const info = contentType(type);
   const result = (status) => ({ status, allowed: status === 'active' });
+
+  const hidden = privateStatus(type, record, ctx.user || null);
+  if (hidden) return result(hidden);
 
   const status = recordStatus(type, record, ctx.now || new Date());
   if (UNAVAILABLE.includes(status)) return result(status);
   if (status === 'quarantined' && !ctx.quarantineAck) return result(status);
-
-  const restricted = restrictedStatus(type, info, record, ctx.user || null);
-  if (restricted) return result(restricted);
 
   if (record.password && !ctx.unlocked) return result('password_required');
 
@@ -135,7 +128,6 @@ function message(type, status) {
     case 'limit_reached': return `This ${noun} has reached its usage limit.`;
     case 'quarantined': return `This ${noun} has been reported by several visitors.`;
     case 'login_required': return `Log in to access this ${noun}.`;
-    case 'forbidden': return `You do not have permission to access this ${noun}.`;
     case 'password_required': return `This ${noun} is password protected.`;
     default: return null;
   }
@@ -203,19 +195,32 @@ function sendAccessDenied(req, res, type, record, result) {
       });
     case 'blocked':
       return res.status(403).render('error', { user, title: `${noun} Blocked`, message: text, code: 403 });
-    case 'forbidden':
-      return res.status(403).render('error', { user, title: 'Access Denied', message: text, code: 403 });
+    case 'not_found':
+      return sendNotFound(req, res);
     default:
       return res.status(410).render('error', { user, title: `${noun} Unavailable`, message: text, code: 410 });
   }
 }
 
 /**
- * For pages that come before the full check (the unlock pages): refuse a record
- * that is unavailable to everyone.
+ * For pages that show a private item without the full check (info pages, QR codes, reports):
+ * refuse someone who may not open it, like checkAccess would.
+ * @returns {boolean} true when a response was sent (the caller stops)
+ */
+function sendIfPrivate(req, res, type, record) {
+  const status = privateStatus(type, record, req.user || null);
+  if (!status) return false;
+  sendAccessDenied(req, res, type, record, { status, allowed: false });
+  return true;
+}
+
+/**
+ * For pages that come before the full check (the unlock pages): refuse a private record
+ * the visitor may not open, and a record that is unavailable to everyone.
  * @returns {boolean} true when a response was sent (the caller stops)
  */
 function sendIfUnavailable(req, res, type, record) {
+  if (sendIfPrivate(req, res, type, record)) return true;
   const status = recordStatus(type, record);
   if (isLive(status)) return false;
   sendAccessDenied(req, res, type, record, { status, allowed: false });
@@ -229,6 +234,6 @@ function withAccessStatus(type, rows) {
 }
 
 module.exports = {
-  recordStatus, evaluate, isLive, statusSql, message, checkAccess, sendAccessDenied, sendIfUnavailable,
-  withAccessStatus, toTime
+  recordStatus, evaluate, privateStatus, isLive, statusSql, message, checkAccess, sendAccessDenied, sendIfPrivate,
+  sendIfUnavailable, withAccessStatus, toTime
 };

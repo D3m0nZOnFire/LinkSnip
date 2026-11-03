@@ -251,14 +251,14 @@ describe('team dashboard (/dashboard?team=:id)', () => {
   });
 });
 
-describe('restricted team files', () => {
+describe('private team files', () => {
   it('every team member may open them, like the owner', () => {
-    const file = createTestFile(people.owner.id, { slug: 'secret', storedName: 's.bin', sharingMode: 'restricted', allowedUsers: '[]' });
+    const file = createTestFile(people.owner.id, { slug: 'secret', storedName: 's.bin', isPrivate: 1 });
     db().prepare('UPDATE files SET teamId = ? WHERE id = ?').run(team.id, file.id);
     const record = File.findById(file.id);
 
     expect(evaluate('file', record, { user: people.viewer }).status).toBe('active');
-    expect(evaluate('file', record, { user: people.outsider }).status).toBe('forbidden');
+    expect(evaluate('file', record, { user: people.outsider }).status).toBe('not_found');
   });
 });
 

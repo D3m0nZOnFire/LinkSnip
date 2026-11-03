@@ -1,6 +1,7 @@
 const Bundle = require('../models/Bundle');
 const AnalyticsService = require('../services/analyticsService');
 const { checkAccess, sendAccessDenied } = require('../services/accessService');
+const { sendNotFound } = require('../middleware/notFound');
 
 /**
  * GET /bt/:itemId
@@ -13,12 +14,7 @@ async function trackBundleItemClick(req, res) {
   const item = db.prepare('SELECT * FROM bundle_items WHERE id = ?').get(itemId);
   const bundle = item && Bundle.findById(item.bundleId);
 
-  if (!item || !bundle) {
-    return res.status(404).render('error', {
-      message: 'Link Not Found',
-      error: { status: 404, stack: '' }
-    });
-  }
+  if (!item || !bundle) return sendNotFound(req, res);
 
   // Item IDs are guessable: open nothing the bundle's own page would refuse. The usage
   // limit counts launches, so the visitor who launched the bundle can still open its items.

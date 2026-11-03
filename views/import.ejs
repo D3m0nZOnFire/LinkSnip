@@ -50,8 +50,8 @@
 
       <h4>CSV</h4>
       <p>Commas between columns; only <code>longUrl</code> is required. Separate several tags with semicolons.</p>
-      <pre><code>longUrl,slug,tags,expirationDays,maxUses
-https://example.com/page1,link1,marketing;email,30,100
+      <pre><code>longUrl,slug,tags,expirationDays,maxUses,isPrivate
+https://example.com/page1,link1,marketing;email,30,100,yes
 https://example.com/page2,link2,social-media,60,50
 https://example.com/page3,,,90,
 https://example.com/page4</code></pre>
@@ -64,7 +64,8 @@ https://example.com/page4</code></pre>
     "slug": "my-link",
     "tags": "marketing, campaign, email",
     "expirationDays": 30,
-    "maxUses": 100
+    "maxUses": 100,
+    "isPrivate": true
   },
   { "longUrl": "https://example.com/page2", "tags": "social-media" }
 ]</code></pre>
@@ -84,6 +85,7 @@ https://example.com/page2</code></pre>
             <tr><td><code>tags</code></td><td>No</td><td>CSV: <code>marketing;email</code> · JSON: <code>"marketing, email"</code></td></tr>
             <tr><td><code>expirationDays</code></td><td>No</td><td>Days until the link expires; empty never expires</td></tr>
             <tr><td><code>maxUses</code></td><td>No</td><td>Clicks until the link stops working; empty has no limit</td></tr>
+            <tr><td><code>isPrivate</code></td><td>No</td><td><code>yes</code> opens only for you, its team and admins, when logged in; empty or <code>no</code> is public</td></tr>
           </tbody>
         </table>
       </div>

@@ -27,7 +27,7 @@ describe('File Model', () => {
       expect(file.mimeType).toBe('application/pdf');
       expect(file.size).toBe(2048);
       expect(file.downloads).toBe(0);
-      expect(file.sharingMode).toBe('public');
+      expect(file.isPrivate).toBe(0);
       expect(file.isBlocked).toBe(0);
     });
 
@@ -49,8 +49,7 @@ describe('File Model', () => {
         deactivateAt,
         maxDownloads: 5,
         password: '$2b$10$hashedpassword',
-        sharingMode: 'restricted',
-        allowedUsers: [99, 100]
+        isPrivate: true
       });
 
       expect(file.expiresAt).toBe(expiresAt);
@@ -58,19 +57,17 @@ describe('File Model', () => {
       expect(file.deactivateAt).toBe(deactivateAt);
       expect(file.maxDownloads).toBe(5);
       expect(file.password).toBe('$2b$10$hashedpassword');
-      expect(file.sharingMode).toBe('restricted');
-      expect(JSON.parse(file.allowedUsers)).toEqual([99, 100]);
+      expect(file.isPrivate).toBe(1);
     });
 
-    it('defaults sharingMode to public and allowedUsers to []', async () => {
+    it('is public by default', async () => {
       const user = await createTestUser();
       const file = File.create({
         userId: user.id, slug: 'def01', originalName: 'x.txt',
         storedName: 'u.txt', mimeType: 'text/plain', size: 10
       });
 
-      expect(file.sharingMode).toBe('public');
-      expect(JSON.parse(file.allowedUsers)).toEqual([]);
+      expect(file.isPrivate).toBe(0);
     });
   });
 
@@ -241,9 +238,9 @@ describe('File Model', () => {
       const user = await createTestUser();
       const file = createTestFile(user.id, { slug: 'upd02', maxDownloads: 5 });
 
-      const updated = File.update(file.id, { sharingMode: 'restricted' });
+      const updated = File.update(file.id, { isPrivate: 1 });
       expect(updated.maxDownloads).toBe(5);
-      expect(updated.sharingMode).toBe('restricted');
+      expect(updated.isPrivate).toBe(1);
     });
 
     it('updates password', async () => {
@@ -254,12 +251,11 @@ describe('File Model', () => {
       expect(updated.password).toBe('$2b$10$newhash');
     });
 
-    it('updates allowedUsers as JSON array', async () => {
+    it('makes a private file public again', async () => {
       const user = await createTestUser();
-      const file = createTestFile(user.id, { slug: 'upd04' });
+      const file = createTestFile(user.id, { slug: 'upd04', isPrivate: 1 });
 
-      const updated = File.update(file.id, { allowedUsers: [1, 2, 3] });
-      expect(JSON.parse(updated.allowedUsers)).toEqual([1, 2, 3]);
+      expect(File.update(file.id, { isPrivate: 0 }).isPrivate).toBe(0);
     });
 
     it('returns null for a non-existent file', async () => {

@@ -24,6 +24,13 @@
     <button type="button" class="creator-chip${allowed ? '' : ' chip-locked'}" id="${id}" data-chip="${chip}" data-default="${label}"${format ? ` data-format="${format}"` : ''}${allowed ? ' aria-expanded="false"' : ` disabled title="${lockedTitle}"`}>
       ${include('partials/icon', { icon })}<span class="chip-label">${label}</span>
     </button>`;
+  // Public / Private (logged-in users only: an item without an owner can't be private). The hidden input carries
+  // the value: the link form posts it, the other modes read it.
+  const privateChip = (id, name) => user ? `
+    <button type="button" class="creator-chip" data-private-toggle="${id}" aria-pressed="false" title="Private: only you, your team and admins can open it, when logged in">
+      ${include('partials/icon', { icon: 'lock' })}<span class="chip-label">Public</span>
+    </button>
+    <input type="hidden" id="${id}"${name ? ` name="${name}"` : ''} value="">` : '';
 -%>
 <%- include('partials/layout-start', { shell, currentPage: 'home' }) %>
 
@@ -98,6 +105,7 @@
           <%- chip({ id: 'chip-password', chip: 'password', icon: 'lock', label: 'Password', format: 'password', allowed: can.passwordProtection }) %>
           <%- chip({ id: 'chip-schedule', chip: 'schedule', icon: 'calendar', label: 'Schedule', format: 'schedule', allowed: can.scheduling }) %>
           <%- chip({ id: 'chip-tags', chip: 'tags', icon: 'tag', label: 'Tags', format: 'tags', allowed: can.tags }) %>
+          <%- privateChip('urlPrivate', 'isPrivate') %>
         </div>
 
         <div class="creator-panel" data-panel="expiry" hidden>
@@ -181,6 +189,7 @@
           <%- chip({ id: 'pchip-password', chip: 'password', icon: 'lock', label: 'Password', format: 'password', allowed: can.passwordProtection }) %>
           <%- chip({ id: 'pchip-schedule', chip: 'schedule', icon: 'calendar', label: 'Schedule', format: 'schedule', allowed: can.scheduling }) %>
           <%- chip({ id: 'pchip-tags', chip: 'tags', icon: 'tag', label: 'Tags', format: 'tags', allowed: can.tags }) %>
+          <%- privateChip('pastePrivate') %>
         </div>
 
         <div class="creator-panel" data-panel="expires" hidden>
@@ -242,6 +251,9 @@
           <input type="hidden" id="bundleTags" value="">
         </div>
         <% } %>
+        <div class="creator-chips-bar">
+          <%- privateChip('bundlePrivate') %>
+        </div>
       </div>
       <% } %>
 
@@ -272,7 +284,7 @@
           <%- chip({ id: 'fchip-password', chip: 'password', icon: 'lock', label: 'Password', format: 'password', allowed: can.passwordProtection }) %>
           <%- chip({ id: 'fchip-schedule', chip: 'schedule', icon: 'calendar', label: 'Schedule', format: 'schedule', allowed: can.scheduling }) %>
           <%- chip({ id: 'fchip-tags', chip: 'tags', icon: 'tag', label: 'Tags', format: 'tags', allowed: can.tags }) %>
-          <%- chip({ id: 'fchip-share', chip: 'share', icon: 'teams', label: 'Anyone with the link' }) %>
+          <%- privateChip('filePrivate') %>
         </div>
 
         <div class="creator-panel" data-panel="expires" hidden>
@@ -311,13 +323,6 @@
           <input type="hidden" id="fileTags" value="">
         </div>
         <% } %>
-        <div class="creator-panel" data-panel="share" hidden>
-          <div class="user-chips-input-wrap" id="fileShareChips">
-            <input type="text" id="fileShareTyper" class="user-chips-text-input" placeholder="Type a username and press Enter…" autocomplete="off" aria-label="Share with">
-          </div>
-          <p class="field-error" id="fileShareError" role="alert" hidden></p>
-          <p class="field-help">Only the people listed can open it. Leave empty for anyone with the link.</p>
-        </div>
       </div>
       <% } %>
 

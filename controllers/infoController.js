@@ -1,6 +1,7 @@
 const Url = require('../models/Url');
 const Report = require('../models/Report');
-const { recordStatus, isLive, message: accessMessage } = require('../services/accessService');
+const { recordStatus, isLive, sendIfPrivate, message: accessMessage } = require('../services/accessService');
+const { sendNotFound } = require('../middleware/notFound');
 const { itemShare } = require('../services/sharePreview');
 
 class InfoController {
@@ -14,13 +15,8 @@ class InfoController {
     try {
       const url = Url.findBySlug(slug);
 
-      if (!url) {
-        return res.status(404).render('error', {
-          title: 'URL Not Found',
-          message: 'The short URL you are looking for does not exist.',
-          code: 404
-        });
-      }
+      if (!url) return sendNotFound(req, res);
+      if (sendIfPrivate(req, res, 'url', url)) return;
 
       // Status from the link itself (the password is shown separately on the page)
       const status = recordStatus('url', url);

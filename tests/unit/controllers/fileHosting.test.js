@@ -256,16 +256,12 @@ describe('a one-time password unlock', () => {
 describe('GET /api/files/:id (the dashboard edit form)', () => {
   const get = (user, id) => request(app).get(`/api/files/${id}`).set('x-user', JSON.stringify(user));
 
-  it('gives the owner the file\'s settings, allowed people by name, and no password hash', async () => {
-    const friend = await createTestUser({ username: 'friend' });
-    const file = createTestFile(trusted.id, {
-      slug: 'doc', password: '$2b$10$hash', sharingMode: 'restricted', allowedUsers: JSON.stringify([friend.id]), maxDownloads: 5
-    });
+  it('gives the owner the file\'s settings and no password hash', async () => {
+    const file = createTestFile(trusted.id, { slug: 'doc', password: '$2b$10$hash', isPrivate: 1, maxDownloads: 5 });
 
     const res = await get(trusted, file.id);
     expect(res.status).toBe(200);
-    expect(res.body.file).toMatchObject({ id: file.id, slug: 'doc', maxDownloads: 5, sharingMode: 'restricted', hasPassword: true });
-    expect(res.body.file.allowedUsers).toEqual([{ id: friend.id, username: 'friend' }]);
+    expect(res.body.file).toMatchObject({ id: file.id, slug: 'doc', maxDownloads: 5, isPrivate: 1, hasPassword: true });
     expect(res.body.file.password).toBeUndefined();
     expect(res.body.file.tags).toEqual([]);
   });

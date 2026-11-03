@@ -4,7 +4,7 @@ const { contentType } = require('./contentTypes');
  * Item permissions: who may see and change one item (link, bundle, paste, file).
  *
  * Every ownership check goes through here, so the rules live in one place:
- * - canView: listing it, its analytics, opening a restricted file
+ * - canView: listing it, its analytics, opening a private item
  * - canEdit: editing, deleting, settings, tags, analytics share links
  *
  * Personal items (teamId NULL): the owner and admins. Anonymous items (no owner) belong to admins only.

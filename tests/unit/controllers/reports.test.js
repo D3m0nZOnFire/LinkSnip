@@ -117,9 +117,10 @@ describe('POST /api/reports (ReportController.submit)', () => {
     expect(submit({ reason: 'SPAM' }).statusCode).toBe(400);
   });
 
-  it('lets people report restricted files they can see', () => {
-    const file = MAKE.file({ sharingMode: 'restricted', allowedUsers: '[]' });
-    expect(submit({ type: 'file', id: file.id, reason: 'MALWARE' }).statusCode).toBe(200);
+  it('lets people report private items they can open, and 404s everyone else', () => {
+    const file = MAKE.file({ isPrivate: 1 });
+    expect(submit({ type: 'file', id: file.id, reason: 'MALWARE' }).statusCode).toBe(404);
+    expect(submit({ type: 'file', id: file.id, reason: 'MALWARE' }, '203.0.113.1', owner).statusCode).toBe(200);
   });
 
   it('lets owners report their own items', () => {

@@ -93,7 +93,8 @@ class ImportExportController {
             longUrl: item.longUrl,
             creatorId: req.user.id,
             maxUses: item.maxUses || null,
-            expiresAt
+            expiresAt,
+            isPrivate: item.isPrivate
           });
 
           // Attach tags if provided

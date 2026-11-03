@@ -590,7 +590,40 @@ function migrateSlugCase(db, logger = console) {
   }
 }
 
+const PRIVACY_TABLES = ['urls', 'bundles', 'pastes', 'files'];
+
+/**
+ * Private items: isPrivate on every content table (only people who can see the item in their dashboard open it).
+ * Files had their own way before (sharingMode 'restricted' + an allowedUsers list of user IDs): restricted files
+ * become private, the people listed lose access (named in a warning), and the two columns are dropped.
+ */
+function migrateItemPrivacy(db, logger = console) {
+  for (const table of PRIVACY_TABLES) {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+    if (!columns.includes('isPrivate')) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN isPrivate INTEGER NOT NULL DEFAULT 0`);
+    }
+  }
+
+  const fileColumns = db.prepare('PRAGMA table_info(files)').all().map(c => c.name);
+  if (!fileColumns.includes('sharingMode')) return;
+
+  db.transaction(() => {
+    const shared = db.prepare(`
+      SELECT slug FROM files WHERE sharingMode = 'restricted' AND allowedUsers IS NOT NULL AND allowedUsers NOT IN ('', '[]')
+    `).all();
+    const { changes } = db.prepare("UPDATE files SET isPrivate = 1 WHERE sharingMode = 'restricted'").run();
+    if (changes) logger.log(`  🔒 Files: ${changes} restricted file(s) are now private`);
+    if (shared.length) {
+      logger.warn(`  ⚠️  ${shared.length} file(s) were shared with other people, who can no longer open them ` +
+        `(only the owner, the file's team and admins can): ${shared.map(r => r.slug).join(', ')}`);
+    }
+    db.exec('ALTER TABLE files DROP COLUMN sharingMode');
+    if (fileColumns.includes('allowedUsers')) db.exec('ALTER TABLE files DROP COLUMN allowedUsers');
+  })();
+}
+
 module.exports = {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners, migrateSlugCase
+  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners, migrateSlugCase, migrateItemPrivacy
 };

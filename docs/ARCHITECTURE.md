@@ -59,11 +59,12 @@ in use. Code reads settings per request, never at module load, or hot reload wou
 
 ## One access check
 
-Links, bundles, pastes and files all have the same controls: blocked, scheduled, expiry, usage limit, quarantine,
-password, and for files restricted sharing. `services/contentTypes.js` describes the four types (table, columns,
-feature switch), and `services/accessService.js` is the only place that decides whether something can be opened. It
-returns one status in a fixed order: blocked, scheduled, expired, limit reached, quarantined, login required or
-forbidden, password required, active.
+Links, bundles, pastes and files all have the same controls: private, blocked, scheduled, expiry, usage limit,
+quarantine and password. `services/contentTypes.js` describes the four types (table, columns, feature switch), and
+`services/accessService.js` is the only place that decides whether something can be opened. It returns one status in
+a fixed order: login required or not found (private items), blocked, scheduled, expired, limit reached, quarantined,
+password required, active. The private check comes first, so someone who may not open an item learns nothing about
+it: they get the same 404 page as an address that doesn't exist (`middleware/notFound.js`).
 
 **Why:** Separate checks per type drift apart. Before 1.1.0, a bundle's item links didn't check the bundle's own
 access, and before 1.2.0 a demoted admin kept admin rights on links until logging out. With one check (and one

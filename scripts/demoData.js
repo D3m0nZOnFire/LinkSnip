@@ -291,8 +291,7 @@ async function seedDemo({ passwordHash }) {
     const f = File.create({
       userId: owner.id, slug: slugName, originalName, storedName, mimeType, size: data.length,
       expiresAt: options.expiresAt || null, activateAt: null, deactivateAt: null, maxDownloads: options.maxDownloads || null,
-      password: options.password ? passwordHash : null, sharingMode: options.allowedUsers ? 'restricted' : 'public',
-      allowedUsers: (options.allowedUsers || []).map(u => u.id)
+      password: options.password ? passwordHash : null, isPrivate: !!options.isPrivate
     });
     finish('files', f.id, options);
     if (options.tags) Tag.setForItem('file', f.id, options.tags);
@@ -306,7 +305,7 @@ async function seedDemo({ passwordHash }) {
   file(alice, 'logo', 'logo.svg', 'image/svg+xml', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#34d399"/></svg>', { tags: ['marketing'], createdDaysAgo: 44 });
   file(alice, 'pixel', 'pixel.png', 'image/png', PNG, { createdDaysAgo: 30 });
   file(alice, 'pricing', 'pricing.csv', 'text/csv', 'plan,price\nfree,0\npro,9\nteam,29\n', { tags: ['launch'], createdDaysAgo: 17 });
-  file(bob, 'family-tree', 'family-tree.json', 'application/json', JSON.stringify({ name: 'Bob', children: [] }, null, 2), { allowedUsers: [alice], createdDaysAgo: 26 });
+  file(bob, 'family-tree', 'family-tree.json', 'application/json', JSON.stringify({ name: 'Bob', children: [] }, null, 2), { isPrivate: true, createdDaysAgo: 26 });
   file(bob, 'invoice', 'invoice-0042.txt', 'text/plain', 'Invoice 0042\nTotal: 120 CHF\n', { password: true, createdDaysAgo: 8 });
   file(carol, 'badge', 'speaker-badge.txt', 'text/plain', 'SPEAKER\nCarol\nDevDay 2026\n', { maxDownloads: 5, visits: 5, createdDaysAgo: 13 });
   file(dave, 'old-export', 'export-2025.csv', 'text/csv', 'slug,clicks\nstatus,260\n', { expiresAt: isoIn(-5), createdDaysAgo: 70 });

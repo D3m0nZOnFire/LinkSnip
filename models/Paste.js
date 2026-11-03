@@ -3,11 +3,11 @@ const Tag = require('./Tag');
 const { scopeCondition } = require('../services/itemScope');
 
 class Paste {
-  static create({ userId, slug, title, content, language, expiresAt, activateAt, deactivateAt, maxViews, password }) {
+  static create({ userId, slug, title, content, language, expiresAt, activateAt, deactivateAt, maxViews, password, isPrivate }) {
     const stmt = db.prepare(`
       INSERT INTO pastes
-        (userId, slug, title, content, language, expiresAt, activateAt, deactivateAt, maxViews, password)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (userId, slug, title, content, language, expiresAt, activateAt, deactivateAt, maxViews, password, isPrivate)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const result = stmt.run(
       userId || null,
@@ -19,7 +19,8 @@ class Paste {
       activateAt || null,
       deactivateAt || null,
       maxViews || null,
-      password || null
+      password || null,
+      isPrivate ? 1 : 0
     );
     return this.findById(result.lastInsertRowid);
   }
@@ -77,14 +78,14 @@ class Paste {
     return db.prepare('UPDATE pastes SET views = views + 1 WHERE id = ?').run(id);
   }
 
-  static update(id, { slug, title, language, content, expiresAt, activateAt, deactivateAt, maxViews, password }) {
+  static update(id, { slug, title, language, content, expiresAt, activateAt, deactivateAt, maxViews, password, isPrivate }) {
     const current = this.findById(id);
     if (!current) return null;
 
     db.prepare(`
       UPDATE pastes
       SET slug = ?, title = ?, language = ?, content = ?, expiresAt = ?, activateAt = ?,
-          deactivateAt = ?, maxViews = ?, password = ?
+          deactivateAt = ?, maxViews = ?, password = ?, isPrivate = ?
       WHERE id = ?
     `).run(
       slug !== undefined ? slug : current.slug,
@@ -96,6 +97,7 @@ class Paste {
       deactivateAt !== undefined ? (deactivateAt || null) : current.deactivateAt,
       maxViews !== undefined ? (maxViews || null) : current.maxViews,
       password !== undefined ? password : current.password,
+      isPrivate !== undefined ? (isPrivate ? 1 : 0) : current.isPrivate,
       id
     );
 

@@ -1,21 +1,22 @@
 const slugService = require('../services/slugService');
 const QRCodeService = require('../services/qrcodeService');
 const { CONTENT_TYPES, isTypeEnabled } = require('../services/contentTypes');
+const { privateStatus } = require('../services/accessService');
 
 /**
  * QR codes for every content type, found by slug: /qrcode/:type/:slug. Someone who can
  * ask for one already knows the address it encodes. (The old routes took an ID, so
  * counting IDs revealed every slug.) Links point at their info page, a safety preview;
- * the other types at their public page.
+ * the other types at their public page. A private item is unknown to anyone who can't open it.
  */
 
-/** The address to encode for :type/:slug, or null (unknown type, feature off, no such item). */
+/** The address to encode for :type/:slug, or null (unknown type, feature off, no such item, private to others). */
 function qrTarget(req) {
   const { type, slug } = req.params;
   if (!isTypeEnabled(type)) return null;
   const info = CONTENT_TYPES[type];
   const item = slugService.find(type, slug);
-  if (!item) return null;
+  if (!item || privateStatus(type, item, req.user || null)) return null;
   const base = `${req.protocol}://${req.get('host')}`;
   return `${base}${type === 'url' ? info.infoPrefix : info.publicPrefix}${item.slug}`;
 }

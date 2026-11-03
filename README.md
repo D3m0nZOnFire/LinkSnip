@@ -18,6 +18,7 @@ SQLite database, and everything it stores lives in a single `data/` folder.
 - **Pastes**: share text at `/p/…`, with line numbers, raw view and an editor
 - **Files**: share uploads at `/f/…`, with per-role size limits and storage quotas
 - **Bundles**: one link that opens several links at once
+- **Private items**: a link, paste, bundle or file that only you (and its team) can open, after logging in. No password to type, and anyone else gets "page not found"
 - **Bio pages**: a public page listing a user's chosen links
 - **Analytics**: clicks over time, referrers, countries, devices, browsers and operating systems. Visitor IPs are only stored as keyed hashes. Can be switched off (`features.analytics`).
 - **Analytics share links**: read-only, revocable `/stats/…` links for people without an account

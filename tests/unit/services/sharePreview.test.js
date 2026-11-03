@@ -54,8 +54,10 @@ describe('itemShare: nothing about an item the visitor could not open as it is',
     expect(itemShare('paste', paste, { baseUrl: BASE, facts })).toBeNull();
   });
 
-  it('a restricted file: nothing', () => {
-    const file = createTestFile(owner.id, { slug: 'doc', sharingMode: 'restricted', allowedUsers: '[]' });
+  it('a private item: nothing', () => {
+    const file = createTestFile(owner.id, { slug: 'doc', isPrivate: 1 });
     expect(itemShare('file', file, { baseUrl: BASE, facts: ['File'] })).toBeNull();
+    const paste = createTestPaste(owner.id, { slug: 'secret', isPrivate: 1 });
+    expect(itemShare('paste', paste, { baseUrl: BASE, facts })).toBeNull();
   });
 });

@@ -163,6 +163,7 @@
       editingId = id;
       field('editLongUrl').value = url.longUrl;
       field('editCustomSlug').value = url.slug;
+      field('editUrlPrivate').checked = !!url.isPrivate;
       field('editMaxUses').value = url.maxUses || '';
       const days = url.expiresAt ? Math.ceil((new Date(url.expiresAt) - Date.now()) / 86400000) : '';
       field('editExpirationDays').value = days > 0 ? days : '';
@@ -194,7 +195,8 @@
       slug: field('editCustomSlug').value.trim(),
       maxUses: field('editMaxUses').value ? parseInt(field('editMaxUses').value, 10) : null,
       activateDateTime: field('editActivateDateTime').value || null,
-      deactivateDateTime: field('editDeactivateDateTime').value || null
+      deactivateDateTime: field('editDeactivateDateTime').value || null,
+      isPrivate: field('editUrlPrivate').checked ? '1' : '0'
     };
     const days = field('editExpirationDays').value;
     if (days !== field('editExpirationDays').dataset.original) body.expirationDays = days ? parseInt(days, 10) : null;

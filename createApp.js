@@ -39,6 +39,7 @@ const { featureRoutes } = require('./middleware/requireFeature');
 const sameOrigin = require('./middleware/sameOrigin');
 const { securityHeaders } = require('./middleware/securityHeaders');
 const requireLogin = require('./middleware/requireLogin');
+const { sendNotFound } = require('./middleware/notFound');
 const { sessionOptions } = require('./config/session');
 
 /**
@@ -126,14 +127,11 @@ function createApp({ sessionSecret, sessionStore } = {}) {
   app.get('/', UrlController.getCreateForm);
   app.post('/create', requirePermission('createUrls'), createUrlLimiter, UrlController.createShortUrl); // Apply rate limiter to URL creation
 
+  // lnksnp.ch/<slug> without /s/, /b/, /p/, /f/: the item's real address (last, so every route above wins)
+  app.use('/', require('./routes/bareSlugRoutes'));
+
   // 404 handler
-  app.use((req, res) => {
-    res.status(404).render('error', {
-      title: 'Page Not Found',
-      message: 'The page you are looking for does not exist.',
-      code: 404
-    });
-  });
+  app.use(sendNotFound);
 
   // Error handler
   app.use((err, req, res, next) => {

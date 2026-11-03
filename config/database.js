@@ -3,7 +3,8 @@ const { DB_PATH, ensureDataDir } = require('./paths');
 const { configureDatabase } = require('./dbSetup');
 const {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
-  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners, migrateSlugCase
+  migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners, migrateSlugCase,
+  migrateItemPrivacy
 } = require('./migrations');
 
 // Initialize database (DATA_DIR must exist and be writable)
@@ -299,8 +300,6 @@ if (!filesExists) {
       maxDownloads INTEGER  DEFAULT NULL,
       downloads    INTEGER  DEFAULT 0,
       password     TEXT     DEFAULT NULL,
-      sharingMode  TEXT     DEFAULT 'public',
-      allowedUsers TEXT     DEFAULT '[]',
       isBlocked    INTEGER  DEFAULT 0,
       createdAt    DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
@@ -318,14 +317,6 @@ if (!fileColumnNames.includes('activateAt')) {
 if (!fileColumnNames.includes('deactivateAt')) {
   console.log('  ⏰ Adding deactivateAt column to files...');
   db.exec('ALTER TABLE files ADD COLUMN deactivateAt DATETIME DEFAULT NULL');
-}
-if (!fileColumnNames.includes('sharingMode')) {
-  console.log('  🔒 Adding sharingMode column to files...');
-  db.exec("ALTER TABLE files ADD COLUMN sharingMode TEXT DEFAULT 'public'");
-}
-if (!fileColumnNames.includes('allowedUsers')) {
-  console.log('  👥 Adding allowedUsers column to files...');
-  db.exec("ALTER TABLE files ADD COLUMN allowedUsers TEXT DEFAULT '[]'");
 }
 if (!fileColumnNames.includes('isBlocked')) {
   console.log('  🚫 Adding isBlocked column to files...');
@@ -479,6 +470,9 @@ migrateFileOwners(db);
 
 // Slugs ignore case: a unique NOCASE index per content table
 migrateSlugCase(db);
+
+// Private items: isPrivate on every content table (restricted files become private)
+migrateItemPrivacy(db);
 
 console.log('\n✅ Database initialized and migrations completed successfully\n');
 

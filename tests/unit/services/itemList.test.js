@@ -369,3 +369,25 @@ describe('dashboard lists (scope, tags, counts)', () => {
     expect(list({ scope: alice.id, sort: 'most-used', limit: 2, page: 2 }).rows.map(r => r.slug)).toEqual(['few']);
   });
 });
+
+describe('private items', () => {
+  beforeEach(() => {
+    createTestUrl({ slug: 'open', creatorId: alice.id });
+    createTestUrl({ slug: 'mine', creatorId: alice.id, isPrivate: 1 });
+    createTestPaste(alice.id, { slug: 'secret', isPrivate: 1 });
+    createTestFile(bob.id, { slug: 'hidden', isPrivate: 1 });
+  });
+
+  it('rows say whether the item is private', () => {
+    const rows = list({}).rows;
+    expect(rows.find(r => r.slug === 'mine').isPrivate).toBe(1);
+    expect(rows.find(r => r.slug === 'open').isPrivate).toBe(0);
+  });
+
+  it('@private and the private status find them, for every type', () => {
+    expect(keys(list({ search: '@private' }))).toEqual(['file:hidden', 'paste:secret', 'url:mine']);
+    expect(keys(list({ status: 'private' }))).toEqual(['file:hidden', 'paste:secret', 'url:mine']);
+    expect(keys(list({ search: '@status:private' }))).toEqual(['file:hidden', 'paste:secret', 'url:mine']);
+    expect(keys(list({ search: '@private @user:alice' }))).toEqual(['paste:secret', 'url:mine']);
+  });
+});

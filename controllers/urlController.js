@@ -5,6 +5,7 @@ const AnalyticsService = require('../services/analyticsService');
 const Tag = require('../models/Tag');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
 const { checkAccess, sendAccessDenied } = require('../services/accessService');
+const { sendNotFound } = require('../middleware/notFound');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 const { readSettings, SettingsError } = require('../services/itemSettings');
 const Team = require('../models/Team');
@@ -150,15 +151,9 @@ class UrlController {
     // Find URL by slug
     const url = Url.findBySlug(slug);
 
-    if (!url) {
-      return res.status(404).render('error', {
-        title: 'Not Found',
-        message: 'This short URL does not exist.',
-        code: 404
-      });
-    }
+    if (!url) return sendNotFound(req, res);
 
-    // Blocked, scheduled, expired, used up, quarantine warning, password (no click counted)
+    // Private, blocked, scheduled, expired, used up, quarantine warning, password (no click counted)
     const access = checkAccess(req, 'url', url);
     if (!access.allowed) return sendAccessDenied(req, res, 'url', url, access);
 

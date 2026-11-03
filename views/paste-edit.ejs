@@ -34,6 +34,7 @@
         </div>
       </div>
       <%- include('partials/slug-edit-field', { id: 'peSlug', prefix: '/p/', value: paste.slug }) %>
+      <%- include('partials/private-field', { id: 'pePrivate', noun: 'paste', checked: paste.isPrivate }) %>
       <div class="form-group">
         <label for="peContent" class="form-label">Content</label>
         <textarea id="peContent" class="paste-edit-textarea" spellcheck="false" data-line-numbers><%= paste.content %></textarea>

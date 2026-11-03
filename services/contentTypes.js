@@ -12,7 +12,6 @@
  *   feature       features.* switch the type depends on (null: always on)
  *   anonymousExpirySetting  the expiry cap for anonymous items (null: no anonymous items)
  *   quarantine    whether the table has isQuarantined (reports can quarantine it)
- *   restricted    whether sharingMode = 'restricted' + allowedUsers apply
  *   destination   column shown on the quarantine warning
  *   publicPrefix  public path before the slug
  *   infoPrefix    public info page before the slug, if any
@@ -31,7 +30,6 @@ const CONTENT_TYPES = {
     limitColumn: 'maxUses',
     feature: null,
     quarantine: true,
-    restricted: false,
     destination: 'longUrl',
     publicPrefix: '/s/',
     infoPrefix: '/info/',
@@ -47,7 +45,6 @@ const CONTENT_TYPES = {
     limitColumn: 'maxUses',
     feature: 'bundles',
     quarantine: true,
-    restricted: false,
     destination: 'title',
     publicPrefix: '/b/',
     infoPrefix: null,
@@ -63,7 +60,6 @@ const CONTENT_TYPES = {
     limitColumn: 'maxViews',
     feature: 'pastes',
     quarantine: true,
-    restricted: false,
     destination: 'title',
     publicPrefix: '/p/',
     infoPrefix: '/p-info/',
@@ -79,7 +75,6 @@ const CONTENT_TYPES = {
     limitColumn: 'maxDownloads',
     feature: 'files',
     quarantine: true,
-    restricted: true,
     destination: 'originalName',
     publicPrefix: '/f/',
     infoPrefix: null,

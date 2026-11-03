@@ -36,8 +36,8 @@ class BioPageController {
         });
       }
 
-      // Only links that are available (password-protected and reported ones still show)
-      const urls = BioPage.getUrls(bioPage.id).filter(url => isLive(recordStatus('url', url)));
+      // Only public links that are available (password-protected and reported ones still show)
+      const urls = BioPage.getUrls(bioPage.id).filter(url => !url.isPrivate && isLive(recordStatus('url', url)));
 
       res.render('bio-page', {
         bioPage,

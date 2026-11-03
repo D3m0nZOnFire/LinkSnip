@@ -155,6 +155,18 @@ describe('parseSearch (Admin → Items search)', () => {
     });
   });
 
+  describe('@private flag', () => {
+    it('sets isPrivate=true and no status', () => {
+      const groups = parseSearch('@private');
+      expect(groups[0].isPrivate).toBe(true);
+      expect(groups[0].groupStatus).toBe('');
+    });
+
+    it('the dropdown status is ignored when @private is in the search', () => {
+      expect(effectiveStatus(parseSearch('@private'), 'active')).toBe('');
+    });
+  });
+
   describe('@status: token', () => {
     it('sets groupStatus', () => {
       const groups = parseSearch('@status:blocked');

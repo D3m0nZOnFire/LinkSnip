@@ -9,6 +9,7 @@ const { logAccountChange, ACTIONS } = require('../services/auditService');
 const { UPLOADS_DIR } = require('../config/paths');
 const AnalyticsService = require('../services/analyticsService');
 const { checkAccess, sendAccessDenied } = require('../services/accessService');
+const { sendNotFound } = require('../middleware/notFound');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
 const { readSettings, SettingsError } = require('../services/itemSettings');
 const Team = require('../models/Team');
@@ -37,10 +38,10 @@ exports.upload = async (req, res) => {
   }
 
   try {
-    const { sharingMode, allowedUsers, tags } = req.body;
+    const { tags } = req.body;
     const discardUpload = () => { try { fs.unlinkSync(path.join(UPLOADS_DIR, req.file.filename)); } catch (_) {} };
 
-    // Slug, expiry, schedule, download limit, password
+    // Slug, expiry, schedule, download limit, password, private
     let settings;
     try {
       settings = await readSettings('file', req.body, { user: req.user });
@@ -65,13 +66,6 @@ exports.upload = async (req, res) => {
       return res.status(error.status).json({ success: false, error: error.message });
     }
 
-    let parsedAllowedUsers = [];
-    if (allowedUsers) {
-      try {
-        parsedAllowedUsers = JSON.parse(allowedUsers);
-      } catch (_) {}
-    }
-
     const { slug } = settings.values;
     const file = File.create({
       userId: req.user.id,
@@ -79,9 +73,7 @@ exports.upload = async (req, res) => {
       storedName: req.file.filename,
       mimeType: req.file.mimetype,
       size: req.file.size,
-      ...settings.values,
-      sharingMode: sharingMode || 'public',
-      allowedUsers: parsedAllowedUsers
+      ...settings.values
     });
 
     if (teamId) Team.moveItem('file', file.id, teamId);
@@ -117,14 +109,13 @@ exports.list = (req, res) => {
   const enriched = files.map(f => ({
     ...f,
     fileUrl: `${baseUrl}/f/${f.slug}`,
-    sizeFormatted: formatBytes(f.size),
-    allowedUsers: (() => { try { return JSON.parse(f.allowedUsers); } catch (_) { return []; } })()
+    sizeFormatted: formatBytes(f.size)
   }));
   return res.json({ success: true, files: enriched });
 };
 
 /**
- * One file's settings for the dashboard's edit form: allowed people by name, no password hash.
+ * One file's settings for the dashboard's edit form, without the password hash.
  * GET /api/files/:id
  */
 exports.get = (req, res) => {
@@ -132,17 +123,10 @@ exports.get = (req, res) => {
   if (!file) return res.status(404).json({ error: 'File not found' });
   if (!canEdit(req.user, 'file', file)) return res.status(403).json({ error: 'Access denied' });
 
-  let allowedIds = [];
-  try { allowedIds = JSON.parse(file.allowedUsers) || []; } catch (_) { allowedIds = []; }
-  const allowedUsers = allowedIds
-    .map(id => User.findById(id))
-    .filter(Boolean)
-    .map(user => ({ id: user.id, username: user.username }));
-
   const { password, storedName, ...rest } = file;
   return res.json({
     success: true,
-    file: { ...rest, hasPassword: !!password, allowedUsers, tags: Tag.forItem('file', file.id) }
+    file: { ...rest, hasPassword: !!password, tags: Tag.forItem('file', file.id) }
   });
 };
 
@@ -183,7 +167,7 @@ exports.updateSettings = async (req, res) => {
   }
 
   try {
-    const { sharingMode, allowedUsers, tags } = req.body;
+    const { tags } = req.body;
 
     // Only the settings sent change; role features count only when newly set
     let settings;
@@ -196,16 +180,7 @@ exports.updateSettings = async (req, res) => {
     const denied = deniedPermission(req.user, { ...settings.uses, tags: tagsChanged('file', file.id, tags) });
     if (denied) return denyJson(res, denied);
 
-    let parsedAllowedUsers = undefined;
-    if (allowedUsers !== undefined) {
-      try { parsedAllowedUsers = JSON.parse(allowedUsers); } catch (_) { parsedAllowedUsers = []; }
-    }
-
-    const updated = File.update(file.id, {
-      ...settings.values,
-      sharingMode,
-      allowedUsers: parsedAllowedUsers
-    });
+    const updated = File.update(file.id, settings.values);
 
     if (tags !== undefined) Tag.setForItem('file', file.id, Tag.parseTagString(tags));
     if (settings.values.slug) slugService.logChange(req, 'file', file, settings.values.slug);
@@ -226,29 +201,18 @@ exports.updateSettings = async (req, res) => {
  */
 exports.preview = async (req, res) => {
   const file = File.findBySlug(req.params.slug);
-  if (!file) return res.status(404).render('error', { message: 'File not found', statusCode: 404 });
+  if (!file) return sendNotFound(req, res);
 
   // A one-time unlock is for the download, so this page leaves it in place
   const access = checkAccess(req, 'file', file, { keepOnce: true });
   if (!access.allowed) return sendAccessDenied(req, res, 'file', file, access);
 
   const owner = User.findById(file.userId);
-  const allowedUserIds = (() => { try { return JSON.parse(file.allowedUsers); } catch (_) { return []; } })();
-
-  // Resolve allowed usernames for display
-  let allowedUsernames = [];
-  if (allowedUserIds.length > 0) {
-    allowedUsernames = allowedUserIds.map(uid => {
-      const u = User.findById(uid);
-      return u ? u.username : null;
-    }).filter(Boolean);
-  }
 
   return res.render('file-download', {
     user: req.user || null,
     file,
     owner: owner || { username: 'Unknown' },
-    allowedUsernames,
     sizeFormatted: formatBytes(file.size),
     downloadUrl: `/f/${file.slug}/download`,
     baseUrl: `${req.protocol}://${req.get('host')}`,
@@ -261,7 +225,7 @@ exports.preview = async (req, res) => {
  */
 exports.download = async (req, res) => {
   const file = File.findBySlug(req.params.slug);
-  if (!file) return res.status(404).render('error', { message: 'File not found', statusCode: 404 });
+  if (!file) return sendNotFound(req, res);
 
   const access = checkAccess(req, 'file', file);
   if (!access.allowed) return sendAccessDenied(req, res, 'file', file, access);
@@ -277,7 +241,7 @@ exports.download = async (req, res) => {
   File.incrementDownloads(file.id);
   AnalyticsService.record(req, 'file', file.id).catch(() => { /* non-critical */ });
 
-  if (file.sharingMode === 'restricted' || file.password) {
+  if (file.isPrivate || file.password) {
     logAccountChange(ACTIONS.DOWNLOAD_FILE, req, { fileId: file.id, slug: file.slug, originalName: file.originalName });
   }
 

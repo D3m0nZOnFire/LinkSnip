@@ -6,8 +6,9 @@ const slugService = require('../services/slugService');
 const AnalyticsService = require('../services/analyticsService');
 const { logAccountChange, ACTIONS } = require('../services/auditService');
 const {
-  checkAccess, sendAccessDenied, recordStatus, isLive, message: accessMessage
+  checkAccess, sendAccessDenied, sendIfPrivate, recordStatus, isLive, message: accessMessage
 } = require('../services/accessService');
+const { sendNotFound } = require('../middleware/notFound');
 
 const configService = require('../services/configService');
 const { filled, deniedPermission, deniedMessage, denyJson, tagsChanged } = require('../services/permissionGate');
@@ -216,9 +217,7 @@ exports.bulkDelete = (req, res) => {
  */
 exports.view = (req, res) => {
   const paste = Paste.findBySlug(req.params.slug);
-  if (!paste) {
-    return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
-  }
+  if (!paste) return sendNotFound(req, res);
 
   const access = checkAccess(req, 'paste', paste);
   if (!access.allowed) return sendAccessDenied(req, res, 'paste', paste, access);
@@ -262,9 +261,8 @@ exports.showEditPage = (req, res) => {
  */
 exports.showInfoPage = (req, res) => {
   const paste = Paste.findBySlug(req.params.slug);
-  if (!paste) {
-    return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
-  }
+  if (!paste) return sendNotFound(req, res);
+  if (sendIfPrivate(req, res, 'paste', paste)) return;
 
   const status = recordStatus('paste', paste);
   const validation = { status, live: isLive(status), message: accessMessage('paste', status) };
@@ -308,9 +306,7 @@ exports.showInfoPage = (req, res) => {
  */
 exports.raw = (req, res) => {
   const paste = Paste.findBySlug(req.params.slug);
-  if (!paste) {
-    return res.status(404).render('error', { title: 'Not Found', message: 'This paste does not exist.', code: 404 });
-  }
+  if (!paste) return sendNotFound(req, res);
 
   const access = checkAccess(req, 'paste', paste);
   if (!access.allowed) return sendAccessDenied(req, res, 'paste', paste, access);

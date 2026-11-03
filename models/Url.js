@@ -5,13 +5,13 @@ const { scopeCondition } = require('../services/itemScope');
 class Url {
   /**
    * Create a new shortened URL
-   * @param {object} data - { slug, longUrl, creatorId, maxUses, expiresAt, password, activateAt, deactivateAt }
+   * @param {object} data - { slug, longUrl, creatorId, maxUses, expiresAt, password, activateAt, deactivateAt, isPrivate }
    * @returns {object} Created URL record
    */
-  static create({ slug, longUrl, creatorId, maxUses, expiresAt, password, activateAt, deactivateAt }) {
+  static create({ slug, longUrl, creatorId, maxUses, expiresAt, password, activateAt, deactivateAt, isPrivate }) {
     const stmt = db.prepare(`
-      INSERT INTO urls (slug, longUrl, creatorId, maxUses, expiresAt, password, activateAt, deactivateAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO urls (slug, longUrl, creatorId, maxUses, expiresAt, password, activateAt, deactivateAt, isPrivate)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -22,7 +22,8 @@ class Url {
       expiresAt || null,
       password || null,
       activateAt || null,
-      deactivateAt || null
+      deactivateAt || null,
+      isPrivate ? 1 : 0
     );
 
     return this.findById(result.lastInsertRowid);

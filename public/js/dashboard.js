@@ -285,6 +285,7 @@
       editingUrl = url;
       document.getElementById('editLongUrl').value = url.longUrl;
       document.getElementById('editCustomSlug').value = url.slug;
+      document.getElementById('editUrlPrivate').checked = !!url.isPrivate;
       document.getElementById('editMaxUses').value = url.maxUses || '';
       const days = document.getElementById('editExpirationDays');
       days.value = url.expiresAt ? Math.max(0, Math.ceil((new Date(url.expiresAt) - Date.now()) / 86400000)) || '' : '';
@@ -314,7 +315,10 @@
     const longUrl = value('editLongUrl');
     if (!longUrl) return showToast('The destination is required', 'error');
 
-    const body = { longUrl, slug: value('editCustomSlug'), maxUses: value('editMaxUses') ? Number(value('editMaxUses')) : null };
+    const body = {
+      longUrl, slug: value('editCustomSlug'), maxUses: value('editMaxUses') ? Number(value('editMaxUses')) : null,
+      isPrivate: checked('editUrlPrivate') ? '1' : '0'
+    };
     const days = document.getElementById('editExpirationDays');
     if (days.value !== days.dataset.original) body.expirationDays = days.value ? Number(days.value) : null;
     if (document.getElementById('editActivateDateTime')) {
@@ -363,6 +367,7 @@
       document.getElementById('editBundleName').value = bundle.title || '';
       document.getElementById('editBundleDescription').value = bundle.description || '';
       document.getElementById('editBundleSlug').value = bundle.slug;
+      document.getElementById('editBundlePrivate').checked = !!bundle.isPrivate;
       bundleItems.innerHTML = '';
       (bundle.items || []).forEach(item => addBundleItem(item.url, item.label));
       const tags = tagSelector('editBundleTags');
@@ -384,7 +389,10 @@
       .filter(item => item.url);
     if (items.length < 2) return showToast('A bundle needs at least 2 links', 'error');
 
-    const body = { title, description: value('editBundleDescription') || null, items, slug: value('editBundleSlug') };
+    const body = {
+      title, description: value('editBundleDescription') || null, items, slug: value('editBundleSlug'),
+      isPrivate: checked('editBundlePrivate') ? '1' : '0'
+    };
     const tags = tagSelector('editBundleTags');
     if (tags) body.tags = tags.getValue() || '';
 
@@ -403,30 +411,7 @@
 
   // ─── Edit a file ──────────────────────────────────────────────────────────
   let editingFile = null;
-  let allowedUsers = [];
   const fileForm = document.getElementById('editFileForm');
-
-  function renderAllowedUsers() {
-    const wrap = document.getElementById('editFileUsers');
-    const input = document.getElementById('editFileUserInput');
-    wrap.querySelectorAll('.user-chip').forEach(chip => chip.remove());
-    allowedUsers.forEach(user => {
-      const chip = document.createElement('span');
-      chip.className = 'user-chip';
-      chip.textContent = `@${user.username}`;
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.textContent = '×';
-      remove.setAttribute('aria-label', `Remove ${user.username}`);
-      remove.addEventListener('click', () => {
-        allowedUsers = allowedUsers.filter(other => other.id !== user.id);
-        renderAllowedUsers();
-      });
-      chip.appendChild(remove);
-      wrap.insertBefore(chip, input);
-    });
-    document.getElementById('editFileUsersGroup').hidden = document.getElementById('editFileSharing').value !== 'restricted';
-  }
 
   async function editFile(id) {
     try {
@@ -434,16 +419,13 @@
       editingFile = file;
       document.getElementById('editFileName').textContent = file.originalName;
       document.getElementById('editFileSlug').value = file.slug;
+      document.getElementById('editFilePrivate').checked = !!file.isPrivate;
       document.getElementById('editFileExpires').value = file.expiresAt ? file.expiresAt.substring(0, 10) : '';
       document.getElementById('editFileMaxDownloads').value = file.maxDownloads || '';
       const password = document.getElementById('editFilePassword');
       if (password) password.value = '';
       document.getElementById('editFileRemovePassword').checked = false;
       document.getElementById('editFileRemoveLine').hidden = !file.hasPassword;
-      document.getElementById('editFileSharing').value = file.sharingMode || 'public';
-      document.getElementById('editFileUsersError').textContent = '';
-      allowedUsers = file.allowedUsers || [];
-      renderAllowedUsers();
       const tags = tagSelector('editFileTags');
       if (tags) tags.setValue(tagNames(file.tags));
       openModal('editFileModal');
@@ -453,27 +435,6 @@
   }
 
   if (fileForm) {
-    document.getElementById('editFileSharing').addEventListener('change', renderAllowedUsers);
-    document.getElementById('editFileUsers').addEventListener('click', () => document.getElementById('editFileUserInput').focus());
-    document.getElementById('editFileUserInput').addEventListener('keydown', async (event) => {
-      if (event.key !== 'Enter' && event.key !== ',') return;
-      event.preventDefault();
-      const input = event.target;
-      const error = document.getElementById('editFileUsersError');
-      const username = input.value.trim().replace(/^@/, '');
-      if (!username) return;
-      try {
-        const data = await send(`/api/users/lookup?username=${encodeURIComponent(username)}`);
-        if (!data.found) throw new Error(`There is no user called ${username}.`);
-        if (!allowedUsers.some(user => user.id === data.id)) allowedUsers.push({ id: data.id, username: data.username });
-        input.value = '';
-        error.textContent = '';
-        renderAllowedUsers();
-      } catch (lookupError) {
-        error.textContent = lookupError.message;
-      }
-    });
-
     fileForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!editingFile) return;
@@ -481,8 +442,7 @@
         expiresAt: value('editFileExpires') || null,
         maxDownloads: value('editFileMaxDownloads') || null,
         slug: value('editFileSlug'),
-        sharingMode: value('editFileSharing'),
-        allowedUsers: JSON.stringify(allowedUsers.map(user => user.id))
+        isPrivate: checked('editFilePrivate') ? '1' : '0'
       };
       if (checked('editFileRemovePassword')) body.removePassword = '1';
       else if (value('editFilePassword')) body.password = value('editFilePassword');

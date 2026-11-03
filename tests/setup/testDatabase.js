@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
 const {
   migrateAnalyticsShareLinks, migrateQuarantine, migrateReports, migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams,
-  migrateSlugCase
+  migrateSlugCase, migrateItemPrivacy
 } = require('../../config/migrations');
 
 let db = null;
@@ -120,8 +120,6 @@ function createTestDatabase() {
       maxDownloads INTEGER  DEFAULT NULL,
       downloads    INTEGER  DEFAULT 0,
       password     TEXT     DEFAULT NULL,
-      sharingMode  TEXT     DEFAULT 'public',
-      allowedUsers TEXT     DEFAULT '[]',
       isBlocked    INTEGER  DEFAULT 0,
       createdAt    DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
@@ -196,6 +194,7 @@ function createTestDatabase() {
   migrateIpHashes(db, { log: () => {}, warn: () => {} });
   migrateTeams(db, { log: () => {} });
   migrateSlugCase(db, { log: () => {}, warn: () => {} });
+  migrateItemPrivacy(db, { log: () => {}, warn: () => {} });
 
   return db;
 }
