@@ -597,5 +597,7 @@ share links · 5:30 expired files · 5:45 country database check.
     `recordStatus`, `statusSql`, `withAccessStatus`). Owners and admins get no bypass on public routes.
 12. Don't check ownership by hand (`item.creatorId === user.id`): use `services/itemPermissions.js` `canView` /
     `canEdit(user, type, item)` (`actor(req)` when only the session is at hand). Teams extend those rules.
+13. `overrides` in package.json pins minimatch and glob (pulled in by jest and nodemon, development only) to fixed
+    versions. Drop an entry once jest/nodemon depend on a fixed version themselves (`npm ls minimatch glob`).
 
 - Always kill what you are running. I want to run the service on my own

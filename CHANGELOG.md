@@ -4,6 +4,19 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [1.8.2] - 2026-11-03
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. Nothing else to do.
+
+### Changed
+
+- Updated chart.js (4.6.1), ejs (7.0.2) and dotenv (18.0.9).
+- Development only (not in the image): minimatch and glob, which jest and nodemon pull in, are pinned to fixed versions
+  (minimatch 11.0.4, glob 14.0.3) through `overrides` in package.json, for a pattern denial of service in minimatch and
+  a timeout bypass in glob.
+
 ## [1.8.1] - 2026-11-03
 
 ### Upgrading
@@ -370,6 +383,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
+[1.8.2]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.2...v1.8.0
 [1.7.2]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.1...v1.7.2
