@@ -127,6 +127,9 @@ function createApp({ sessionSecret, sessionStore } = {}) {
   app.get('/', UrlController.getCreateForm);
   app.post('/create', requirePermission('createUrls'), createUrlLimiter, UrlController.createShortUrl); // Apply rate limiter to URL creation
 
+  // lnksnp.ch/<slug> without /s/, /b/, /p/, /f/: the item's real address (last, so every route above wins)
+  app.use('/', require('./routes/bareSlugRoutes'));
+
   // 404 handler
   app.use(sendNotFound);
 

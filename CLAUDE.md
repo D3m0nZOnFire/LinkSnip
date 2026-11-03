@@ -92,7 +92,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
    visitors reach only `/login`, `/register`, `/setup`, `/logout`; pages → `/login?next=…`, `/` and forms → `/login`,
    `/api/` → 401 `login_required`; no exception for `/stats`), then `middleware/viewLocals.js` (`can`, `features`,
    `registrationOpen`, `writableTeams`; `appLocals()` sets `appVersion` and `reportReasons` on `app.locals`)
-6. Routers (feature routers wrapped in `featureRoutes`), then the home routes, 404 and error handlers
+6. Routers (feature routers wrapped in `featureRoutes`), then the home routes, bare slugs (`/:slug`), 404 and error
+   handlers
 
 ## Accounts
 
@@ -246,6 +247,9 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - URL prefill (`middleware/prefill.js`, before the routes): `/https://example.com/a?b=1`, `/example.com/a` (first
   segment a host name, not a file name like `xmlrpc.php` or `index.html`) or an encoded link opens the create page (`/`) with it in the Link tab; a merged `https:/` is
   repaired. Only http(s), at most 2048 characters; LinkSnip's own paths never match.
+- Bare slugs (`routes/bareSlugRoutes.js`, mounted last, right before the 404): `/:slug` answers 302 to the item's
+  public address, trying the enabled types in registry order (link first). Items `privateStatus` refuses are skipped,
+  so they 404 like an unknown slug; the target route checks everything else. Any route above it wins.
 - Create page (`views/index.ejs`, `public/css/create.css`, `public/js/create.js`): logged-in users get a plain
   "Create" page, visitors the hero. Modes Link / Text / Bundle / File are `[data-section]`s; a chip `[data-chip]` opens
   the `[data-panel]` of the same name in its section (`data-format` says how its value reads on the chip). Chips the
