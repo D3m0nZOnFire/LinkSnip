@@ -4,6 +4,19 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [1.8.1] - 2026-11-03
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. Nothing else to do.
+
+### Added
+
+- **Short links without the prefix**: `lnksnp.ch/gm8` opens `lnksnp.ch/s/gm8` (or the bundle, paste or file with that
+  slug, in that order, when no link has it). An item the visitor may not open, like someone else's private link, is
+  skipped, so it still looks like an address that doesn't exist. LinkSnip's own pages (`/login`, `/dashboard`, …)
+  come first.
+
 ## [1.8.0] - 2026-10-29
 
 ### Upgrading
@@ -357,6 +370,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
+[1.8.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.2...v1.8.0
 [1.7.2]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.0...v1.7.1
