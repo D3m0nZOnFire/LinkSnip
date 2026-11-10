@@ -92,6 +92,46 @@
       </form>
     </section>
 
+    <% if (locals.notificationGroups) { %>
+    <section class="section-card" id="notifications">
+      <h3>Notifications</h3>
+      <p class="section-help">
+        Choose what you are told about, on the <a href="/notifications">Notifications</a> page and by mail.
+        <% if (canMailNotifications) { %>
+          Mails wait a few minutes and come together; what you already saw on the page is left out.
+        <% } else if (mailEnabled) { %>
+          Mail needs a confirmed email address (above).
+        <% } else { %>
+          This site can't send mail, so notifications show only in the app.
+        <% } %>
+      </p>
+      <form id="notificationsForm" novalidate>
+        <div class="table-scroll">
+          <table class="section-table notification-prefs">
+            <thead>
+              <tr><th scope="col">When</th><th scope="col" class="toggle-col">In the app</th><th scope="col" class="toggle-col">By mail</th></tr>
+            </thead>
+            <% notificationGroups.forEach(group => { %>
+            <tbody>
+              <tr class="group-row"><th scope="colgroup" colspan="3"><%= group.label %></th></tr>
+              <% group.events.forEach(e => { %>
+              <tr>
+                <td><%= e.label %></td>
+                <td class="toggle-col"><input type="checkbox" data-notification-event="<%= e.name %>" data-channel="inApp" aria-label="<%= e.label %>: in the app"<%= e.inApp ? ' checked' : '' %>></td>
+                <td class="toggle-col"><input type="checkbox" data-notification-event="<%= e.name %>" data-channel="mail" aria-label="<%= e.label %>: by mail"<%= e.mail ? ' checked' : '' %><%= canMailNotifications ? '' : ' disabled' %>></td>
+              </tr>
+              <% }) %>
+            </tbody>
+            <% }) %>
+          </table>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn" id="saveNotificationsBtn">Save notifications</button>
+        </div>
+      </form>
+    </section>
+    <% } %>
+
     <section class="section-card danger">
       <h3>Delete account</h3>
       <p class="section-help">Deletes your account and everything you made yourself: links, bundles, pastes and files,
@@ -123,5 +163,6 @@
 
   <script src="/js/main.js"></script>
   <script src="/js/settings.js"></script>
+  <script src="/js/notificationSettings.js"></script>
 <%- include('partials/layout-end', { shell: 'app' }) %>
 </html>

@@ -90,6 +90,20 @@ const PAGES = {
   'setup': async () => ({ req: request(null), view: 'setup', data: { error: null, username: '', minPassword: 8 } }),
   'dashboard': () => rendered(c('dashboardController').getUserDashboard, request(s.user)),
   'settings': () => rendered(c('userController').getSettings, request(s.user)),
+  'notifications': () => {
+    require('../../../services/notificationService').notify(s.user.id, 'blocked', {
+      type: 'url', id: s.url.id, payload: { item: { type: 'url', noun: 'link', slug: 'link', address: '/s/link', path: '/info/link' } }
+    });
+    return rendered(c('notificationController').page, request(s.user, { query: {} }));
+  },
+  'notifications-unsubscribe': () => {
+    const mailService = require('../../../services/mailService');
+    mailService.configure({ transport: 'console', from: 'x@example.com', replyTo: null, publicUrl: 'https://l.example' }, { transport: { sendMail: async () => ({}) } });
+    const link = require('../../../services/notificationService').unsubscribeUrl(s.user.id, 'blocked');
+    mailService.configure(null);
+    const [key, event] = new URL(link).pathname.split('/').slice(-2);
+    return rendered(c('notificationController').showUnsubscribe, request(null, { params: { key, event }, originalUrl: new URL(link).pathname }));
+  },
   'import': () => rendered(c('importExportController').getImportPage, request(s.user)),
   'tags': () => rendered(c('tagController').getTagManagementPage, request(s.user)),
   'tag-analytics': () => rendered(c('tagController').getTagAnalytics, request(s.user, { params: { id: String(s.tag.id) } })),
@@ -188,7 +202,7 @@ const pages = fs.readdirSync(VIEWS).filter(f => f.endsWith('.ejs')).map(f => f.r
 //   standalone: page and footer only (login, errors, bio pages)
 const SHELL = Object.fromEntries(pages.map(name => [name,
   ['url-info', 'paste-view', 'paste-info', 'file-download', 'bundle-launcher', 'unlock', 'privacy', 'terms'].includes(name) ? 'public'
-    : ['login', 'register', 'setup', 'logout', 'verify-email', 'check-inbox', 'forgot-password', 'reset-password', 'error', 'scheduled', 'quarantine', 'bio-page'].includes(name) ? 'standalone'
+    : ['login', 'register', 'setup', 'logout', 'verify-email', 'check-inbox', 'forgot-password', 'reset-password', 'notifications-unsubscribe', 'error', 'scheduled', 'quarantine', 'bio-page'].includes(name) ? 'standalone'
       : name.startsWith('admin') ? 'admin'
         : 'app']));
 
@@ -262,6 +276,23 @@ describe('the app\'s confirm dialog', () => {
   });
 });
 
+describe('scripts that use main.js helpers', () => {
+  // showToast, apiRequest, setButtonLoading, confirmAction … live in public/js/main.js, which pages load themselves
+  const HELPERS = /\b(showToast|apiRequest|setButtonLoading|confirmAction|openModal|closeModal)\s*\(/;
+  const JS = path.join(__dirname, '../../../public/js');
+
+  it.each(pages)('%s loads main.js before them', async (name) => {
+    const html = await renderPage(name);
+    const scripts = [...html.matchAll(/<script src="\/js\/([^"?]+)/g)].map(m => m[1]);
+    const usesHelpers = scripts.filter(file => file !== 'main.js' && fs.existsSync(path.join(JS, file))
+      && HELPERS.test(fs.readFileSync(path.join(JS, file), 'utf8')));
+    for (const file of usesHelpers) {
+      expect([file, scripts.indexOf('main.js')]).not.toEqual([file, -1]);
+      expect(scripts.indexOf('main.js')).toBeLessThan(scripts.indexOf(file));
+    }
+  });
+});
+
 describe('admin-appearance', () => {
   it('shows custom palettes with an edit button and a New tile per mode', async () => {
     const html = await renderPage('admin-appearance');
@@ -332,7 +363,7 @@ describe('admin-items', () => {
 });
 
 describe('app pages (v1.3 part 5b): no inline styling, no emoji, the shared look', () => {
-  const APP_PAGES = ['tags', 'tag-analytics', 'teams', 'team', 'settings', 'import', 'bio-settings'];
+  const APP_PAGES = ['tags', 'tag-analytics', 'teams', 'team', 'settings', 'import', 'bio-settings', 'notifications'];
   const EMOJI = /\p{Extended_Pictographic}/u;
 
   it.each(APP_PAGES)('%s.ejs has no <style> blocks, style attributes (CSS variables aside), inline handlers or emoji', (name) => {

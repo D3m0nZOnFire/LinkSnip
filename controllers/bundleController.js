@@ -1,4 +1,5 @@
 const { canEdit, canView } = require('../services/itemPermissions');
+const notifications = require('../services/notificationService');
 const slugService = require('../services/slugService');
 const RoleService = require('../services/roleService');
 const { isEnabled } = require('../middleware/requireFeature');
@@ -280,7 +281,10 @@ async function launchBundle(req, res) {
   if (!launched.includes(bundle.id)) req.session.launchedBundles = [...launched, bundle.id];
 
   // Increment click counter (a chat app building a link preview is not a launch)
-  if (!isPreviewBot(req)) Bundle.incrementClicks(slug);
+  if (!isPreviewBot(req)) {
+    Bundle.incrementClicks(slug);
+    notifications.afterUse('bundle', bundle.id);
+  }
 
   // Record bundle-level analytics (async, non-blocking)
   AnalyticsService.record(req, 'bundle', bundle.id).catch(() => { /* non-critical */ });

@@ -33,7 +33,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 | Layer | Where | Holds |
 |---|---|---|
 | Environment | `.env` / container env | Infrastructure only: `SESSION_SECRET`, `IP_HASH_SECRET` (both required), `DATA_DIR`, `PORT` (8081), `NODE_ENV`, `TRUST_PROXY` (1); optional mail: `SMTP_HOST`, `SMTP_PORT` (465), `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `MAIL_REPLY_TO`, `PUBLIC_URL`, `MAIL_TRANSPORT` (`console` in development) |
-| Settings | `DATA_DIR/settings.json` | Instance behavior: `access.loginRequired`, `registration.open`, `geo.enabled`, `features.*`, `moderation.reportThreshold`, `anonymous.*ExpirationDays`, `pastes.maxSizeKB`, `files.globalMaxFileSizeMB`, `retention.*` |
+| Settings | `DATA_DIR/settings.json` | Instance behavior: `access.loginRequired`, `registration.open`, `geo.enabled`, `features.*`, `moderation.reportThreshold`, `notifications.*`, `anonymous.*ExpirationDays`, `pastes.maxSizeKB`, `files.globalMaxFileSizeMB`, `retention.*` |
 | Roles | `DATA_DIR/roles.json` | Permissions and limits per role |
 
 - **`config/schema.js` is the single source of truth** for every setting, permission and limit, and its
@@ -155,7 +155,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
   `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
   `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`, `migrateFileOwners`, `migrateSlugCase`,
-  `migrateItemPrivacy`, `migrateAccountEmail`); they're idempotent
+  `migrateItemPrivacy`, `migrateAccountEmail`, `migrateNotifications`); they're idempotent
   and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there
   (bio pages included). `tests/unit/config/freshDatabase.test.js` opens a brand-new database in its own process.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
@@ -190,6 +190,10 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   reports are counted. (Replaced `url_reports` / `bundle_reports` in `migrateReports`.)
 - **analytics_shares**: share links for any type: `targetType` + `targetId`, `createdBy`, `tokenHash` (SHA-256,
   unique), `label`, `expiresAt`, `viewCount`, `lastViewedAt`
+- **notifications**: one row per event for a user, both the in-app list and the mail queue: `event`, `targetType` +
+  `targetId` (no foreign key), `payload` (JSON, what the text needs), `inApp`, `mailState` (`none` / `pending` / `sent`
+  / `skipped`), `mailAfter`, `dedupeKey` (unique), `readAt`, `mailedAt`. **notification_preferences**: only what a
+  user changed (`userId`, `event`, `inApp`, `mail`). `users.notificationKey`: the key in unsubscribe links.
 - **audit_logs**: append-only; `action`, `category` (`AUTH`, `ADMIN_ACTION`, `ACCOUNT_CHANGE`, `SECURITY`), target,
   IP, user agent, JSON `details`
 
@@ -458,6 +462,29 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   warning lifted). Per report: `PUT /api/admin/reports/:id` (`{ action: 'block'|'unblock' }` or `{ status }`),
   `DELETE /api/admin/reports/:id`, `POST /api/admin/reports/:id/ban-user`.
 
+### Notifications
+- `services/notificationEvents.js`: the events (`report_received`, `quarantined`, `quarantine_cleared`, `blocked`,
+  `unblocked`, `account_banned`, `expires_soon`, `expired`, `limit_reached`, `deleted_by_cleanup`, `team_invited`,
+  `team_role_changed`, `team_removed`, `team_deleted`): group, label, defaults (in-app on for all, mail for what needs
+  action), `toggleable` (the ban isn't), `immediate`, `text(payload)` / `path(payload)` (`describe()`).
+- `services/notificationService.js`: `notify(userId, event, { type, id, payload, actorId, dedupeKey })` (never throws;
+  nothing for the actor themselves, banned users get only the ban, nothing while `features.notifications` is off),
+  `notifyItemOwner(type, item, event, …)` (owner from the registry; payload `item` from `itemPayload`),
+  `afterUse(type, id)` (after every click/view/download counter: `limit_reached` once per limit),
+  `dropReportNotices` (a quarantine replaces unsent `report_received`), preferences, unsubscribe links
+  (`/notifications/unsubscribe/:key/:event`, `all` for every mail), `sendDue()` (every minute: one mail per user once
+  a row is due after `notifications.mailDelayMinutes`; rows already read on `/notifications` are `skipped`; a failed
+  mail stays pending), `cleanup()` (rows read 30+ days ago). Model `models/Notification.js`.
+- Hooks: report controller, `moderationService`, `adminItemController` (block/unblock), Admin → Users ban,
+  `teamService` (invite, role, remove, delete), `ScheduledTasks.notifyLifecycle()` (hourly: `expires_soon`,
+  `expired`), `cleanupInactiveUrls` / `cleanupExpiredFiles` (`deleted_by_cleanup`). A new event: add it to the
+  registry, call `notify`/`notifyItemOwner` where it happens.
+- UI: `/notifications` (`controllers/notificationController.js`, `views/notifications.ejs`; opening it marks the shown
+  rows read, which cancels their mail), sidebar entry with `notificationsUnread` (viewLocals; a dot on the top bar's
+  menu button), Settings → Notifications (`#notifications`, `public/js/notificationSettings.js`,
+  `PUT /api/user/notification-preferences`), `views/notifications-unsubscribe.ejs` (GET asks, POST unsubscribes; also
+  RFC 8058 one-click; open on private instances). Mails: `mailTemplates.notifications`, with `List-Unsubscribe`.
+
 ### Rate limiting (`middleware/rateLimiter.js`)
 - Creation limits come from the role and are read per request: `createRoleLimiter(limitName, { prefix, noun })` →
   `createUrlLimiter` (urlsPerHour), `createPasteLimiter`, `createBundleLimiter`, `bulkImportLimiter` (importsPerHour),
@@ -517,7 +544,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Scheduled tasks (`services/scheduledTasks.js`, node-cron)
 2:00 audit log cleanup (`retention.auditLogDays`) · 2:15 analytics cleanup (`retention.analyticsDays`, null = keep
 forever) · 3:00 backup · 4:00 inactive content cleanup · 5:00 expired
-share links and old mail links (`UserToken.deleteExpired`) · 5:30 expired files · 5:45 country database check.
+share links and old mail links (`UserToken.deleteExpired`) · 5:30 expired files · 5:45 country database check ·
+2:05 old read notifications · hourly at :10 expiry notifications · every minute notification mails.
 
 ## Docker
 
@@ -573,7 +601,7 @@ share links and old mail links (`UserToken.deleteExpired`) · 5:30 expired files
 - `currentPage` values (marks the sidebar entry): 'home', 'dashboard', 'tags', 'settings', 'admin' (Overview), 'admin-items', 'admin-users', 'admin-analytics',
   'admin-reports', 'admin-audit-logs', 'admin-analytics-shares', 'admin-settings',
   'teams', 'admin-teams', 'admin-appearance', 'bio-settings', 'import',
-  'analytics', 'info'.
+  'analytics', 'info', 'notifications'.
 - `views/error.ejs` takes `{ title, message, code }` (it also tolerates `statusCode` / `error.status`).
 - Public item and status pages (`public/css/public-pages.css`): `.public-page` column with an `.item-card` (the short
   link as `h1.short-link` with a `[data-copy]` button, `.destination`, `.item-facts`, `.item-actions`, `.item-footer`)

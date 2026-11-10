@@ -4,6 +4,7 @@ const User = require('../models/User');
 const db = require('../config/database');
 const bcrypt = require('bcrypt');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
+const notifications = require('../services/notificationService');
 const ScheduledTasks = require('../services/scheduledTasks');
 const RoleService = require('../services/roleService');
 const configService = require('../services/configService');
@@ -340,6 +341,7 @@ class AdminController {
             `${user.username}`,
             changes
           );
+          if (isBanned) notifications.notify(user.id, 'account_banned', { actorId: req.session.userId });
         }
         if (role !== undefined && role !== user.role) {
           changes.role = { from: user.role, to: role };
@@ -442,6 +444,7 @@ class AdminController {
         `${user.username}`,
         { previousStatus: user.isBanned, newStatus: banned }
       );
+      if (banned && !user.isBanned) notifications.notify(user.id, 'account_banned', { actorId: req.session.userId });
 
       res.json({ success: true });
     } catch (error) {

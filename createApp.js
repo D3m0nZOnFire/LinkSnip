@@ -26,6 +26,7 @@ const bundleRoutes = require('./routes/bundleRoutes');
 const fileRoutes = require('./routes/fileRoutes');
 const pasteRoutes = require('./routes/pasteRoutes');
 const legalRoutes = require('./routes/legalRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const UrlController = require('./controllers/urlController');
 
 // Import middleware
@@ -114,6 +115,7 @@ function createApp({ sessionSecret, sessionStore } = {}) {
   app.use('/', dashboardRoutes);
   app.use('/', userRoutes);
   app.use('/', require('./routes/accountEmailRoutes')); // Settings → Email, /verify-email/:token, admin test mail
+  app.use('/', featureRoutes('notifications', notificationRoutes)); // /notifications, preferences, unsubscribe links
   app.use('/', adminRoutes);
   app.use('/', adminItemRoutes); // block, unblock, delete for every type (a type's feature off: 404)
   app.use('/', featureRoutes('analytics', analyticsRoutes)); // analytics pages (share links need it too: schema `requires`)

@@ -12,11 +12,25 @@ const Paste = require('../models/Paste');
 const paths = require('../config/paths');
 const configService = require('./configService');
 const geo = require('./geoService');
+const db = require('../config/database');
+const notifications = require('./notificationService');
+const { contentType, enabledTypes } = require('./contentTypes');
+const { toTime } = require('./accessService');
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+// What happens to a registered user's expired item: deleted after retention.expiredGraceDays (links, pastes), at the
+// next nightly file cleanup (files), or kept (bundles). Tells the "expired" notice what to say.
+const EXPIRED_ITEM_DELETION = { url: 'grace', paste: 'grace', file: 'tonight', bundle: null };
+// SQL: when an item stops working (the earlier of expiresAt and deactivateAt), as a julianday; NULL when neither is set
+const END_SQL = 'MIN(COALESCE(julianday(expiresAt), 9e9), COALESCE(julianday(deactivateAt), 9e9))';
 
 /**
  * Scheduled Tasks Service
  * Handles periodic maintenance tasks like log cleanup, database backups, and expired URL cleanup
  */
+
+// A stored date as a julianday (zone-less dates are UTC, as SQLite reads them)
+const julianDay = (value) => (toTime(value) ?? 0) / DAY_MS + 2440587.5;
 
 class ScheduledTasks {
   static init() {
@@ -62,6 +76,13 @@ class ScheduledTasks {
       this.updateGeoDatabase();
     });
 
+    // Notification mails that are due, every minute; expiry notices hourly; old read notifications nightly
+    cron.schedule('* * * * *', () => {
+      notifications.sendDue().catch(error => console.error('❌ Notification mails failed:', error));
+    });
+    cron.schedule('10 * * * *', () => this.notifyLifecycle());
+    cron.schedule('5 2 * * *', () => this.cleanupNotifications());
+
     console.log('⏰ Scheduled tasks initialized:');
     console.log('   - Audit log cleanup: Daily at 2:00 AM');
     console.log('   - Analytics cleanup (retention.analyticsDays, off by default): Daily at 2:15 AM');
@@ -70,6 +91,7 @@ class ScheduledTasks {
     console.log('   - Expired analytics shares, mail links and never-confirmed sign-ups (7 days) cleanup: Daily at 5:00 AM');
     console.log('   - Expired file cleanup: Daily at 5:30 AM');
     console.log('   - Country database check (DB-IP Lite, monthly file): Daily at 5:45 AM');
+    console.log('   - Notification mails: every minute; expiry notices: hourly; read notifications cleanup: Daily at 2:05 AM');
   }
 
   /**
@@ -196,6 +218,8 @@ class ScheduledTasks {
     try {
       const graceDays = configService.get('retention.expiredGraceDays');
       const anonDeleted = Url.deleteInactiveAnonymous();
+      this.notifyDeleted('url', Url.findInactiveRegistered(graceDays));
+      this.notifyDeleted('paste', Paste.findInactiveRegistered(graceDays));
       const registeredDeleted = Url.deleteInactiveRegistered(graceDays);
       const anonBundlesDeleted = Bundle.deleteInactiveAnonymous();
       const anonPastesDeleted = Paste.deleteInactiveAnonymous();
@@ -221,6 +245,7 @@ class ScheduledTasks {
       const expired = File.findExpired();
 
       let deletedCount = 0;
+      this.notifyDeleted('file', expired);
       for (const file of expired) {
         try {
           const filePath = path.join(uploadsDir, file.storedName);
@@ -254,6 +279,58 @@ class ScheduledTasks {
       }
     } catch (error) {
       console.error('❌ Expired analytics shares cleanup failed:', error);
+    }
+  }
+
+  /** Tells the owners of items the cleanup is about to delete (anonymous ones have nobody to tell). */
+  static notifyDeleted(type, items) {
+    for (const item of items) notifications.notifyItemOwner(type, item, 'deleted_by_cleanup', { deleted: true });
+  }
+
+  /**
+   * Hourly: tells owners once that an item expires within notifications.expiryWarningDays (items made to last less
+   * than that get no warning), and once that it expired (in the last day), with the days left before it is deleted.
+   * A new expiry date makes a new occurrence. Blocked items and anonymous ones are left out.
+   */
+  static notifyLifecycle(now = new Date()) {
+    try {
+      const nowDay = now.getTime() / DAY_MS + 2440587.5; // julianday
+      const warnDays = configService.get('notifications.expiryWarningDays');
+      const graceDays = configService.get('retention.expiredGraceDays');
+      for (const type of enabledTypes()) {
+        const info = contentType(type);
+        const rows = db.prepare(`
+          SELECT *, ${END_SQL} AS endDay FROM ${info.table}
+          WHERE ${info.ownerColumn} IS NOT NULL AND isBlocked = 0
+            AND ${END_SQL} BETWEEN ? - 1 AND ? + ?
+        `).all(nowDay, nowDay, warnDays);
+        for (const item of rows) {
+          const occurrence = item.endDay.toFixed(6);
+          if (item.endDay > nowDay) {
+            if (item.endDay - julianDay(item.createdAt) <= warnDays) continue;
+            notifications.notifyItemOwner(type, item, 'expires_soon', {
+              payload: { days: Math.ceil(item.endDay - nowDay) }, dedupe: occurrence
+            });
+          } else {
+            const deletion = EXPIRED_ITEM_DELETION[type];
+            const days = deletion === 'grace' ? Math.max(0, Math.ceil(graceDays - (nowDay - item.endDay)))
+              : deletion === 'tonight' ? 0 : null;
+            notifications.notifyItemOwner(type, item, 'expired', { payload: { days }, dedupe: occurrence });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Expiry notifications failed:', error);
+    }
+  }
+
+  /** Notifications read more than 30 days ago (unread ones stay). */
+  static cleanupNotifications() {
+    try {
+      const deleted = notifications.cleanup();
+      if (deleted > 0) console.log(`✅ Deleted ${deleted} old notification(s)`);
+    } catch (error) {
+      console.error('❌ Notification cleanup failed:', error);
     }
   }
 

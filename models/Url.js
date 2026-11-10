@@ -1,4 +1,9 @@
 const db = require('../config/database');
+
+// A registered user's item past retention.expiredGraceDays (two parameters: the grace days)
+const INACTIVE_REGISTERED = `creatorId IS NOT NULL
+  AND ((expiresAt IS NOT NULL AND julianday('now') > julianday(expiresAt) + ?)
+    OR (deactivateAt IS NOT NULL AND julianday('now') > julianday(deactivateAt) + ?))`;
 const Tag = require('./Tag');
 const { scopeCondition } = require('../services/itemScope');
 
@@ -316,6 +321,11 @@ class Url {
     return result.changes;
   }
 
+  /** Inactive registered-user URLs past the grace period (what deleteInactiveRegistered deletes) */
+  static findInactiveRegistered(graceDays = 90) {
+    return db.prepare(`SELECT * FROM urls WHERE ${INACTIVE_REGISTERED}`).all(graceDays, graceDays);
+  }
+
   /**
    * Delete inactive registered-user URLs past the grace period
    * A URL is inactive if expiresAt or deactivateAt is in the past
@@ -323,15 +333,7 @@ class Url {
    * @returns {number} Number of URLs deleted
    */
   static deleteInactiveRegistered(graceDays = 90) {
-    const stmt = db.prepare(`
-      DELETE FROM urls
-      WHERE creatorId IS NOT NULL
-        AND (
-          (expiresAt IS NOT NULL AND julianday('now') > julianday(expiresAt) + ?)
-          OR
-          (deactivateAt IS NOT NULL AND julianday('now') > julianday(deactivateAt) + ?)
-        )
-    `);
+    const stmt = db.prepare(`DELETE FROM urls WHERE ${INACTIVE_REGISTERED}`);
     const result = stmt.run(graceDays, graceDays);
     return result.changes;
   }

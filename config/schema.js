@@ -38,6 +38,18 @@ const SETTINGS = {
   'features.reports': { type: 'boolean', default: true, description: 'Visitors can report links for abuse.' },
   'features.qrCodes': { type: 'boolean', default: true, description: 'QR codes for links, pastes, files and bundles.' },
   'features.teams': { type: 'boolean', default: true, description: 'Teams: links, bundles, pastes and files shared by several people.' },
+  'features.notifications': {
+    type: 'boolean', default: true,
+    description: 'Notifications: owners are told in the app (Notifications page) and, if they want, by mail when their items are reported, quarantined, blocked, about to expire, expired, at their usage limit or deleted, and about team invites and changes. Mails need the mail setup (SMTP_*) and a confirmed address. Off: nothing new is recorded or mailed and the page is gone; stored notifications are kept.'
+  },
+  'notifications.mailDelayMinutes': {
+    type: 'integer', min: 0, default: 15,
+    description: 'Minutes a notification waits before it is mailed. Several are sent together in one mail, and one already seen on the Notifications page is left out. A ban notice is sent at once.'
+  },
+  'notifications.expiryWarningDays': {
+    type: 'integer', min: 1, default: 3,
+    description: 'Days before an item expires that its owner is told (once per item).'
+  },
   'moderation.reportThreshold': {
     type: 'integer', min: 0, default: 3,
     description: 'Distinct reporters before a link is quarantined. 0 turns automatic quarantine off.'

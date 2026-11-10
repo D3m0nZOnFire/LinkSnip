@@ -69,13 +69,15 @@ function link(path) {
 
 /**
  * Sends one mail and waits for the server to accept it.
- * @param {{ to: string, subject: string, text: string, html?: string }} message
+ * @param {{ to: string, subject: string, text: string, html?: string, headers?: object }} message
+ *   headers: extra mail headers (List-Unsubscribe on notification mails)
  * @returns {Promise<object>} The transport's answer
  */
-async function send({ to, subject, text, html }) {
+async function send({ to, subject, text, html, headers }) {
   requireEnabled();
   const mail = { from: config.from, ...(config.replyTo ? { replyTo: config.replyTo } : {}), to, subject, text };
   if (html) mail.html = html;
+  if (headers) mail.headers = headers;
   const info = await transport.sendMail(mail);
   if (config.transport === 'console') {
     console.log(['', '✉️  Mail (MAIL_TRANSPORT=console, not sent)', `To: ${to}`, `Subject: ${subject}`, '', text, ''].join('\n'));

@@ -4,7 +4,7 @@ const { configureDatabase } = require('./dbSetup');
 const {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
   migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners, migrateSlugCase,
-  migrateItemPrivacy, migrateAccountEmail
+  migrateItemPrivacy, migrateAccountEmail, migrateNotifications
 } = require('./migrations');
 
 // Initialize database (DATA_DIR must exist and be writable)
@@ -476,6 +476,7 @@ migrateItemPrivacy(db);
 
 // Verified account email, session versions and one-time mail links (password reset)
 migrateAccountEmail(db);
+migrateNotifications(db);
 
 console.log('\n✅ Database initialized and migrations completed successfully\n');
 

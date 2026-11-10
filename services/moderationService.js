@@ -5,6 +5,7 @@ const RoleService = require('./roleService');
 const configService = require('./configService');
 const { logSecurity, logAdminAction, ACTIONS } = require('./auditService');
 const { CONTENT_TYPES } = require('./contentTypes');
+const notifications = require('./notificationService');
 
 /**
  * Report-driven moderation for every content type (links, bundles, pastes, files).
@@ -72,6 +73,9 @@ function afterReport(type, id, req) {
     threshold,
     reason: 'Automatic quarantine after reports'
   });
+  // The quarantine notice replaces the report notices the owner hasn't seen or been mailed yet
+  notifications.dropReportNotices(type, id);
+  notifications.notifyItemOwner(type, item, 'quarantined', { payload: { reports } });
   return true;
 }
 
@@ -85,6 +89,7 @@ function block(type, id, req) {
     Report.resolvePending(type, id, Report.STATUSES.BLOCKED, reviewerId(req));
   })();
   logSecurity(action('BLOCK', type), req, type, id, pathOf(info, item), { via: 'moderation' });
+  notifications.notifyItemOwner(type, item, 'blocked', { actorId: reviewerId(req) });
 }
 
 /** Lift the quarantine and dismiss the pending reports. */
@@ -95,6 +100,7 @@ function clear(type, id, req) {
     Report.resolvePending(type, id, Report.STATUSES.DISMISSED, reviewerId(req));
   })();
   logSecurity(ACTIONS.CLEAR_QUARANTINE, req, type, id, pathOf(info, item), {});
+  notifications.notifyItemOwner(type, item, 'quarantine_cleared', { actorId: reviewerId(req) });
 }
 
 /**
@@ -110,6 +116,7 @@ function setBlockedFromReport(report, blocked, req) {
   })();
   logAdminAction(action(blocked ? 'BLOCK' : 'UNBLOCK', report.targetType), req, report.targetType, item.id,
     pathOf(info, item), { reportId: report.id, reason: report.reason });
+  notifications.notifyItemOwner(report.targetType, item, blocked ? 'blocked' : 'unblocked', { actorId: reviewerId(req) });
 }
 
 /**
@@ -142,6 +149,7 @@ function banOwnerFromReport(report, userId, req) {
     reason: report.reason,
     blocked
   });
+  notifications.notify(ownerId, 'account_banned', { actorId: reviewerId(req) });
   return { username: user.username, blocked };
 }
 

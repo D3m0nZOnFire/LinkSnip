@@ -1,5 +1,6 @@
 const Report = require('../models/Report');
 const moderation = require('../services/moderationService');
+const notifications = require('../services/notificationService');
 const { recordStatus, isLive, privateStatus } = require('../services/accessService');
 const { CONTENT_TYPES, contentType, isTypeEnabled } = require('../services/contentTypes');
 const { logSecurity, ACTIONS } = require('../services/auditService');
@@ -49,6 +50,7 @@ class ReportController {
     }
 
     const report = Report.create({ targetType: type, targetId: item.id, reporterIp, reason, description });
+    notifications.notifyItemOwner(type, item, 'report_received', { actorId: req.user ? req.user.id : null });
     const quarantined = moderation.afterReport(type, item.id, req);
 
     res.json({

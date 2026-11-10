@@ -32,7 +32,7 @@ function appLocals() {
 
 /**
  * Per request (res.locals): `features.<name>` (settings.json switches; a feature that needs a switched-off one is
- * off too), `can.<permission>` (role and feature), `registrationOpen`, the teams the user can create items in ("Create in"), and the hourly creation
+ * off too), `can.<permission>` (role and feature), `registrationOpen`, `notificationsUnread`, the teams the user can create items in ("Create in"), and the hourly creation
  * `limits` the create page states (null = none).
  */
 function viewLocals(req, res, next) {
@@ -46,6 +46,9 @@ function viewLocals(req, res, next) {
   }));
   res.locals.canUploadFiles = res.locals.can.uploadFiles;
   res.locals.writableTeams = req.user ? teamService.writableTeams(req.user) : [];
+  // The sidebar's unread count (0 while notifications are off)
+  res.locals.notificationsUnread = req.user && features.notifications
+    ? require('../models/Notification').unreadCount(req.user.id) : 0;
   res.locals.limits = Object.fromEntries(['urlsPerHour', 'pastesPerHour', 'bundlesPerHour', 'uploadsPerHour', 'importsPerHour', 'importBatchSize']
     .map(name => [name, RoleService.limit(req.user || null, name)]));
   next();

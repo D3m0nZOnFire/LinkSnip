@@ -31,6 +31,12 @@
         you about changes to your account (a new address, a changed password). These mails are sent by this site's own
         mail server; there is no newsletter and no tracking in them.</p>
 <% } %>
+<% if (locals.features && features.notifications) { %>
+      <p>Notifications about your items and teams (a report, a block, an expiry, a team invite) are kept on your
+        Notifications page until 30 days after you have seen them.<% if (locals.mailEnabled) { %> If you choose, they are
+        also mailed to your confirmed address; each mail has a link to stop such mails, and you choose which ones you get
+        in Settings.<% } %></p>
+<% } %>
     </section>
 
     <section>

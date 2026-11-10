@@ -8,3 +8,41 @@
   margin-bottom: var(--spacing-md);
   overflow-wrap: anywhere;
 }
+
+/* Settings → Notifications: one row per event, a checkbox per channel */
+.notification-prefs .toggle-col {
+  width: 6.5rem;
+  text-align: center;
+}
+
+.notification-prefs td:first-child {
+  white-space: normal; /* long labels wrap on phones */
+}
+
+.notification-prefs th.toggle-col {
+  text-align: center;
+}
+
+.notification-prefs .group-row th {
+  padding-top: var(--spacing-lg);
+  color: var(--foreground);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.notification-prefs tbody:first-of-type .group-row th {
+  padding-top: var(--spacing-sm);
+}
+
+.notification-prefs input[type="checkbox"] {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--primary);
+}
+
+@media (max-width: 480px) {
+  .notification-prefs .toggle-col {
+    width: 4.5rem;
+  }
+}

@@ -1,4 +1,5 @@
 const { canEdit } = require('../services/itemPermissions');
+const notifications = require('../services/notificationService');
 const Paste = require('../models/Paste');
 const Tag = require('../models/Tag');
 const User = require('../models/User');
@@ -224,7 +225,10 @@ exports.view = (req, res) => {
 
   // A chat app building a link preview: no view counted, and it gets what describes the paste, not its content
   const previewBot = isPreviewBot(req);
-  if (!previewBot) Paste.incrementViews(paste.id);
+  if (!previewBot) {
+    Paste.incrementViews(paste.id);
+    notifications.afterUse('paste', paste.id);
+  }
 
   // Record view-level analytics (async, non-blocking)
   AnalyticsService.record(req, 'paste', paste.id).catch(() => { /* non-critical */ });
@@ -315,6 +319,7 @@ exports.raw = (req, res) => {
   if (isPreviewBot(req)) return res.type('text/plain; charset=utf-8').send('');
 
   Paste.incrementViews(paste.id);
+  notifications.afterUse('paste', paste.id);
 
   res.type('text/plain; charset=utf-8');
   if (req.query.download) {

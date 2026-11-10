@@ -1,4 +1,5 @@
 const { actor, canEdit } = require('../services/itemPermissions');
+const notifications = require('../services/notificationService');
 const Url = require('../models/Url');
 const slugService = require('../services/slugService');
 const AnalyticsService = require('../services/analyticsService');
@@ -158,7 +159,10 @@ class UrlController {
     if (!access.allowed) return sendAccessDenied(req, res, 'url', url, access);
 
     // Increment clicks (a chat app building a link preview is not a click)
-    if (!isPreviewBot(req)) Url.incrementClicks(slug);
+    if (!isPreviewBot(req)) {
+      Url.incrementClicks(slug);
+      notifications.afterUse('url', url.id);
+    }
 
     // Record the visit (async with geolocation)
     try {

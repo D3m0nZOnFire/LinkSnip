@@ -17,14 +17,16 @@ const FONT = "Geist,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif";
 /**
  * @param {{ siteName: string, subject: string, paragraphs: Array<string|{ link: string, label: string }>,
  *   replyTo?: string|null, theme?: object }} mail
- * Strings are paragraphs; { link, label } is a button (the link is also written out, for mail apps that hide it).
+ * Strings are paragraphs; { link, label } is a button (the link is also written out, for mail apps that hide it);
+ * { notice, link?, unsubscribe? } is one notification (its sentence, a link to the item, a link to stop such mails);
+ * { note, link, label } is a small line with a text link.
  * replyTo (MAIL_REPLY_TO) is named as the address for questions; the sender itself takes no replies.
  */
 function compose({ siteName, subject, paragraphs, replyTo = null, theme = DEFAULT_THEME, darkTheme = null }) {
   const t = { ...DEFAULT_THEME, ...theme };
   const footer = "Automatic message, please don't reply." + (replyTo ? ` Questions: ${replyTo}` : '');
   const text = [
-    ...paragraphs.map(p => (typeof p === 'string' ? p : `${p.label}:\n${p.link}`)),
+    ...paragraphs.map(textBlock),
     '--',
     footer
   ].join('\n\n');
@@ -33,6 +35,20 @@ function compose({ siteName, subject, paragraphs, replyTo = null, theme = DEFAUL
   // prefers-color-scheme (Apple Mail and others) switch to the dark palette. Others apply their own dark mode.
   const block = (p) => {
     if (typeof p === 'string') return `<p style="margin:0 0 16px">${escapeHtml(p)}</p>`;
+    if (p.notice !== undefined) {
+      const links = [
+        p.link ? `<a class="ls-link" href="${escapeHtml(p.link)}" style="color:${t.accent}">Open</a>` : '',
+        p.unsubscribe ? `<a class="ls-link" href="${escapeHtml(p.unsubscribe)}" style="color:${t.muted}">Stop mails like this</a>` : ''
+      ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+      return `<div style="margin:0 0 16px;padding:0 0 16px;border-bottom:1px solid ${t.border}">` +
+        `<p style="margin:0">${escapeHtml(p.notice)}</p>` +
+        (links ? `<p class="ls-muted" style="margin:6px 0 0;font-size:13px;color:${t.muted}">${links}</p>` : '') +
+        '</div>';
+    }
+    if (p.note !== undefined) {
+      return `<p class="ls-muted" style="margin:0 0 12px;font-size:13px;color:${t.muted}">${escapeHtml(p.note)} ` +
+        `<a class="ls-link" href="${escapeHtml(p.link)}" style="color:${t.accent}">${escapeHtml(p.label)}</a></p>`;
+    }
     const href = escapeHtml(p.link);
     return `<p style="margin:8px 0 20px"><a class="ls-btn" href="${href}" style="display:inline-block;padding:10px 18px;` +
       `background:${t.accent};color:${t.accentText};font-weight:500;text-decoration:none;border-radius:8px">` +
@@ -53,6 +69,17 @@ function compose({ siteName, subject, paragraphs, replyTo = null, theme = DEFAUL
     '</div></body></html>';
 
   return { subject, text, html };
+}
+
+/** Plain-text version of a paragraph. */
+function textBlock(p) {
+  if (typeof p === 'string') return p;
+  if (p.notice !== undefined) {
+    return [`- ${p.notice}`, p.link ? `  Open: ${p.link}` : null, p.unsubscribe ? `  Stop mails like this: ${p.unsubscribe}` : null]
+      .filter(Boolean).join('\n');
+  }
+  if (p.note !== undefined) return `${p.note} ${p.link}`;
+  return `${p.label}:\n${p.link}`;
 }
 
 /** The dark palette as a prefers-color-scheme block (colors only: theme values are hex from paletteService). */
@@ -160,4 +187,36 @@ function passwordChanged({ siteName, username, replyTo, theme, darkTheme }) {
   });
 }
 
-module.exports = { verifyEmail, emailChanged, testMail, resetPassword, passwordChanged, escapeHtml, compose, DEFAULT_THEME };
+/** A notice as a subject: whole when short, else up to its first clause (or the last whole word). */
+function shortSubject(text, max = 90) {
+  if (text.length <= max) return text;
+  const clause = text.match(/^(.+?)[:.;](\s|$)/);
+  if (clause && clause[1].length <= max) return clause[1];
+  return `${text.slice(0, max - 3).replace(/\s+\S*$/, '')}...`;
+}
+
+/**
+ * Notifications (services/notificationService.js sendDue): one or more, each with its link and how to stop such mails.
+ * pageUrl / settingsUrl: the Notifications page and the preferences (null for a banned account, which can't log in).
+ * @param {{ items: Array<{ text: string, url: string|null, unsubscribe: string|null }> }} data
+ */
+function notifications({ siteName, username, items, pageUrl, settingsUrl, replyTo, theme, darkTheme }) {
+  const subject = items.length === 1
+    ? `${siteName}: ${shortSubject(items[0].text)}`
+    : `${siteName}: ${items.length} notifications`;
+  return compose({
+    siteName,
+    replyTo,
+    theme,
+    darkTheme,
+    subject,
+    paragraphs: [
+      `Hi ${username},`,
+      ...items.map(item => ({ notice: item.text, link: item.url, unsubscribe: item.unsubscribe })),
+      ...(pageUrl ? [{ note: 'All your notifications:', link: pageUrl, label: pageUrl }] : []),
+      ...(settingsUrl ? [{ note: 'Choose what you get by mail:', link: settingsUrl, label: settingsUrl }] : [])
+    ]
+  });
+}
+
+module.exports = { notifications, verifyEmail, emailChanged, testMail, resetPassword, passwordChanged, escapeHtml, compose, DEFAULT_THEME };
