@@ -353,7 +353,12 @@ function inUseAs(id) {
 /** @returns the new palette; its id comes from the name (company-blue, company-blue-2, …) */
 function createPalette(input) {
   const palette = checkInput(input);
-  const base = palette.name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 56) || 'palette';
+  // Every run of other characters becomes one dash, so at most one dash is left at each end to drop
+  // (a plain check instead of /^-+|-+$/, which CodeQL flags as slow on long runs of dashes)
+  let base = palette.name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-');
+  if (base.startsWith('-')) base = base.slice(1);
+  if (base.endsWith('-')) base = base.slice(0, -1);
+  base = base.slice(0, 56) || 'palette';
   let id = base;
   for (let n = 2; getPalette(id); n++) id = `${base}-${n}`;
   return writeFile(id, palette);

@@ -105,6 +105,12 @@ describe('createPalette', () => {
     expect(paletteService.createPalette({ name: 'Nord', mode: 'dark', colors: COLORS }).id).toBe('nord-2');
   });
 
+  it('drops dashes and symbols at both ends of the id, and keeps one dash between words', () => {
+    expect(paletteService.createPalette({ name: '--Ocean -- Night--', mode: 'dark', colors: COLORS }).id).toBe('ocean-night');
+    expect(paletteService.createPalette({ name: '!!Dusk!!', mode: 'dark', colors: COLORS }).id).toBe('dusk');
+    expect(paletteService.createPalette({ name: '-'.repeat(40), mode: 'dark', colors: COLORS }).id).toBe('palette');
+  });
+
   it('gives a name without letters or digits an id anyway', () => {
     expect(paletteService.createPalette({ name: '✨✨', mode: 'light', colors: COLORS }).id).toBe('palette');
   });
