@@ -75,6 +75,11 @@ const ACTIONS = {
   // Account changes
   PASSWORD_CHANGE: 'PASSWORD_CHANGE',
   EMAIL_CHANGE: 'EMAIL_CHANGE',
+  VERIFY_EMAIL: 'VERIFY_EMAIL',
+  PASSWORD_RESET_REQUEST: 'PASSWORD_RESET_REQUEST',
+  PASSWORD_RESET: 'PASSWORD_RESET',
+  PASSWORD_RESET_FAILED: 'PASSWORD_RESET_FAILED',
+  SEND_TEST_EMAIL: 'SEND_TEST_EMAIL',
   PROFILE_UPDATE: 'PROFILE_UPDATE',
 
   // Security
@@ -218,9 +223,11 @@ function logAdminAction(action, req, targetType, targetId, targetDescription, de
 /**
  * Log account changes
  */
-function logAccountChange(action, req, details) {
+function logAccountChange(action, req, details, user = null) {
   return log({
     req,
+    userId: user ? user.id : undefined, // when nobody is logged in (a link from a mail)
+    username: user ? user.username : undefined,
     action,
     category: CATEGORIES.ACCOUNT_CHANGE,
     details

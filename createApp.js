@@ -103,6 +103,7 @@ function createApp({ sessionSecret, sessionStore } = {}) {
 
   // Routes
   app.use('/', authRoutes); // Auth routes have their own rate limiter applied in authRoutes.js
+  app.use('/', require('./routes/passwordResetRoutes')); // /forgot-password, /reset-password/:token (mail set up only)
   app.use('/', legalRoutes); // /privacy and /terms, from the live settings; /abuse goes to the terms' abuse section
   app.use('/', urlRoutes); // URL routes (redirect endpoint) have their own rate limiter
   app.use('/', unlockRoutes); // Password unlock for every type: /unlock/:type/:slug
@@ -112,6 +113,7 @@ function createApp({ sessionSecret, sessionStore } = {}) {
   app.use('/', featureRoutes('bioPages', bioPageRoutes)); // Bio page routes (MUST come before infoRoutes to avoid conflicts)
   app.use('/', dashboardRoutes);
   app.use('/', userRoutes);
+  app.use('/', require('./routes/accountEmailRoutes')); // Settings → Email, /verify-email/:token, admin test mail
   app.use('/', adminRoutes);
   app.use('/', adminItemRoutes); // block, unblock, delete for every type (a type's feature off: 404)
   app.use('/', featureRoutes('analytics', analyticsRoutes)); // analytics pages (share links need it too: schema `requires`)

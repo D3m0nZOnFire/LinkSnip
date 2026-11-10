@@ -1,5 +1,5 @@
 /**
- * Account settings (views/settings.ejs): username, password, deleting the account.
+ * Account settings (views/settings.ejs): username, email, password, deleting the account.
  */
 (function () {
   'use strict';
@@ -28,6 +28,41 @@
       setButtonLoading(button, false);
     }
   });
+
+  $('emailForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = $('newEmail').value.trim();
+    const currentPassword = $('emailPassword').value;
+    if (!currentPassword) return showToast('Enter your current password', 'error');
+
+    const button = $('saveEmailBtn');
+    setButtonLoading(button, true);
+    try {
+      const result = await apiRequest('/api/user/email', { method: 'PUT', body: JSON.stringify({ email, currentPassword }) });
+      if (!result.email) showToast('Email address removed');
+      else if (result.mailSent) showToast(`Saved. Open the link sent to ${result.email} to confirm it.`);
+      else showToast('Email address saved');
+      setTimeout(() => location.reload(), 1500);
+    } catch (error) {
+      showToast(error.message, 'error');
+      setButtonLoading(button, false);
+    }
+  });
+
+  const resendButton = $('resendEmailBtn');
+  if (resendButton) {
+    resendButton.addEventListener('click', async () => {
+      setButtonLoading(resendButton, true);
+      try {
+        await apiRequest('/api/user/email/resend', { method: 'POST' });
+        showToast('A new confirmation link is on its way');
+      } catch (error) {
+        showToast(error.message, 'error');
+      } finally {
+        setButtonLoading(resendButton, false);
+      }
+    });
+  }
 
   $('passwordForm').addEventListener('submit', async (event) => {
     event.preventDefault();

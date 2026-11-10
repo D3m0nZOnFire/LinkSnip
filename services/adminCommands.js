@@ -48,6 +48,7 @@ async function resetPassword(username, password) {
 
   const hash = await bcrypt.hash(password, 10);
   db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hash, user.id);
+  require('./passwordReset').afterPasswordChange(user.id); // logs out every session of the account
   logAdminAction(ACTIONS.UPDATE_USER, null, 'user', user.id, user.username, { passwordReset: true, via: 'cli' });
   return User.findById(user.id);
 }

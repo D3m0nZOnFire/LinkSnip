@@ -109,6 +109,32 @@ const apiLimiter = rateLimit({
 });
 
 // Rate limiter for authentication endpoints (prevent brute force)
+// "Send the link again" on the Check your inbox page (each account also gets at most 3 links an hour)
+const signupResendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).render('error', {
+      title: 'Too many requests', code: 429, message: 'Too many requests for a new link. Try again in 15 minutes.'
+    });
+  }
+});
+
+// Forgot password form: every request counts (each account also gets at most 3 reset mails an hour)
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).render('error', {
+      title: 'Too many requests', code: 429, message: 'Too many password reset requests. Try again in 15 minutes.'
+    });
+  }
+});
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 login attempts per 15 minutes
@@ -155,6 +181,8 @@ module.exports = {
   redirectLimiter,
   apiLimiter,
   authLimiter,
+  signupResendLimiter,
+  forgotPasswordLimiter,
   bulkImportLimiter,
   createUnlockLimiter,
   createBundleLimiter,

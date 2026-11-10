@@ -262,8 +262,9 @@ class AdminController {
         values.push(username);
       }
 
-      if (email !== undefined && email !== user.email) {
-        updateFields.push('email = ?');
+      if (email !== undefined && (email || null) !== user.email) {
+        // A new address has to be confirmed again by its owner (Settings → Email)
+        updateFields.push('email = ?', 'emailVerifiedAt = NULL');
         values.push(email || null);
       }
 
@@ -311,6 +312,8 @@ class AdminController {
 
       try {
         updateStmt.run(...values);
+        // A new password logs the user out everywhere (the admin's own session stays when editing themselves)
+        if (password && password.trim() !== '') require('../services/passwordReset').afterPasswordChange(user.id, req);
 
         // Log admin action with details of what changed
         const changes = {};

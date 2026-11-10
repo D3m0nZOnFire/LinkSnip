@@ -32,7 +32,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 | Layer | Where | Holds |
 |---|---|---|
-| Environment | `.env` / container env | Infrastructure only: `SESSION_SECRET`, `IP_HASH_SECRET` (both required), `DATA_DIR`, `PORT` (8081), `NODE_ENV`, `TRUST_PROXY` (1) |
+| Environment | `.env` / container env | Infrastructure only: `SESSION_SECRET`, `IP_HASH_SECRET` (both required), `DATA_DIR`, `PORT` (8081), `NODE_ENV`, `TRUST_PROXY` (1); optional mail: `SMTP_HOST`, `SMTP_PORT` (465), `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `MAIL_REPLY_TO`, `PUBLIC_URL`, `MAIL_TRANSPORT` (`console` in development) |
 | Settings | `DATA_DIR/settings.json` | Instance behavior: `access.loginRequired`, `registration.open`, `geo.enabled`, `features.*`, `moderation.reportThreshold`, `anonymous.*ExpirationDays`, `pastes.maxSizeKB`, `files.globalMaxFileSizeMB`, `retention.*` |
 | Roles | `DATA_DIR/roles.json` | Permissions and limits per role |
 
@@ -47,8 +47,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 - **`config/paths.js`**: every data path (`DB_PATH`, `UPLOADS_DIR`, `BACKUPS_DIR`, `SETTINGS_PATH`, `ROLES_PATH`)
   derives from `DATA_DIR` (default: project root). `ensureDataDir()` fails with a `chown` hint if it's not writable.
 - **`config/env.js`**: `requireSessionSecret()` (the app refuses to start without it or with a public placeholder),
-  `requireIpHashSecret()` (also at least 32 characters and different from `SESSION_SECRET`; the admin CLI checks it too)
-  and `parseTrustProxy()`.
+  `requireIpHashSecret()` (also at least 32 characters and different from `SESSION_SECRET`; the admin CLI checks it too),
+  `parseTrustProxy()` and `readMailConfig()` (null = mail off; a partial setup throws, naming what's missing).
 
 ## Roles and permissions
 
@@ -89,7 +89,8 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 3. Sessions (`config/session.js`: SQLite store, 7 days, cookie `sameSite: 'lax'`, `secure: 'auto'`)
 4. `requireSetupComplete`: while no admin exists every page redirects to `/setup` (API: 503 `setup_required`)
 5. `attachUser` (sets `req.user`, updates `lastActive`), then `middleware/requireLogin.js` (`access.loginRequired`:
-   visitors reach only `/login`, `/register`, `/setup`, `/logout`; pages → `/login?next=…`, `/` and forms → `/login`,
+   visitors reach only `/login`, `/register`, `/setup`, `/logout`, the legal pages and mail links (`/verify-email/…`,
+   `/forgot-password`, `/reset-password/…`); pages → `/login?next=…`, `/` and forms → `/login`,
    `/api/` → 401 `login_required`; no exception for `/stats`), then `middleware/viewLocals.js` (`can`, `features`,
    `registrationOpen`, `writableTeams`; `appLocals()` sets `appVersion` and `reportReasons` on `app.locals`)
 6. Routers (feature routers wrapped in `featureRoutes`), then the home routes, bare slugs (`/:slug`), 404 and error
@@ -104,8 +105,35 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   deletes the personal links, bundles, pastes and files (uploads too) and the user; tags and the bio page cascade,
   the items' analytics/share links/reports/tags go through the delete triggers. Team items stay, creator NULL.
 
+- **Mail** (`services/mailService.js`, optional): `app.js` calls `configure(readMailConfig())`; `isEnabled()`,
+  `link(path)` (always `PUBLIC_URL` + path, never the `Host` header), `send()` (awaits, rejects), `deliver()`
+  (background, never rejects: use it in requests), `summary()` (Admin → Settings → General → Mail, no password).
+  nodemailer pool, 4 mails a minute. Templates in `services/mailTemplates.js` (`{ subject, text, html }`, values
+  escaped, no images; footer: "Automatic message, please don't reply. Questions: <MAIL_REPLY_TO>"). Colors follow
+  Admin → Appearance: `accountEmail.mailContext()` passes the light palette as inline styles and the dark one as a
+  `prefers-color-scheme` block (`mailTheme(mode)`, tokens from `paletteService`). Views get `mailEnabled`. Tests pass a fake `{ sendMail: jest.fn() }` as `transport`.
+- **Account email** (`services/accountEmail.js`, `controllers/accountEmailController.js`,
+  `routes/accountEmailRoutes.js`): `PUT /api/user/email` (current password; stored unconfirmed, a confirmation link is
+  mailed, the old confirmed address gets a notice), `POST /api/user/email/resend` (3 an hour), `/verify-email/:token`
+  (`views/verify-email.ejs`: GET only asks, POST confirms, so mail scanners don't use links up; open on a private
+  instance through `requireLogin` `OPEN_PREFIXES`), `POST /api/admin/mail/test`. Only a confirmed address
+  (`users.emailVerifiedAt`) will get reset mails; one account per confirmed address (ignoring case). Admin → Users
+  changing an address makes it unconfirmed. Tokens: `models/UserToken.js` (`create` returns the token once and cancels
+  the user's older ones of that purpose, `find`, atomic `consume`, `cancel`, `countRecent`, `deleteExpired`).
+- **Sign-up with mail on**: email required, `users.pendingConfirmation = 1`, no login until confirmed (login and
+  `POST /register` render `views/check-inbox.ejs`; `POST /register/resend` answers the same for every username,
+  `signupResendLimiter`); `accountEmail.isWaitingForConfirmation(user)` (false once mail is off); never-confirmed
+  accounts are deleted after 7 days (5:00). An address another account confirmed is refused at sign-up. Confirming
+  the sign-up (the POST) logs the account in (`signedUp` in `confirmVerification`); confirming a changed address doesn't.
+- **Forgot password** (`services/passwordReset.js`, `controllers/passwordResetController.js`,
+  `routes/passwordResetRoutes.js`; 404 while mail is off): `/forgot-password` (username or confirmed address; same
+  page for any input, `forgotPasswordLimiter` 5/15 min per IP + 3 mails/hour per account), `/reset-password/:token`
+  (`views/reset-password.ejs`; GET shows the form, POST checks the password before using the link, 30 minutes, then
+  logs in). Every new password (reset, Settings, Admin → Users, CLI) goes through `afterPasswordChange(userId, keepReq)`:
+  raises `users.sessionVersion`, ends reset links, mails "password changed".
 - Login, registration and setup log in through `services/loginSession.js` `startSession(req, user)`: a new session
-  ID (`session.regenerate`), so an ID known before logging in never becomes a logged-in session. Controller tests use
+  ID (`session.regenerate`), so an ID known before logging in never becomes a logged-in session. It stores the
+  account's `sessionVersion`; `attachUser` logs out sessions with an older one (`isOutdated`; none stored = 0). Controller tests use
   `mockSession()` from `tests/setup/testHelpers.js` (`createMockRequest` has one by default).
 - Logout is `POST /logout` (the user menu's form), so another site or a prefetched link can't log anyone out;
   `GET /logout` shows `views/logout.ejs` ("Log out?") for old bookmarks.
@@ -127,7 +155,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
   runs all migrations. Migrations that need tests live in `config/migrations.js` (`migrateUserRoles`,
   `migrateAnalyticsShareLinks`, `migrateQuarantine`, `migrateDropNotifications`, `migrateReports`,
   `migrateAnalytics`, `migrateTags`, `migrateIpHashes`, `migrateTeams`, `migrateFileOwners`, `migrateSlugCase`,
-  `migrateItemPrivacy`); they're idempotent
+  `migrateItemPrivacy`, `migrateAccountEmail`); they're idempotent
   and also build the matching tables in `tests/setup/testDatabase.js`. Everything else is mirrored by hand there
   (bio pages included). `tests/unit/config/freshDatabase.test.js` opens a brand-new database in its own process.
 - **Synchronous API**: `db.prepare(sql).get/all/run()`; only bcrypt is async.
@@ -138,7 +166,11 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 
 ### Key tables
 
-- **users**: `isAdmin`, `isBanned`, `role`, `email`, `lastActive`
+- **users**: `isAdmin`, `isBanned`, `role`, `email`, `emailVerifiedAt` (NULL = unconfirmed; unique NOCASE index over
+  confirmed addresses), `sessionVersion` (raised by a new password), `pendingConfirmation`, `lastActive`
+- **user_tokens**: one-time mail links: `userId` (CASCADE), `purpose` (`verify_email` / `reset_password`), `tokenHash`
+  (SHA-256, unique), `email` (the address a verification confirms), `expiresAt`, `createdAt`, `usedAt` (also set when
+  cancelled)
 - **urls**: `slug`, `longUrl`, `creatorId` (→ users, SET NULL), `clicks`, `maxUses`, `expiresAt`, `activateAt`,
   `deactivateAt` (datetime-local + `:00.000Z`, no timezone conversion), `password` (bcrypt), `isBlocked`, `isQuarantined`,
   `isPrivate`
@@ -468,7 +500,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Audit logging (`services/auditService.js`)
 - `logAuth`, `logAdminAction`, `logAccountChange`, `logSecurity`. Add new action names to `ACTIONS`. `logAuth(action,
   req, username, details, userId)`: pass the user ID while logging in or registering (`req.user` isn't set yet).
-- Recent ones: `CHANGE_SLUG`, `CREATE_USER`, `SETUP_ADMIN`, `UPDATE_SETTINGS`, `CREATE_SHARE_LINK`, `REVOKE_SHARE_LINK`, `BLOCK_FILE`,
+- Recent ones: `PASSWORD_RESET_REQUEST`, `PASSWORD_RESET`, `PASSWORD_RESET_FAILED`, `VERIFY_EMAIL`, `SEND_TEST_EMAIL` (`EMAIL_CHANGE` for a new address), `CHANGE_SLUG`, `CREATE_USER`, `SETUP_ADMIN`, `UPDATE_SETTINGS`, `CREATE_SHARE_LINK`, `REVOKE_SHARE_LINK`, `BLOCK_FILE`,
   `UNBLOCK_FILE`, `QUARANTINE_URL` / `_BUNDLE` / `_PASTE` / `_FILE`, `CLEAR_QUARANTINE`, `UNLOCK_LOCKOUT`,
   `MIGRATE_REPORTS` (old → new bundle report IDs).
 
@@ -485,7 +517,7 @@ docker compose up -d   # run the image (see docs/DEPLOYMENT.md)
 ### Scheduled tasks (`services/scheduledTasks.js`, node-cron)
 2:00 audit log cleanup (`retention.auditLogDays`) · 2:15 analytics cleanup (`retention.analyticsDays`, null = keep
 forever) · 3:00 backup · 4:00 inactive content cleanup · 5:00 expired
-share links · 5:30 expired files · 5:45 country database check.
+share links and old mail links (`UserToken.deleteExpired`) · 5:30 expired files · 5:45 country database check.
 
 ## Docker
 

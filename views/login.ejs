@@ -22,6 +22,7 @@
         <input type="password" id="password" name="password" class="form-input" autocomplete="current-password" required data-toggle-password<%= error ? ' autofocus' : '' %>>
       </div>
       <button type="submit" class="btn">Log in</button>
+      <% if (locals.mailEnabled) { %><p class="auth-forgot"><a href="/forgot-password">Forgot password?</a></p><% } %>
     </form>
     <div class="auth-links">
       <% if (locals.registrationOpen !== false) { %><p>No account yet? <a href="/register">Register</a></p><% } %>

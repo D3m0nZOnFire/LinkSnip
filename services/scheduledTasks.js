@@ -5,6 +5,7 @@ const AuditLog = require('../models/AuditLog');
 const Url = require('../models/Url');
 const Bundle = require('../models/Bundle');
 const AnalyticsShare = require('../models/AnalyticsShare');
+const UserToken = require('../models/UserToken');
 const AnalyticsEvent = require('../models/AnalyticsEvent');
 const File = require('../models/File');
 const Paste = require('../models/Paste');
@@ -46,6 +47,8 @@ class ScheduledTasks {
     cron.schedule('0 5 * * *', () => {
       console.log('🔗 Running scheduled expired analytics shares cleanup...');
       this.cleanupExpiredShares();
+      this.cleanupExpiredTokens();
+      this.cleanupUnconfirmedAccounts();
     });
 
     // Run expired file cleanup daily at 5:30 AM
@@ -64,7 +67,7 @@ class ScheduledTasks {
     console.log('   - Analytics cleanup (retention.analyticsDays, off by default): Daily at 2:15 AM');
     console.log('   - Database backup: Daily at 3:00 AM');
     console.log('   - Inactive URL cleanup (expired + deactivated, anonymous immediately / registered with grace period): Daily at 4:00 AM');
-    console.log('   - Expired analytics shares cleanup: Daily at 5:00 AM');
+    console.log('   - Expired analytics shares, mail links and never-confirmed sign-ups (7 days) cleanup: Daily at 5:00 AM');
     console.log('   - Expired file cleanup: Daily at 5:30 AM');
     console.log('   - Country database check (DB-IP Lite, monthly file): Daily at 5:45 AM');
   }
@@ -251,6 +254,29 @@ class ScheduledTasks {
       }
     } catch (error) {
       console.error('❌ Expired analytics shares cleanup failed:', error);
+    }
+  }
+
+  /** Deletes accounts that signed up and never confirmed their address (services/accountEmail.js). */
+  static cleanupUnconfirmedAccounts() {
+    try {
+      const { unconfirmedAccountIds } = require('./accountEmail');
+      const { deleteAccount } = require('./accountDeletion');
+      const ids = unconfirmedAccountIds();
+      ids.forEach(id => deleteAccount(id));
+      if (ids.length) console.log(`✅ Deleted ${ids.length} account(s) whose email address was never confirmed`);
+    } catch (error) {
+      console.error('❌ Unconfirmed account cleanup failed:', error);
+    }
+  }
+
+  /** Deletes one-time mail links (address verification, password reset) that ended more than a day ago. */
+  static cleanupExpiredTokens() {
+    try {
+      const deletedCount = UserToken.deleteExpired();
+      if (deletedCount > 0) console.log(`✅ Deleted ${deletedCount} old mail link(s)`);
+    } catch (error) {
+      console.error('❌ Mail link cleanup failed:', error);
     }
   }
 }

@@ -57,6 +57,23 @@ async function saveSettings(event) {
 
 document.getElementById('settingsForm')?.addEventListener('submit', saveSettings);
 
+// General tab → Mail → Send test email (waits for the mail server's answer)
+document.getElementById('sendTestMailBtn')?.addEventListener('click', async (event) => {
+  const button = event.currentTarget;
+  const status = document.getElementById('mailStatus');
+  status.textContent = 'Sending…';
+  button.disabled = true;
+  try {
+    const response = await fetch('/api/admin/mail/test', { method: 'POST' });
+    const data = await response.json().catch(() => ({}));
+    status.textContent = response.ok ? `Sent to ${data.to}. Check that inbox (and its spam folder).` : (data.message || data.error || 'Sending failed.');
+  } catch (e) {
+    status.textContent = 'Request failed. Please try again.';
+  } finally {
+    button.disabled = false;
+  }
+});
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { readForm };
 }

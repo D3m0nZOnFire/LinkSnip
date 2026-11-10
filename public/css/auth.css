@@ -81,3 +81,15 @@
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
 }
+
+/* Login → Forgot password?, and the answer on /forgot-password */
+.auth-forgot {
+  margin-top: var(--spacing-md);
+  text-align: center;
+  font-size: var(--text-sm);
+}
+
+.auth-notice {
+  margin-bottom: var(--spacing-md);
+  color: var(--muted-foreground);
+}

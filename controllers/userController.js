@@ -13,7 +13,9 @@ class UserController {
    */
   static getSettings(req, res) {
     res.render('settings', {
-      user: req.user
+      user: req.user,
+      email: req.user.email || null,
+      emailVerified: !!req.user.emailVerifiedAt
     });
   }
 
@@ -110,6 +112,8 @@ class UserController {
       // Update password
       const updateStmt = db.prepare('UPDATE users SET password = ? WHERE id = ?');
       updateStmt.run(hashedPassword, req.session.userId);
+      // Logs out the account's other sessions (this one stays), ends reset links, mails a notice
+      require('../services/passwordReset').afterPasswordChange(req.session.userId, req);
 
       // Log password change
       logAccountChange(ACTIONS.PASSWORD_CHANGE, req, {

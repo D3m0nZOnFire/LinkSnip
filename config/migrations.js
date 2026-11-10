@@ -623,7 +623,46 @@ function migrateItemPrivacy(db, logger = console) {
   })();
 }
 
+/**
+ * Account email: users.emailVerifiedAt (only a verified address gets password reset mails; addresses stored before
+ * start unverified), users.sessionVersion (a password reset or change raises it, which logs out the sessions started
+ * before), users.pendingConfirmation (1 = signed up while mail was on and can't log in until the address is
+ * confirmed; existing accounts never wait), one verified account per address (ignoring case; unverified duplicates stay allowed), and user_tokens:
+ * one-time links sent by mail, stored as SHA-256 hashes (models/UserToken.js).
+ */
+function migrateAccountEmail(db, logger = console) {
+  const columns = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+  if (!columns.includes('emailVerifiedAt')) {
+    logger.log('  ✉️  Adding emailVerifiedAt column to users...');
+    db.exec('ALTER TABLE users ADD COLUMN emailVerifiedAt DATETIME DEFAULT NULL');
+  }
+  if (!columns.includes('sessionVersion')) {
+    db.exec('ALTER TABLE users ADD COLUMN sessionVersion INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!columns.includes('pendingConfirmation')) {
+    db.exec('ALTER TABLE users ADD COLUMN pendingConfirmation INTEGER NOT NULL DEFAULT 0');
+  }
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_verified_email
+      ON users(email COLLATE NOCASE) WHERE emailVerifiedAt IS NOT NULL;
+
+    CREATE TABLE IF NOT EXISTS user_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER NOT NULL,
+      purpose TEXT NOT NULL CHECK (purpose IN ('verify_email', 'reset_password')),
+      tokenHash TEXT NOT NULL UNIQUE,
+      email TEXT,
+      expiresAt DATETIME NOT NULL,
+      createdAt DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      usedAt DATETIME,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_tokens_user ON user_tokens(userId, purpose);
+  `);
+}
+
 module.exports = {
+  migrateAccountEmail,
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
   migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners, migrateSlugCase, migrateItemPrivacy
 };

@@ -24,7 +24,7 @@ function isAdmin(req, res, next) {
 /**
  * Middleware to attach user to request object and update last active.
  * The session is set at login; this re-checks it against the database on every
- * request: a deleted or banned user is logged out (other session data such as
+ * request: a deleted or banned user, or a session from before a new password, is logged out (other session data such as
  * unlocks is kept), and session.isAdmin follows the current isAdmin flag.
  */
 function attachUser(req, res, next) {
@@ -32,7 +32,8 @@ function attachUser(req, res, next) {
     const User = require('../models/User');
     const user = User.findById(req.session.userId);
 
-    if (!user || user.isBanned) {
+    // Deleted, banned, or started before the latest password change (services/loginSession.js)
+    if (!user || user.isBanned || require('../services/loginSession').isOutdated(req.session, user)) {
       delete req.session.userId;
       delete req.session.isAdmin;
       req.user = null;
