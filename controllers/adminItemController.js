@@ -3,6 +3,7 @@ const path = require('path');
 const { UPLOADS_DIR } = require('../config/paths');
 const { contentType, isTypeEnabled } = require('../services/contentTypes');
 const { logAdminAction, ACTIONS } = require('../services/auditService');
+const notifications = require('../services/notificationService');
 
 /**
  * Admin block, unblock and delete for every content type (/api/admin/:type/…).
@@ -26,6 +27,7 @@ function describe(type, item) {
 }
 
 const ownerOf = (type, item) => item[contentType(type).ownerColumn] ?? null;
+const actorId = (req) => (req.user ? req.user.id : (req.session && req.session.userId) || null);
 
 /** Route guard: an unknown type, or one whose feature is off, falls through (404). */
 function knownType(req, res, next) {
@@ -45,6 +47,7 @@ function setBlocked(blocked) {
     logAdminAction(ACTIONS[`${verb}_${AUDIT_NAME[type]}`], req, type, item.id, describe(type, item), {
       slug: item.slug, owner: ownerOf(type, item), manual: true
     });
+    notifications.notifyItemOwner(type, item, blocked ? 'blocked' : 'unblocked', { actorId: actorId(req) });
     return res.json({ success: true });
   };
 }
@@ -91,6 +94,7 @@ function bulkSetBlocked(blocked) {
         logAdminAction(ACTIONS[`${verb}_${AUDIT_NAME[type]}`], req, type, item.id, describe(type, item), {
           slug: item.slug, owner: ownerOf(type, item), manual: true, bulk: true
         });
+        notifications.notifyItemOwner(type, item, blocked ? 'blocked' : 'unblocked', { actorId: actorId(req) });
         count++;
       } catch (err) {
         errors.push(`${id}: ${err.message}`);

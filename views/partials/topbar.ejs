@@ -1,5 +1,5 @@
 <%# Small screens only: opens the sidebar %>
 <header class="topbar">
-  <button type="button" class="icon-btn" data-sidebar-toggle aria-controls="sidebar" aria-expanded="false" aria-label="Open menu"><%- include('icon', { icon: 'menu' }) %></button>
+  <button type="button" class="icon-btn topbar-menu" data-sidebar-toggle aria-controls="sidebar" aria-expanded="false" aria-label="Open menu<%= locals.notificationsUnread ? ` (${locals.notificationsUnread} unread notification${locals.notificationsUnread === 1 ? '' : 's'})` : '' %>"><%- include('icon', { icon: 'menu' }) %><% if (locals.notificationsUnread) { %><span class="topbar-dot" aria-hidden="true"></span><% } %></button>
   <%- include('brand', { large: false }) %>
 </header>

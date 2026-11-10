@@ -35,6 +35,15 @@ Merged into main, to be released together with the next feature.
   Opening the link only asks; the button confirms, so mail scanners that open links don't use it up. One address can
   be confirmed by one account.
 
+- Notifications: owners are told when one of their items is reported, quarantined, blocked or unblocked, about to
+  expire (`notifications.expiryWarningDays`, 3 days by default), expired, at its usage limit or deleted by the nightly
+  cleanup, and when they are invited to a team, get a new role, are removed or the team is deleted. They show on the
+  new Notifications page (in the sidebar, with the number of unread ones) and, with mail set up and a confirmed
+  address, by mail: mails wait `notifications.mailDelayMinutes` (15 by default) and come together, and what was
+  already seen on the page is left out. Settings → Notifications chooses, per event, in the app and by mail; every
+  mail has a one-click unsubscribe link. A banned account gets one mail saying so. `features.notifications` switches
+  it all off.
+
 ### Fixed
 
 - A page could scroll sideways on Admin → Users, Admin → Reports and team pages (the hidden list behind each styled

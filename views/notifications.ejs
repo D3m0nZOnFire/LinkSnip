@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title: 'Notifications', styles: ['sections', 'notifications'] }) %>
+</head>
+<%- include('partials/layout-start', { shell: 'app', currentPage: 'notifications' }) %>
+<%
+  const when = (value) => {
+    const date = new Date(String(value).includes('T') ? value : `${String(value).replace(' ', 'T')}Z`);
+    return date.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC';
+  };
+-%>
+  <main class="main-content-wide page-medium">
+    <div class="header-section">
+      <div>
+        <h2>Notifications</h2>
+        <p>What happened to your items and teams. Notifications you see here are not mailed to you.
+          <a href="/settings#notifications">Choose what you are told</a>.</p>
+      </div>
+      <% if (unreadElsewhere > 0) { %>
+        <button type="button" class="btn btn-secondary btn-small" id="markAllReadBtn">Mark all as read (<%= unreadElsewhere %>)</button>
+      <% } %>
+    </div>
+
+    <% if (items.length === 0) { %>
+      <div class="section-card notifications-empty">
+        <h3>No notifications</h3>
+        <p class="section-help">You'll find notices here when one of your items is reported, blocked, about to expire
+          or at its usage limit, and when someone invites you to a team.</p>
+      </div>
+    <% } else { %>
+      <div class="section-card notifications-card">
+        <ul class="notification-list">
+          <% items.forEach(n => { %>
+          <li class="notification-item<%= n.unread ? ' unread' : '' %>" data-group="<%= n.group || '' %>">
+            <span class="notification-dot" aria-hidden="true"></span>
+            <div class="notification-body">
+              <p class="notification-text"><% if (n.unread) { %><span class="visually-hidden">New: </span><% } %><%= n.text %></p>
+              <p class="notification-meta">
+                <time datetime="<%= n.createdAt %>"><%= when(n.createdAt) %></time>
+                <% if (n.path) { %> · <a href="<%= n.path %>">Open</a><% } %>
+              </p>
+            </div>
+          </li>
+          <% }) %>
+        </ul>
+      </div>
+      <% if (pages > 1) { %>
+        <nav class="pager notifications-pager" aria-label="Pages">
+          <% if (page > 1) { %><a class="btn btn-secondary btn-small" href="/notifications?page=<%= page - 1 %>">Newer</a><% } %>
+          <span class="muted">Page <%= page %> of <%= pages %></span>
+          <% if (page < pages) { %><a class="btn btn-secondary btn-small" href="/notifications?page=<%= page + 1 %>">Older</a><% } %>
+        </nav>
+      <% } %>
+    <% } %>
+  </main>
+  <script src="/js/main.js"></script>
+  <script src="/js/notifications.js"></script>
+<%- include('partials/layout-end', { shell: 'app' }) %>
+</html>

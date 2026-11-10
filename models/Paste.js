@@ -1,4 +1,9 @@
 const db = require('../config/database');
+
+// A registered user's item past retention.expiredGraceDays (two parameters: the grace days)
+const INACTIVE_REGISTERED = `userId IS NOT NULL
+  AND ((expiresAt IS NOT NULL AND julianday('now') > julianday(expiresAt) + ?)
+    OR (deactivateAt IS NOT NULL AND julianday('now') > julianday(deactivateAt) + ?))`;
 const Tag = require('./Tag');
 const { scopeCondition } = require('../services/itemScope');
 
@@ -132,21 +137,18 @@ class Paste {
     return result.changes;
   }
 
+  /** Inactive registered-user pastes past the grace period (what deleteInactiveRegistered deletes) */
+  static findInactiveRegistered(graceDays = 90) {
+    return db.prepare(`SELECT * FROM pastes WHERE ${INACTIVE_REGISTERED}`).all(graceDays, graceDays);
+  }
+
   /**
    * Delete inactive registered-user pastes past the grace period
    * @param {number} graceDays - Days after becoming inactive before deletion
    * @returns {number} Number of pastes deleted
    */
   static deleteInactiveRegistered(graceDays = 90) {
-    const stmt = db.prepare(`
-      DELETE FROM pastes
-      WHERE userId IS NOT NULL
-        AND (
-          (expiresAt IS NOT NULL AND julianday('now') > julianday(expiresAt) + ?)
-          OR
-          (deactivateAt IS NOT NULL AND julianday('now') > julianday(deactivateAt) + ?)
-        )
-    `);
+    const stmt = db.prepare(`DELETE FROM pastes WHERE ${INACTIVE_REGISTERED}`);
     const result = stmt.run(graceDays, graceDays);
     return result.changes;
   }

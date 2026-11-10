@@ -17,6 +17,7 @@ users or visitors anywhere: there is no telemetry, no analytics service and no u
 | Data | What | Why | How long |
 |---|---|---|---|
 | **Accounts** | Username, e-mail address (optional) and when it was confirmed, password (bcrypt hash), role, sign-up date, last activity | Logging in, permissions and limits; with mail set up, confirming the address, password reset and notices about the account | Until the account is deleted |
+| **Notifications** | Per event for a user (one of their items reported, quarantined, blocked, about to expire, expired, at its usage limit or deleted; team invites and changes): the event, the item's type and address or the team's name, when it happened, was seen and was mailed; the user's choices of what they are told; a random key for the unsubscribe links in mails | Telling owners what happened, in the app and (if they want, with mail set up) by mail | 30 days after being seen; unseen ones until the account is deleted. `features.notifications` off: nothing new is recorded |
 | **Mail links** | For address confirmation and password reset links: the SHA-256 hash of the link's token, the address it confirms, when it was made, used and expires | One-time links sent by mail | A day after they expire or are used (nightly cleanup) |
 | **Content** | Links, pastes, uploaded files (with their original file names), bundles, bio pages, tags, teams | What users share | Until it's deleted, or it expires (see below) |
 | **Sessions** | A session ID in a cookie (`connect.sid`, HttpOnly, SameSite=Lax); in the database: who is logged in, which password-protected items were unlocked | Staying logged in | 7 days after the last visit |
@@ -35,8 +36,9 @@ the backups. The audit log keeps real addresses on purpose, to investigate break
 anywhere; only the monthly download of that file contacts db-ip.com, and it carries no visitor data.
 
 **Mail** is off unless you set it up (`SMTP_HOST`, `MAIL_FROM`, `PUBLIC_URL`; see [DEPLOYMENT.md](DEPLOYMENT.md)).
-Then LinkSnip sends only account mails (confirm an address, reset a password, a changed address or password) through
-the SMTP server you configure; that server sees the recipient's address and the mail. No newsletters, no images, no
+Then LinkSnip sends account mails (confirm an address, reset a password, a changed address or password) and the
+notification mails each user chose (every one with a one-click unsubscribe link) through the SMTP server you configure;
+that server sees the recipient's address and the mail. No newsletters, no images, no
 tracking links.
 
 ## What visitors' browsers load from elsewhere

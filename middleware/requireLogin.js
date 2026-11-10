@@ -11,7 +11,7 @@ const configService = require('../services/configService');
  */
 const OPEN_PATHS = new Set(['/login', '/register', '/register/resend', '/forgot-password', '/setup', '/logout', '/privacy', '/terms', '/abuse']);
 // Links from mails, opened before logging in
-const OPEN_PREFIXES = ['/verify-email/', '/reset-password/'];
+const OPEN_PREFIXES = ['/verify-email/', '/reset-password/', '/notifications/unsubscribe/'];
 const isOpen = (path) => OPEN_PATHS.has(path) || OPEN_PREFIXES.some(prefix => path.startsWith(prefix));
 
 module.exports = function requireLogin(req, res, next) {

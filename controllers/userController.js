@@ -5,6 +5,9 @@ const Url = require('../models/Url');
 const bcrypt = require('bcrypt');
 const db = require('../config/database');
 const { logAccountChange, ACTIONS } = require('../services/auditService');
+const notifications = require('../services/notificationService');
+const mailService = require('../services/mailService');
+const { isEnabled } = require('../middleware/requireFeature');
 
 class UserController {
   /**
@@ -15,7 +18,10 @@ class UserController {
     res.render('settings', {
       user: req.user,
       email: req.user.email || null,
-      emailVerified: !!req.user.emailVerifiedAt
+      emailVerified: !!req.user.emailVerifiedAt,
+      // Settings → Notifications (null while the feature is off); mail toggles need mail and a confirmed address
+      notificationGroups: isEnabled('notifications') ? notifications.preferenceGroups(req.user.id) : null,
+      canMailNotifications: mailService.isEnabled() && !!req.user.emailVerifiedAt
     });
   }
 

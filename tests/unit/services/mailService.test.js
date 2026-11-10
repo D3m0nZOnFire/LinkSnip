@@ -65,6 +65,16 @@ describe('mailService', () => {
     expect(transport.sendMail.mock.calls[0][0]).not.toHaveProperty('replyTo');
   });
 
+  it('passes extra headers (List-Unsubscribe) when given', async () => {
+    const transport = fakeTransport();
+    mailService.configure(CONFIG, { transport });
+    const headers = { 'List-Unsubscribe': '<https://links.example.com/u>' };
+    await mailService.send({ to: 'ann@example.com', subject: 'Hi', text: 'Hello', headers });
+    expect(transport.sendMail.mock.calls[0][0].headers).toEqual(headers);
+    await mailService.send({ to: 'ann@example.com', subject: 'Hi', text: 'Hello' });
+    expect(transport.sendMail.mock.calls[1][0]).not.toHaveProperty('headers');
+  });
+
   it('send rejects when mail is off or the server fails', async () => {
     await expect(mailService.send({ to: 'a@example.com', subject: 's', text: 't' })).rejects.toThrow(/not configured/);
     const transport = { sendMail: jest.fn(async () => { throw new Error('connection refused'); }) };

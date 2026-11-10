@@ -78,6 +78,9 @@ function migrateQuarantine(db, logger = console) {
 function migrateDropNotifications(db, logger = console) {
   const exists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='notifications'").get();
   if (!exists) return;
+  // The current table (migrateNotifications) has mailState; only the old one is dropped
+  const columns = db.prepare('PRAGMA table_info(notifications)').all().map(c => c.name);
+  if (columns.includes('mailState')) return;
   logger.log('  🗑️  Dropping notifications table...');
   db.exec('DROP TABLE notifications');
 }
@@ -661,8 +664,55 @@ function migrateAccountEmail(db, logger = console) {
   `);
 }
 
+/**
+ * Notifications (services/notificationService.js): one row per event for a user, which is both the in-app list
+ * (inApp = 1, readAt) and the mail queue (mailState pending → sent / skipped; none = no mail). targetType +
+ * targetId name the item without a foreign key (it may be deleted; payload keeps what the text needs). dedupeKey
+ * makes scan-based events (expires soon, limit reached) happen once per item. notification_preferences holds only
+ * what a user changed (defaults are in services/notificationEvents.js). users.notificationKey: the random key in
+ * unsubscribe links, made when the first one is needed. Runs after migrateDropNotifications, which drops only the
+ * old table.
+ */
+function migrateNotifications(db, logger = console) {
+  const exists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='notifications'").get();
+  if (!exists) logger.log('  🔔 Creating notifications table...');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER NOT NULL,
+      event TEXT NOT NULL,
+      targetType TEXT,
+      targetId INTEGER,
+      payload TEXT NOT NULL DEFAULT '{}',
+      inApp INTEGER NOT NULL DEFAULT 1,
+      mailState TEXT NOT NULL DEFAULT 'none' CHECK (mailState IN ('none', 'pending', 'sent', 'skipped')),
+      mailAfter DATETIME,
+      dedupeKey TEXT,
+      createdAt DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      readAt DATETIME,
+      mailedAt DATETIME,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_dedupe ON notifications(dedupeKey) WHERE dedupeKey IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(userId, inApp, readAt);
+    CREATE INDEX IF NOT EXISTS idx_notifications_mail ON notifications(mailState, mailAfter);
+
+    CREATE TABLE IF NOT EXISTS notification_preferences (
+      userId INTEGER NOT NULL,
+      event TEXT NOT NULL,
+      inApp INTEGER NOT NULL,
+      mail INTEGER NOT NULL,
+      PRIMARY KEY (userId, event),
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+  const columns = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+  if (!columns.includes('notificationKey')) db.exec('ALTER TABLE users ADD COLUMN notificationKey TEXT DEFAULT NULL');
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_notification_key ON users(notificationKey) WHERE notificationKey IS NOT NULL');
+}
+
 module.exports = {
-  migrateAccountEmail,
+  migrateAccountEmail, migrateNotifications,
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
   migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners, migrateSlugCase, migrateItemPrivacy
 };

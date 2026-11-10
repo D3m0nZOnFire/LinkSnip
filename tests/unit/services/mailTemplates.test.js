@@ -89,3 +89,42 @@ describe('password mails', () => {
     expect(text).toMatch(/If this wasn't you/);
   });
 });
+
+describe('notification mails', () => {
+  const items = [
+    { text: 'Your link /s/a was blocked <by an admin>.', url: 'https://l.example/info/a', unsubscribe: 'https://l.example/notifications/unsubscribe/K/blocked' },
+    { text: 'Your link /s/b was deleted.', url: null, unsubscribe: 'https://l.example/notifications/unsubscribe/K/deleted_by_cleanup' }
+  ];
+
+  it('lists every item with its link, the notifications page and how to stop each kind', () => {
+    const mail = mailTemplates.notifications({
+      siteName: SITE, username: 'ann', items, pageUrl: 'https://l.example/notifications',
+      settingsUrl: 'https://l.example/settings#notifications'
+    });
+    expect(mail.subject).toContain(SITE);
+    expect(mail.subject).toMatch(/2 notifications/);
+    expect(mail.text).toContain('Your link /s/a was blocked <by an admin>.');
+    expect(mail.text).toContain('https://l.example/info/a');
+    expect(mail.text).toContain('https://l.example/notifications');
+    expect(mail.text).toContain('https://l.example/notifications/unsubscribe/K/blocked');
+    expect(mail.text).toContain('https://l.example/settings#notifications');
+    expect(mail.html).toContain('blocked &lt;by an admin&gt;.');
+    expect(mail.html).not.toContain('<by an admin>');
+  });
+
+  it('uses the one item as subject when there is only one', () => {
+    const mail = mailTemplates.notifications({ siteName: SITE, username: 'ann', items: [items[1]], pageUrl: 'p', settingsUrl: 's' });
+    expect(mail.subject).toContain('Your link /s/b was deleted.');
+  });
+
+  it('ends a long one-item subject at its first clause, not mid-word', () => {
+    const text = 'Your account was suspended by an administrator: you can\'t log in any more, and your links, bundles, pastes and files no longer open.';
+    const mail = mailTemplates.notifications({ siteName: SITE, username: 'ann', items: [{ text, url: null, unsubscribe: null }], pageUrl: null, settingsUrl: null });
+    expect(mail.subject).toBe(`${SITE}: Your account was suspended by an administrator`);
+  });
+
+  it('leaves the page and settings links out when there are none (a banned account cannot log in)', () => {
+    const mail = mailTemplates.notifications({ siteName: SITE, username: 'ann', items: [{ text: 'Your account was suspended.', url: null, unsubscribe: null }], pageUrl: null, settingsUrl: null });
+    expect(mail.text).not.toMatch(/notifications|settings/i);
+  });
+});

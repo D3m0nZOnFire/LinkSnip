@@ -5,6 +5,7 @@ const Team = require('../models/Team');
 const RoleService = require('./roleService');
 const configService = require('./configService');
 const { UPLOADS_DIR } = require('../config/paths');
+const notifications = require('./notificationService');
 
 /**
  * Team rules.
@@ -30,6 +31,8 @@ class TeamError extends Error {
   }
 }
 
+// A team as notification payloads store it (the name stays readable after a rename or delete)
+const teamRef = (team) => ({ id: team.id, name: team.name });
 const notFound = () => new TeamError(404, 'Team not found');
 const canManage = (role) => role === 'owner' || role === 'admin';
 // Whom a manager may change or remove, and which roles they may give
@@ -122,7 +125,11 @@ function deleteTeam(user, teamId, confirmName) {
 
   const items = Team.itemCounts(team.id);
   const storedNames = Team.storedFileNames(team.id);
+  const members = Team.members(team.id);
   Team.delete(team.id);
+  for (const member of members) {
+    notifications.notify(member.userId, 'team_deleted', { type: 'team', id: team.id, actorId: user.id, payload: { team: teamRef(team) } });
+  }
   for (const storedName of storedNames) {
     try {
       fs.rmSync(path.join(UPLOADS_DIR, path.basename(storedName)), { force: true });
@@ -148,6 +155,9 @@ function changeRole(user, teamId, userId, role) {
     throw new TeamError(409, 'A team needs an owner: make someone else owner first');
   }
   Team.setRole(team.id, Number(userId), role);
+  if (from !== role) {
+    notifications.notify(Number(userId), 'team_role_changed', { type: 'team', id: team.id, actorId: user.id, payload: { team: teamRef(team), role } });
+  }
   const { username } = db.prepare('SELECT username FROM users WHERE id = ?').get(Number(userId));
   return { username, from, to: role };
 }
@@ -160,6 +170,7 @@ function removeMember(user, teamId, userId) {
   if (isLastOwner(team, role)) throw new TeamError(409, 'A team needs an owner: make someone else owner first');
   const { username } = db.prepare('SELECT username FROM users WHERE id = ?').get(Number(userId));
   Team.removeMember(team.id, Number(userId));
+  notifications.notify(Number(userId), 'team_removed', { type: 'team', id: team.id, actorId: user.id, payload: { team: teamRef(team) } });
   return { username, role };
 }
 
@@ -185,7 +196,11 @@ function invite(user, teamId, username, role) {
   const invitee = findUser(username);
   if (Team.memberRole(team.id, invitee.id)) throw new TeamError(409, `${invitee.username} is already in this team`);
   if (Team.findInviteFor(team.id, invitee.id)) throw new TeamError(409, `${invitee.username} is already invited`);
-  return Team.createInvite(team.id, invitee.id, role, user.id);
+  const created = Team.createInvite(team.id, invitee.id, role, user.id);
+  notifications.notify(invitee.id, 'team_invited', {
+    type: 'team', id: team.id, actorId: user.id, payload: { team: teamRef(team), role, by: user.username }
+  });
+  return created;
 }
 
 /** An invite the user may manage (owner or admin of its team). */

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title: done ? 'Unsubscribed' : 'Unsubscribe', styles: ['public-pages'], noindex: true }) %>
+</head>
+<%- include('partials/layout-start', { shell: 'standalone', pageClass: 'page-center' }) %>
+  <main class="status-card">
+    <span class="status-icon"><%- include('partials/icon', { icon: done ? 'check' : 'mail' }) %></span>
+    <% if (done) { %>
+      <h1>Unsubscribed</h1>
+      <p>The account <strong><%= username %></strong> won't get <%= what %> any more. They still show on the
+        Notifications page.</p>
+      <div class="status-actions">
+        <a href="/settings#notifications" class="btn btn-secondary">Notification settings</a>
+      </div>
+    <% } else { %>
+      <h1>Unsubscribe</h1>
+      <p>Stop <%= what %> for the account <strong><%= username %></strong>? You can turn them on again in Settings.</p>
+      <form method="post" action="<%= action %>" class="status-actions">
+        <button type="submit" class="btn">Unsubscribe</button>
+      </form>
+    <% } %>
+  </main>
+<%- include('partials/layout-end', { shell: 'standalone' }) %>
+</html>

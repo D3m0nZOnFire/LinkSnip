@@ -6,6 +6,7 @@
   const current = (key) => (page === key ? ' aria-current="page"' : '');
   const links = [
     { href: '/dashboard', icon: 'dashboard', label: 'Dashboard', key: 'dashboard', show: true },
+    { href: '/notifications', icon: 'bell', label: 'Notifications', key: 'notifications', show: features.notifications, count: locals.notificationsUnread || 0 },
     { href: '/tags', icon: 'tag', label: 'Tags', key: 'tags', show: can.tags },
     { href: '/teams', icon: 'teams', label: 'Teams', key: 'teams', show: features.teams },
     { href: '/bio/settings', icon: 'bio', label: 'Bio page', key: 'bio-settings', show: can.bioPage },
@@ -22,7 +23,7 @@
 
   <nav class="sidebar-nav">
     <% links.filter(l => l.show).forEach(l => { %>
-    <a href="<%= l.href %>" class="sidebar-link"<%- current(l.key) %>><%- include('icon', { icon: l.icon }) %> <%= l.label %></a>
+    <a href="<%= l.href %>" class="sidebar-link"<%- current(l.key) %>><%- include('icon', { icon: l.icon }) %> <%= l.label %><% if (l.count) { %> <span class="sidebar-count" data-unread-count aria-label="<%= l.count %> unread"><%= l.count > 99 ? '99+' : l.count %></span><% } %></a>
     <% }) %>
   </nav>
 

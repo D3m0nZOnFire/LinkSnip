@@ -1,4 +1,5 @@
 const { canEdit } = require('../services/itemPermissions');
+const notifications = require('../services/notificationService');
 const slugService = require('../services/slugService');
 const path = require('path');
 const fs = require('fs');
@@ -239,6 +240,7 @@ exports.download = async (req, res) => {
   }
 
   File.incrementDownloads(file.id);
+  notifications.afterUse('file', file.id);
   AnalyticsService.record(req, 'file', file.id).catch(() => { /* non-critical */ });
 
   if (file.isPrivate || file.password) {

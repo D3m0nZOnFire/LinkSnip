@@ -45,6 +45,9 @@ and the last good configuration stays in use.
 | `features.reports` | `true` | Visitors can report links for abuse. |
 | `features.qrCodes` | `true` | QR codes for links, pastes, files and bundles. |
 | `features.teams` | `true` | Teams: links, bundles, pastes and files shared by several people. |
+| `features.notifications` | `true` | Notifications: owners are told in the app (Notifications page) and, if they want, by mail when their items are reported, quarantined, blocked, about to expire, expired, at their usage limit or deleted, and about team invites and changes. Mails need the mail setup (SMTP_*) and a confirmed address. Off: nothing new is recorded or mailed and the page is gone; stored notifications are kept. |
+| `notifications.mailDelayMinutes` | `15` | Minutes a notification waits before it is mailed. Several are sent together in one mail, and one already seen on the Notifications page is left out. A ban notice is sent at once. |
+| `notifications.expiryWarningDays` | `3` | Days before an item expires that its owner is told (once per item). |
 | `moderation.reportThreshold` | `3` | Distinct reporters before a link is quarantined. 0 turns automatic quarantine off. |
 | `anonymous.urlExpirationDays` | `30` | Longest lifetime, in days, of a link created without an account. Seeded once from `ANONYMOUS_URL_EXPIRATION_DAYS` if set when the file is first created. |
 | `anonymous.pasteExpirationDays` | `30` | Longest lifetime, in days, of a paste created without an account. Seeded once from `ANONYMOUS_PASTE_EXPIRATION_DAYS` if set when the file is first created. |
