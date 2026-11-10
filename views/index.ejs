@@ -28,7 +28,7 @@
   // the value: the link form posts it, the other modes read it.
   const privateChip = (id, name) => user ? `
     <button type="button" class="creator-chip" data-private-toggle="${id}" aria-pressed="false" title="Private: only you, your team and admins can open it, when logged in">
-      ${include('partials/icon', { icon: 'lock' })}<span class="chip-label">Public</span>
+      ${include('partials/icon', { icon: 'eye' })}<span class="chip-label">Public</span>
     </button>
     <input type="hidden" id="${id}"${name ? ` name="${name}"` : ''} value="">` : '';
 -%>

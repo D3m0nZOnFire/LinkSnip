@@ -18,8 +18,9 @@ function contactLink(value) {
   return { href: null, text };
 }
 
-function common() {
+function common(req) {
   return {
+    user: req.user || null, // the public header shows the user's menu, not Log in
     contact: contactLink(configService.get('legal.contact')),
     reports: isEnabled('reports')
   };
@@ -29,7 +30,7 @@ class LegalController {
   static privacyPage(req, res) {
     res.render('privacy', {
       title: 'Privacy',
-      ...common(),
+      ...common(req),
       analytics: isEnabled('analytics'),
       geo: configService.get('geo.enabled'),
       analyticsDays: configService.get('retention.analyticsDays'),
@@ -42,7 +43,7 @@ class LegalController {
   static termsPage(req, res) {
     res.render('terms', {
       title: 'Terms',
-      ...common(),
+      ...common(req),
       urlDays: configService.get('anonymous.urlExpirationDays'),
       pasteDays: configService.get('anonymous.pasteExpirationDays'),
       pastes: isEnabled('pastes'),

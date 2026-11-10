@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Analytics shares · Admin', styles: ['tables', 'modals', 'admin-pages'] }) %>
+  <%- include('partials/head', { title: 'Share links · Admin', styles: ['tables', 'admin-pages'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-analytics-shares' }) %>
 
@@ -12,7 +12,7 @@
   <main class="main-content-wide">
     <div class="header-section">
       <div>
-        <h2>Analytics shares</h2>
+        <h2>Share links</h2>
         <p><%= total %> active share link<%= total !== 1 ? 's' : '' %>. Anyone holding one can read that item's analytics.</p>
       </div>
     </div>
@@ -67,7 +67,6 @@
     <% } %>
   </main>
 
-  <%- include('partials/confirm-modal') %>
 
   <script src="/js/main.js"></script>
   <script src="/js/admin-analytics-shares.js"></script>

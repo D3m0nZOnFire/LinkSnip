@@ -21,7 +21,7 @@
       $('editUserIsAdmin').checked = !!user.isAdmin;
       $('editUserIsBanned').checked = !!user.isBanned;
       $('userCreatedAt').textContent = formatDate(user.createdAt);
-      $('userUrlCount').textContent = user.urlCount || 0;
+      $('userUrlCount').textContent = `${user.urlCount || 0} link${user.urlCount === 1 ? '' : 's'}`;
       openModal('editUserModal');
     } catch (error) {
       showToast(`Could not load the user: ${error.message}`, 'error');

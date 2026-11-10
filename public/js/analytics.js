@@ -136,7 +136,7 @@
   list.addEventListener('click', async (event) => {
     const button = event.target.closest('[data-revoke]');
     if (!button) return;
-    if (!confirm('Revoke this link? Anyone using it loses access.')) return;
+    if (!(await confirmAction('Revoke this link? Anyone using it loses access.', 'Revoke share link', true, 'Revoke'))) return;
     const response = await fetch(`/api/share-links/${button.dataset.revoke}`, { method: 'DELETE' });
     const result = await response.json().catch(() => ({}));
     if (!result.success) showToast(result.error || 'Could not revoke the link', 'error');

@@ -70,9 +70,16 @@
   gap: var(--spacing-sm);
 }
 
-.inline-form .form-group {
+/* :last-of-type too, or `.section-card .form-group:last-of-type` gives the last field a margin and lifts it out of line */
+.inline-form .form-group,
+.inline-form .form-group:last-of-type {
   flex: 1 1 12rem;
   margin: 0;
+}
+
+/* A heading straight above a form (no help line in between) */
+.section-card h3 + form {
+  margin-top: var(--spacing-sm);
 }
 
 .inline-form .form-group.narrow {

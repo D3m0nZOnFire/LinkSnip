@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Teams · Admin', styles: ['tables', 'admin-pages'] }) %>
+  <%- include('partials/head', { title: 'Teams · Admin', styles: ['tables', 'forms', 'admin-pages'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-teams' }) %>
-  <% const NOUNS = { url: 'links', bundle: 'bundles', paste: 'pastes', file: 'files' }; %>
+  <% const NOUNS = { url: ['link', 'links'], bundle: ['bundle', 'bundles'], paste: ['paste', 'pastes'], file: ['file', 'files'] }; %>
 
   <main class="main-content-wide">
     <div class="header-section">
@@ -26,12 +26,11 @@
                 <td class="wrap"><a href="/teams/<%= team.id %>"><%= team.name %></a></td>
                 <td><%= team.owners.length ? team.owners.join(', ') : '—' %></td>
                 <td><%= team.members %></td>
-                <td class="muted">
-                  <%= Object.entries(team.items).filter(([, n]) => n).map(([type, n]) => `${n} ${NOUNS[type]}`).join(', ') || 'none' %>
-                </td>
+                <% const itemsText = Object.entries(team.items).filter(([, n]) => n).map(([type, n]) => `${n} ${NOUNS[type][n === 1 ? 0 : 1]}`).join(', ') || 'none'; %>
+                <td class="muted"><%= itemsText %></td>
                 <td class="muted"><%= String(team.createdAt || '').slice(0, 10) %><%= team.createdBy ? ` by ${team.createdBy}` : '' %></td>
                 <td class="text-right">
-                  <button type="button" class="btn btn-small btn-danger delete-team" data-team-id="<%= team.id %>" data-team-name="<%= team.name %>">Delete</button>
+                  <button type="button" class="btn btn-small btn-danger delete-team" data-team-id="<%= team.id %>" data-team-name="<%= team.name %>" data-team-items="<%= itemsText %>">Delete</button>
                 </td>
               </tr>
             <% }) %>
@@ -40,6 +39,27 @@
       </div>
     <% } %>
   </main>
+
+  <div id="deleteTeamModal" class="modal-overlay">
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="deleteTeamTitle">
+      <div class="modal-header">
+        <h3 id="deleteTeamTitle">Delete team</h3>
+        <button type="button" class="modal-close" data-close-modal="deleteTeamModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
+      </div>
+      <form class="modal-body" id="deleteTeamForm" novalidate>
+        <p>This deletes the team and its items (<strong id="deleteTeamItems"></strong>), with their analytics. Type the team name to confirm.</p>
+        <div class="form-group">
+          <label for="confirmTeamName" class="form-label">Team name</label>
+          <input type="text" id="confirmTeamName" class="form-input" autocomplete="off" required>
+        </div>
+        <p id="deleteTeamError" class="field-error" role="alert"></p>
+      </form>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="deleteTeamModal">Cancel</button>
+        <button type="submit" class="btn btn-danger" form="deleteTeamForm" id="confirmDeleteTeamBtn" disabled>Delete team</button>
+      </div>
+    </div>
+  </div>
 
   <script src="/js/main.js"></script>
   <script src="/js/admin-teams.js"></script>

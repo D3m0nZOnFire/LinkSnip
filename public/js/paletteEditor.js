@@ -203,7 +203,7 @@
 
   deleteButton.addEventListener('click', async () => {
     const palette = byId(editing);
-    if (!palette || !confirm(`Delete the palette "${palette.name}"? Its file is removed.`)) return;
+    if (!palette || !(await confirmAction(`Delete the palette "${palette.name}"? Its file is removed.`, 'Delete palette', true, 'Delete'))) return;
     try {
       const response = await fetch(`/api/admin/palettes/${encodeURIComponent(editing)}`, { method: 'DELETE' });
       const result = await response.json().catch(() => ({}));

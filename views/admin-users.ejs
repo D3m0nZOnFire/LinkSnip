@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Users · Admin', styles: ['tables', 'forms', 'modals', 'admin-pages'] }) %>
+  <%- include('partials/head', { title: 'Users · Admin', styles: ['tables', 'forms', 'admin-pages'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-users' }) %>
 <%
@@ -137,7 +137,7 @@
                   } else if (diffDays < 30) {
                     lastActiveText = Math.floor(diffDays / 7) + 'w ago';
                   } else {
-                    lastActiveText = lastActiveDate.toLocaleDateString('en-GB');
+                    lastActiveText = lastActiveDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                   }
                 }
               %>
@@ -152,7 +152,7 @@
                         <% if (user.isAdmin) { %><span class="badge badge-active">Admin</span><% } %>
                         <% if (user.isBanned) { %><span class="badge badge-expired">Banned</span><% } %>
                       </div>
-                      <span class="cell-sub">Joined <%= new Date(user.createdAt).toLocaleDateString('en-GB') %></span>
+                      <span class="cell-sub">Joined <%= new Date(user.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) %></span>
                     </div>
                   </div>
                 </td>
@@ -176,6 +176,9 @@
                       <button type="button" class="icon-btn-simple warning" data-action="<%= user.isBanned ? 'unban' : 'ban' %>"
                         title="<%= user.isBanned ? 'Unban' : 'Ban' %> user" aria-label="<%= user.isBanned ? 'Unban' : 'Ban' %> <%= user.username %>"><%- include('partials/icon', { icon: user.isBanned ? 'check' : 'lock' }) %></button>
                       <button type="button" class="icon-btn-simple danger" data-action="delete" title="Delete user" aria-label="Delete <%= user.username %>"><%- include('partials/icon', { icon: 'trash' }) %></button>
+                    <% } else { %>
+                      <span class="icon-btn-simple icon-slot" aria-hidden="true"><svg viewBox="0 0 24 24"></svg></span>
+                      <span class="icon-btn-simple icon-slot" aria-hidden="true"><svg viewBox="0 0 24 24"></svg></span>
                     <% } %>
                   </div>
                 </td>
@@ -195,7 +198,7 @@
         <button type="button" class="modal-close" data-close-modal="editUserModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
       <form class="modal-body" id="editUserForm" novalidate>
-        <p class="form-hint">Joined <span id="userCreatedAt">-</span> · <span id="userUrlCount">0</span> links</p>
+        <p class="form-hint modal-meta">Joined <span id="userCreatedAt">-</span> · <span id="userUrlCount">0 links</span></p>
         <div class="form-group">
           <label for="editUsername" class="form-label">Username</label>
           <input type="text" id="editUsername" class="form-input" required>
@@ -271,7 +274,6 @@
     </div>
   </div>
 
-  <%- include('partials/confirm-modal') %>
 
   <script src="/js/main.js"></script>
   <script src="/js/admin.js"></script>

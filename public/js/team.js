@@ -41,7 +41,7 @@
 
   document.querySelectorAll('.remove-member').forEach(button => {
     button.addEventListener('click', async () => {
-      if (!confirm(`Remove ${button.dataset.username} from the team? The items they created stay.`)) return;
+      if (!(await confirmAction(`Remove ${button.dataset.username} from the team? The items they created stay.`, 'Remove member', true, 'Remove'))) return;
       const data = await send('DELETE', `/api/teams/${teamId}/members/${button.dataset.memberId}`);
       if (data.success) window.location.reload();
       else show('membersError', data.error);
@@ -84,7 +84,7 @@
   const leaveButton = document.getElementById('leaveTeamBtn');
   if (leaveButton) {
     leaveButton.addEventListener('click', async () => {
-      if (!confirm(`Leave ${teamName}?`)) return;
+      if (!(await confirmAction(`Leave ${teamName}? You lose access to its items.`, 'Leave team', true, 'Leave'))) return;
       const data = await send('POST', `/api/teams/${teamId}/leave`);
       if (data.success) window.location.href = '/teams';
       else show('leaveError', data.error);

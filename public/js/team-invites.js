@@ -11,7 +11,7 @@
       const data = await response.json().catch(() => ({}));
       if (data.success && button.dataset.action === 'accept') window.location.href = `/teams/${data.teamId}`;
       else if (data.success) window.location.reload();
-      else { window.alert(data.error || 'Something went wrong.'); button.disabled = false; }
+      else { showToast(data.error || 'Something went wrong.', 'error'); button.disabled = false; }
     });
   });
 })();

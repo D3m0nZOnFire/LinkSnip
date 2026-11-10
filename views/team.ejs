@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: `${team.name} · Teams`, styles: ['forms', 'modals', 'sections', 'teams'] }) %>
+  <%- include('partials/head', { title: `${team.name} · Teams`, styles: ['forms', 'sections', 'teams'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'app', currentPage: 'teams' }) %>
 
@@ -152,11 +152,11 @@
           <input type="text" id="confirmTeamName" class="form-input" autocomplete="off" required>
         </div>
         <p id="deleteError" class="field-error" role="alert"></p>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-close-modal="deleteTeamModal">Cancel</button>
-          <button type="submit" class="btn btn-danger" id="confirmDeleteBtn" disabled>Delete team</button>
-        </div>
       </form>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="deleteTeamModal">Cancel</button>
+        <button type="submit" class="btn btn-danger" form="deleteTeamForm" id="confirmDeleteBtn" disabled>Delete team</button>
+      </div>
     </div>
   </div>
   <% } %>

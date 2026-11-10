@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: `Analytics · ${path}`, styles: ['forms', 'modals', 'overview', 'sections', 'analytics'], noindex: readOnly }) %>
+  <%- include('partials/head', { title: `Analytics · ${path}`, styles: ['forms', 'overview', 'sections', 'analytics'], noindex: readOnly }) %>
 </head>
 <% const shell = locals.readOnly || !user ? 'public' : 'app'; %>
 <%- include('partials/layout-start', { shell, currentPage: 'analytics' }) %>

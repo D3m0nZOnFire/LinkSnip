@@ -279,7 +279,7 @@
       <span class="bundle-row-num" aria-hidden="true"></span>
       <input type="url" class="form-input bundle-row-url" placeholder="https://example.com" aria-label="Link">
       <input type="text" class="form-input bundle-row-label" placeholder="Label (optional)" maxlength="100" aria-label="Label">
-      <button type="button" class="icon-btn danger bundle-row-remove" title="Remove" aria-label="Remove this link">✕</button>`;
+      <button type="button" class="icon-btn danger bundle-row-remove" title="Remove" aria-label="Remove this link"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>`;
     row.querySelector('.bundle-row-remove').addEventListener('click', () => {
       if (bundleList.children.length <= 2) return;
       row.remove();

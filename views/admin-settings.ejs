@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Settings · Admin', styles: ['tables', 'forms', 'modals', 'admin-settings'] }) %>
+  <%- include('partials/head', { title: 'Settings · Admin', styles: ['tables', 'forms', 'admin-settings'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-settings' }) %>
 
@@ -69,7 +69,7 @@
                   <input type="number" class="form-input" id="<%= field.key %>" data-key="<%= field.key %>" data-type="integer"
                     data-nullable="<%= field.nullable %>" min="<%= field.min %>" step="1"
                     value="<%= field.value === null ? '' : field.value %>"
-                    <%= field.nullable ? 'placeholder=No cap' : 'required' %>>
+                    <%- field.nullable ? 'placeholder="No cap"' : 'required' %>>
                 <% } %>
               </div>
             </div>
@@ -118,12 +118,7 @@
     <div class="modal">
       <div class="modal-header">
         <h3>Add role</h3>
-        <button type="button" class="modal-close" data-close-modal="addRoleModal" aria-label="Close">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <button type="button" class="modal-close" data-close-modal="addRoleModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
       <form class="modal-body" id="addRoleForm">
         <div class="form-group">
@@ -137,11 +132,11 @@
         </div>
         <p class="field-hint">The new role starts with the same permissions and limits as <span id="newRoleBase"></span>. It's created when you save the roles.</p>
         <ul id="addRoleErrors" class="settings-errors" role="alert"></ul>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-close-modal="addRoleModal">Cancel</button>
-          <button type="submit" class="btn">Add</button>
-        </div>
       </form>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="addRoleModal">Cancel</button>
+        <button type="submit" class="btn" form="addRoleForm">Add</button>
+      </div>
     </div>
   </div>
 
@@ -149,12 +144,7 @@
     <div class="modal">
       <div class="modal-header">
         <h3>Delete <span id="deleteRoleName"></span></h3>
-        <button type="button" class="modal-close" data-close-modal="deleteRoleModal" aria-label="Close">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <button type="button" class="modal-close" data-close-modal="deleteRoleModal" aria-label="Close"><%- include('partials/icon', { icon: 'close' }) %></button>
       </div>
       <form class="modal-body" id="deleteRoleForm">
         <p id="deleteRoleCount"></p>
@@ -173,11 +163,11 @@
           </span>
         </label>
         <ul id="deleteRoleErrors" class="settings-errors" role="alert"></ul>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-close-modal="deleteRoleModal">Cancel</button>
-          <button type="submit" class="btn btn-danger">Delete role</button>
-        </div>
       </form>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="deleteRoleModal">Cancel</button>
+        <button type="submit" class="btn btn-danger" form="deleteRoleForm">Delete role</button>
+      </div>
     </div>
   </div>
 

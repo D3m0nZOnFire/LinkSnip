@@ -1,4 +1,8 @@
-<%# Closes what partials/layout-start opened: the page, the footer, the main column. { shell } %>
+<%# Closes what partials/layout-start opened: the page, the footer, the main column. { shell }
+    App and admin pages get the dialog confirmAction() (public/js/main.js) fills in. %>
+<% if (['app', 'admin'].includes(locals.shell || 'app')) { %>
+  <%- include('confirm-modal') %>
+<% } %>
   </div>
   <%- include('footer') %>
 <% if (['app', 'admin'].includes(locals.shell || 'app')) { %>
