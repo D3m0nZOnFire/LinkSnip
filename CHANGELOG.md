@@ -4,6 +4,19 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [1.9.1] - 2026-11-10
+
+### Upgrading
+
+- `docker compose pull && docker compose up -d`. Nothing else to do.
+
+### Fixed
+
+- Mails in Outlook's dark mode (Outlook on the web and the new Outlook app) showed gray backgrounds instead of the
+  site's dark palette, and bright lines between notifications: Outlook darkens the colors itself. They now use the
+  dark palette there too; buttons keep Outlook's own dark green. Classic Outlook for Windows still uses its own
+  colors.
+
 ## [1.9.0] - 2026-11-10
 
 ### Upgrading
@@ -448,6 +461,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
+[1.9.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.2...v1.9.0
 [1.8.2]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.0...v1.8.1
