@@ -9,6 +9,8 @@ const path = require('path');
 
 const SCRIPT = fs.readFileSync(path.join(__dirname, '../../../public/js/admin-teams.js'), 'utf8');
 
+let location;
+
 function setup() {
   document.body.innerHTML = `
     <button class="delete-team" data-team-id="7" data-team-name="Events crew" data-team-items="1 link">Delete</button>
@@ -26,8 +28,10 @@ function setup() {
     apiRequest: jest.fn().mockResolvedValue({ success: true })
   });
   window.prompt = jest.fn();
+  // jsdom can't navigate: the script gets a stand-in location, so a reload is recorded instead
+  location = { href: '/admin/teams', reload: jest.fn() };
   // eslint-disable-next-line no-new-func
-  new Function(SCRIPT)();
+  new Function('window', SCRIPT)({ location });
 }
 
 const $ = (id) => document.getElementById(id);
@@ -60,4 +64,5 @@ it('sends the typed name with the delete', async () => {
   await new Promise(resolve => setTimeout(resolve, 0));
 
   expect(global.apiRequest).toHaveBeenCalledWith('/api/teams/7', { method: 'DELETE', body: JSON.stringify({ confirmName: 'Events crew' }) });
+  expect(location.reload).toHaveBeenCalled();
 });

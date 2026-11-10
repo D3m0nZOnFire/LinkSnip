@@ -20,6 +20,7 @@ const TEAM_MOVE = fs.readFileSync(path.join(__dirname, '../../../public/js/teamM
 
 let user;
 let team;
+let location;
 beforeEach(async () => {
   const u = await createTestUser({ username: 'maker', role: 'trusted' });
   user = { id: u.id, username: 'maker', isAdmin: 0, role: 'trusted' };
@@ -63,8 +64,10 @@ async function render(query) {
   global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ success: true }) }));
   // eslint-disable-next-line no-new-func
   new Function(DASHBOARD)();
+  // jsdom can't navigate: the script gets a stand-in location, so a reload is recorded instead
+  location = { href: '/dashboard', reload: jest.fn() };
   // eslint-disable-next-line no-new-func
-  new Function(TEAM_MOVE)();
+  new Function('window', TEAM_MOVE)({ location });
 }
 
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -104,6 +107,7 @@ it('moves the item out once the dialog is confirmed', async () => {
   await tick();
 
   expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/items\/url\/\d+\/team$/), expect.objectContaining({ method: 'POST', body: JSON.stringify({ teamId: null }) }));
+  expect(location.reload).toHaveBeenCalled();
 });
 
 it('shows a failed move out as a toast, not a browser alert', async () => {
@@ -116,4 +120,5 @@ it('shows a failed move out as a toast, not a browser alert', async () => {
 
   expect(window.alert).not.toHaveBeenCalled();
   expect(global.showToast).toHaveBeenCalledWith('Not allowed', 'error');
+  expect(location.reload).not.toHaveBeenCalled();
 });

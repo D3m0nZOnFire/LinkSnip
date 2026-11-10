@@ -4,6 +4,34 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
+## [Unreleased]
+
+Merged into main, to be released together with the next feature.
+
+### Fixed
+
+- A page could scroll sideways on Admin → Users, Admin → Reports and team pages (the hidden list behind each styled
+  dropdown was stretched off the page).
+- Most pages asked with the browser's own grey pop-ups instead of LinkSnip's dialog: deleting from the dashboard, tags,
+  Admin → Items, removing a team member, leaving a team, resetting a role, deleting a palette, revoking a share link,
+  moving an item out of a team. They all use LinkSnip's dialog now, and Admin → Teams asks for the team's name in a
+  dialog. Errors show as a message in the corner, not a browser alert.
+- /privacy and /terms showed "Log in" and "Register" to people who were logged in.
+- Admin → Settings showed "No" instead of "No cap" in empty number fields.
+- The ⋯ menu on the dashboard stayed open behind the "Move to a team" dialog.
+
+### Changed
+
+- Dialogs: even padding, and in long forms the title and buttons stay in place while the form scrolls.
+- Admin → Items, Reports and Users: buttons and badges line up on every row. On phones, slugs no longer break in the
+  middle, and badges like "Limit reached" stay on one line.
+- Smaller fixes to how things look: the team invite and rename fields line up, the import file button matches the
+  app, the tag field matches the other inputs, and dates on Admin → Users and Reports read "8 Nov 2026". Also
+  "1 link" instead of "1 links", one size for buttons next to page titles, and the Share links page title matches
+  the sidebar. The Public / Private chip uses an eye icon (the lock is for passwords).
+- Dialogs skip their slide-in animation when the device asks for reduced motion.
+- Updated express-rate-limit (8.7.2).
+
 ## [1.8.2] - 2026-11-03
 
 ### Upgrading
@@ -383,6 +411,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
+[Unreleased]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.2...HEAD
 [1.8.2]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.2...v1.8.0
