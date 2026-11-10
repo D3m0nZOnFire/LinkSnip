@@ -4,12 +4,12 @@ Every release of LinkSnip, newest first. The format follows [Keep a Changelog](h
 and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html): a new major version (2.0.0) is the
 only one that may need more than "pull and restart", and its Upgrading section says what.
 
-## [Unreleased]
-
-Merged into main, to be released together with the next feature.
+## [1.9.0] - 2026-11-10
 
 ### Upgrading
 
+- `docker compose pull && docker compose up -d`. The database changes (confirmed addresses, notifications) are made
+  at startup.
 - Mail is optional and off until you set it up: `SMTP_HOST`, `SMTP_PORT` (465), `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`,
   `MAIL_REPLY_TO` (optional) and `PUBLIC_URL` in `.env` (see the Mail section of docs/DEPLOYMENT.md), then restart.
   Setting only some of them refuses to start, naming what's missing.
@@ -66,7 +66,8 @@ Merged into main, to be released together with the next feature.
   "1 link" instead of "1 links", one size for buttons next to page titles, and the Share links page title matches
   the sidebar. The Public / Private chip uses an eye icon (the lock is for passwords).
 - Dialogs skip their slide-in animation when the device asks for reduced motion.
-- Updated express-rate-limit (8.7.2).
+- Updated express-rate-limit (8.7.3) and mmdb-lib (3.0.4); docker/login-action 4.8.0 in the image workflow.
+- Development only (not in the image): supertest 7.3.2.
 
 ## [1.8.2] - 2026-11-03
 
@@ -447,7 +448,7 @@ Docker container with SQLite and one data folder.
 - A first-run setup page with a one-time code, and `npm run admin` for admins from the command line.
 - Reports and quarantine; nightly online backups, `/healthz`, a non-root container, optional HTTPS with Caddy.
 
-[Unreleased]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.2...HEAD
+[1.9.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.2...v1.9.0
 [1.8.2]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/D3m0nZOnFire/LinkSnip/compare/v1.7.2...v1.8.0
