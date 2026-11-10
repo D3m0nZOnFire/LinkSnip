@@ -1,11 +1,13 @@
 require('dotenv').config({ quiet: true });
 
 // Refuse to start without the secrets or a writable DATA_DIR (before writing anything)
-const { requireSessionSecret, requireIpHashSecret } = require('./config/env');
+const { requireSessionSecret, requireIpHashSecret, readMailConfig } = require('./config/env');
 let SESSION_SECRET;
+let MAIL_CONFIG;
 try {
   SESSION_SECRET = requireSessionSecret();
   requireIpHashSecret();
+  MAIL_CONFIG = readMailConfig(); // null = mail off (no password reset by mail)
   require('./config/paths').ensureDataDir(); // settings.json is seeded before the database opens
 } catch (error) {
   console.error(`\n❌ ${error.message}\n`);
@@ -23,6 +25,12 @@ configService.watch();
 
 // Initialize database (creates tables if they don't exist)
 const db = require('./config/database');
+
+// Mail (address verification, password reset): optional
+require('./services/mailService').configure(MAIL_CONFIG);
+console.log(MAIL_CONFIG
+  ? `✉️  Mail: ${MAIL_CONFIG.transport === 'console' ? 'printed to the console (MAIL_TRANSPORT=console)' : `${MAIL_CONFIG.host}:${MAIL_CONFIG.port}`}, links to ${MAIL_CONFIG.publicUrl}`
+  : '✉️  Mail: off (set SMTP_HOST, MAIL_FROM and PUBLIC_URL for password reset by mail)');
 
 // Initialize scheduled tasks
 const ScheduledTasks = require('./services/scheduledTasks');

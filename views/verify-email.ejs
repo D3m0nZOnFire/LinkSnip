@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title: title, styles: ['public-pages'], noindex: true }) %>
+</head>
+<%- include('partials/layout-start', { shell: 'standalone', pageClass: 'page-center' }) %>
+  <main class="status-card">
+    <span class="status-icon"><%- include('partials/icon', { icon: state === 'confirmed' ? 'check' : 'mail' }) %></span>
+    <h1><%= title %></h1>
+    <% if (state === 'pending') { %>
+      <p>Confirm <strong><%= email %></strong> as the email address of the account <strong><%= username %></strong>.</p>
+      <form method="post" action="/verify-email/<%= encodeURIComponent(token) %>" class="status-actions">
+        <button type="submit" class="btn">Confirm email address</button>
+      </form>
+    <% } else if (state === 'confirmed') { %>
+      <% if (locals.signedUp && locals.user) { %>
+        <p><strong><%= email %></strong> is confirmed. Your account is ready and you're logged in.</p>
+        <div class="status-actions">
+          <a href="/dashboard" class="btn">Go to the dashboard</a>
+        </div>
+      <% } else { %>
+        <p><strong><%= email %></strong> is confirmed.<%= locals.user ? ' Password reset mails can go there now.' : ' You can log in now.' %></p>
+        <div class="status-actions">
+          <a href="<%= locals.user ? '/settings' : '/login' %>" class="btn"><%= locals.user ? 'Back to settings' : 'Log in' %></a>
+        </div>
+      <% } %>
+    <% } else if (state === 'taken') { %>
+      <p><strong><%= email %></strong> is already confirmed for another account. Use a different address in Settings.</p>
+      <div class="status-actions">
+        <a href="<%= locals.user ? '/settings' : '/login' %>" class="btn btn-secondary"><%= locals.user ? 'Settings' : 'Log in' %></a>
+      </div>
+    <% } else { %>
+      <p>The link no longer works: it expired, was already used, or a newer one was sent. Log in to get a new one: an account still waiting for its first confirmation is offered one on the login page, any other in Settings.</p>
+      <div class="status-actions">
+        <a href="<%= locals.user ? '/settings' : '/login' %>" class="btn btn-secondary"><%= locals.user ? 'Settings' : 'Log in' %></a>
+      </div>
+    <% } %>
+  </main>
+<%- include('partials/layout-end', { shell: 'standalone' }) %>
+</html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Settings', styles: ['forms', 'sections'] }) %>
+  <%- include('partials/head', { title: 'Settings', styles: ['forms', 'sections', 'settings'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'app', currentPage: 'settings' }) %>
 
@@ -27,6 +27,45 @@
         </div>
         <div class="form-actions">
           <button type="submit" class="btn" id="saveUsernameBtn">Change username</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="section-card">
+      <h3>Email</h3>
+      <% if (mailEnabled) { %>
+        <p class="section-help">Used only to reset your password if you forget it, and for notices about your account.
+          A new address needs to be confirmed through a link sent to it.</p>
+      <% } else { %>
+        <p class="section-help">This site can't send mail, so the address can't be confirmed and password reset by
+          mail isn't available. You can still store one.</p>
+      <% } %>
+      <p class="email-status">
+        <% if (email) { %>
+          <strong><%= email %></strong>
+          <% if (emailVerified) { %>
+            <span class="badge badge-active">Confirmed</span>
+          <% } else { %>
+            <span class="badge badge-max">Not confirmed</span>
+            <% if (mailEnabled) { %>
+              <button type="button" class="btn btn-secondary btn-small" id="resendEmailBtn">Send the link again</button>
+            <% } %>
+          <% } %>
+        <% } else { %>
+          <span class="muted">No email address yet.</span>
+        <% } %>
+      </p>
+      <form id="emailForm" novalidate>
+        <div class="form-group">
+          <label for="newEmail" class="form-label"><%= email ? 'New email address' : 'Email address' %> <span class="muted">empty removes it</span></label>
+          <input type="email" id="newEmail" class="form-input" autocomplete="email" value="<%= email || '' %>">
+        </div>
+        <div class="form-group">
+          <label for="emailPassword" class="form-label">Current password</label>
+          <input type="password" id="emailPassword" class="form-input" autocomplete="current-password" data-toggle-password>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn" id="saveEmailBtn">Save email</button>
         </div>
       </form>
     </section>

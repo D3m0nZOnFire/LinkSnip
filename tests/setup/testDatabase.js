@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
 const {
   migrateAnalyticsShareLinks, migrateQuarantine, migrateReports, migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams,
-  migrateSlugCase, migrateItemPrivacy
+  migrateSlugCase, migrateItemPrivacy, migrateAccountEmail
 } = require('../../config/migrations');
 
 let db = null;
@@ -195,6 +195,7 @@ function createTestDatabase() {
   migrateTeams(db, { log: () => {} });
   migrateSlugCase(db, { log: () => {}, warn: () => {} });
   migrateItemPrivacy(db, { log: () => {}, warn: () => {} });
+  migrateAccountEmail(db, { log: () => {} });
 
   return db;
 }
@@ -233,10 +234,11 @@ function clearTestDatabase() {
   db.exec('DELETE FROM audit_logs');
   db.exec('DELETE FROM tags');
   db.exec('DELETE FROM urls');
+  db.exec('DELETE FROM user_tokens');
   db.exec('DELETE FROM users');
 
   // Reset autoincrement counters
-  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'urls', 'analytics_events', 'tags', 'reports', 'audit_logs', 'bundles', 'bundle_items', 'files', 'pastes', 'analytics_shares', 'teams', 'team_invites', 'bio_pages')");
+  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('users', 'urls', 'analytics_events', 'tags', 'reports', 'audit_logs', 'bundles', 'bundle_items', 'files', 'pastes', 'analytics_shares', 'teams', 'team_invites', 'bio_pages', 'user_tokens')");
 }
 
 /**

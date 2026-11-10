@@ -5,6 +5,7 @@ const teamService = require('../services/teamService');
 const { PERMISSIONS } = require('../config/schema');
 const { enabledFeatures } = require('./requireFeature');
 const { isPreviewBot } = require('../services/linkPreviewBots');
+const mailService = require('../services/mailService');
 
 // A permission tied to a switched-off feature is false for everyone
 const FEATURE_OF_PERMISSION = {
@@ -38,6 +39,7 @@ function viewLocals(req, res, next) {
   const features = enabledFeatures();
   res.locals.features = features;
   res.locals.registrationOpen = configService.get('registration.open');
+  res.locals.mailEnabled = mailService.isEnabled();
   res.locals.can = Object.fromEntries(Object.keys(PERMISSIONS).map(p => {
     const feature = FEATURE_OF_PERMISSION[p];
     return [p, (!feature || features[feature]) && RoleService.can(req.user || null, p)];

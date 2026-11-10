@@ -4,7 +4,7 @@ const { configureDatabase } = require('./dbSetup');
 const {
   migrateUserRoles, migrateAnalyticsShareLinks, migrateQuarantine, migrateDropNotifications, migrateReports,
   migrateAnalytics, migrateTags, migrateIpHashes, migrateTeams, migrateFileOwners, migrateSlugCase,
-  migrateItemPrivacy
+  migrateItemPrivacy, migrateAccountEmail
 } = require('./migrations');
 
 // Initialize database (DATA_DIR must exist and be writable)
@@ -473,6 +473,9 @@ migrateSlugCase(db);
 
 // Private items: isPrivate on every content table (restricted files become private)
 migrateItemPrivacy(db);
+
+// Verified account email, session versions and one-time mail links (password reset)
+migrateAccountEmail(db);
 
 console.log('\n✅ Database initialized and migrations completed successfully\n');
 

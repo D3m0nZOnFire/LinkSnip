@@ -61,7 +61,10 @@ class User {
    * @returns {object|null} User object without password
    */
   static findById(id) {
-    const stmt = db.prepare('SELECT id, username, email, isAdmin, role, isBanned, createdAt, lastActive FROM users WHERE id = ?');
+    const stmt = db.prepare(`
+      SELECT id, username, email, emailVerifiedAt, sessionVersion, isAdmin, role, isBanned, createdAt, lastActive
+      FROM users WHERE id = ?
+    `);
     return stmt.get(id);
   }
 

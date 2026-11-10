@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head', { title: title, styles: ['public-pages'], noindex: true }) %>
+</head>
+<%- include('partials/layout-start', { shell: 'standalone', pageClass: 'page-center' }) %>
+  <main class="status-card">
+    <span class="status-icon"><%- include('partials/icon', { icon: 'mail' }) %></span>
+    <h1>Check your inbox</h1>
+    <% if (resent) { %>
+      <p>If <strong><%= username %></strong> is waiting for confirmation, a new link was sent to its email address.
+        It can take a few minutes; look in the spam folder too.</p>
+    <% } else { %>
+      <p>We sent a link to <strong><%= email %></strong>. Open it to finish creating the account
+        <strong><%= username %></strong>; then you can log in. The link works for 24 hours.</p>
+      <p class="muted">Nothing arrived? Look in the spam folder, or send it again.</p>
+    <% } %>
+    <form method="post" action="/register/resend" class="status-actions">
+      <input type="hidden" name="username" value="<%= username %>">
+      <button type="submit" class="btn btn-secondary" id="resendSignupLink">Send the link again</button>
+      <a href="/login" class="btn btn-secondary">Log in</a>
+    </form>
+  </main>
+<%- include('partials/layout-end', { shell: 'standalone' }) %>
+</html>

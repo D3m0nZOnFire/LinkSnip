@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const mailService = require('../services/mailService');
 const configService = require('../services/configService');
 const { ConfigValidationError, ConfigConflictError } = require('../services/configService');
 const RoleService = require('../services/roleService');
@@ -72,7 +73,9 @@ class AdminSettingsController {
       tabs: TABS,
       sections,
       roleGrid,
-      files: { settings: paths.SETTINGS_PATH, roles: paths.ROLES_PATH }
+      files: { settings: paths.SETTINGS_PATH, roles: paths.ROLES_PATH },
+      mail: mailService.summary(),
+      ownEmail: req.user.emailVerifiedAt ? req.user.email : null
     });
   }
 

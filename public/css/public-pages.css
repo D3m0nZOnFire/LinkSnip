@@ -332,6 +332,10 @@ h1.short-link {
   color: var(--muted-foreground);
 }
 
+.status-card > p + p {
+  margin-top: var(--spacing-sm);
+}
+
 .status-detail {
   margin-top: var(--spacing-md);
   padding: 0.6rem 0.8rem;
@@ -359,6 +363,7 @@ h1.short-link {
 .status-actions .btn {
   flex: 1 1 9rem;
   justify-content: center;
+  white-space: nowrap; /* a longer label takes its own row instead of breaking inside the button */
 }
 
 .status-link {

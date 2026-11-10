@@ -32,6 +32,24 @@ afterEach(() => {
 });
 
 describe('/privacy', () => {
+  describe('the e-mail address', () => {
+    const mailService = require('../../services/mailService');
+    afterEach(() => mailService.configure(null));
+
+    it('says what it is used for when the site sends mail', async () => {
+      mailService.configure({ transport: 'console', from: 'a <a@localhost>', replyTo: null, publicUrl: 'http://localhost' },
+        { transport: { sendMail: jest.fn() } });
+      const html = await get('/privacy');
+      expect(html).toMatch(/confirm/i);
+      expect(html).toMatch(/reset your password/i);
+    });
+
+    it("doesn't promise mails when the site sends none", async () => {
+      const html = await get('/privacy');
+      expect(html).not.toMatch(/reset your password/i);
+    });
+  });
+
   it('is a public page named after the site', async () => {
     setSettings({ branding: { name: 'Acme Links' } });
     const html = await get('/privacy');

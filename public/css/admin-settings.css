@@ -73,3 +73,14 @@
   .roles-toolbar { align-items: stretch; flex-direction: column; }
   .roles-toolbar .btn { width: 100%; }
 }
+
+/* General tab → Mail: what the environment sets */
+.mail-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0 0 1rem;
+  overflow-wrap: anywhere;
+}
+.mail-facts dt { color: var(--muted-foreground); }
+.mail-facts dd { margin: 0; }

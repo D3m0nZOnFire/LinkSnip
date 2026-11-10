@@ -8,6 +8,33 @@ only one that may need more than "pull and restart", and its Upgrading section s
 
 Merged into main, to be released together with the next feature.
 
+### Upgrading
+
+- Mail is optional and off until you set it up: `SMTP_HOST`, `SMTP_PORT` (465), `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`,
+  `MAIL_REPLY_TO` (optional) and `PUBLIC_URL` in `.env` (see the Mail section of docs/DEPLOYMENT.md), then restart.
+  Setting only some of them refuses to start, naming what's missing.
+- E-mail addresses stored before this version count as unconfirmed; their owners confirm them in Settings → Email,
+  which they need to do before "Forgot password?" can reach them. Existing accounts keep logging in as before.
+
+### Added
+
+- Forgot password: with mail set up, the login page has "Forgot password?". It takes a username or an email address
+  and mails a link to the account's confirmed address (it answers the same whatever was typed, at most 3 mails an
+  hour per account). The link works once, for 30 minutes; opening it only shows the form. A notice is mailed when
+  the password changes.
+- A new password logs the account out everywhere else: after a reset, after changing it in Settings (that session
+  stays), when an admin sets it in Admin → Users, and with `scripts/admin.js reset`.
+- With mail set up, signing up needs an email address, and the account can be used once the link sent to it is
+  opened ("Check your inbox", with "Send the link again"); confirming it logs the new account in. Accounts never
+  confirmed are deleted after 7 days. Without mail, signing up works as before.
+- Mail: LinkSnip can send mail through your SMTP server. Admin → Settings → General shows the setup and sends a test
+  mail. Mails use the palettes from Admin → Appearance (the dark one in mail apps set to dark mode); their footer
+  says not to reply and names `MAIL_REPLY_TO` for questions.
+- Settings → Email: users add, change or remove their address (with their password) and confirm it through a link
+  sent to it. The old confirmed address is told when it changes. The address given when registering gets a link too.
+  Opening the link only asks; the button confirms, so mail scanners that open links don't use it up. One address can
+  be confirmed by one account.
+
 ### Fixed
 
 - A page could scroll sideways on Admin → Users, Admin → Reports and team pages (the hidden list behind each styled

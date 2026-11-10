@@ -36,6 +36,11 @@ describe('a fresh database', () => {
     expect(columnsOfFreshDatabase('bio_pages')).toEqual(expect.arrayContaining(['gradientStart', 'gradientEnd']));
   });
 
+  it('has the account email columns and the mail link table', () => {
+    expect(columnsOfFreshDatabase('users')).toEqual(expect.arrayContaining(['emailVerifiedAt', 'sessionVersion', 'pendingConfirmation']));
+    expect(columnsOfFreshDatabase('user_tokens')).toEqual(expect.arrayContaining(['tokenHash', 'purpose', 'usedAt']));
+  });
+
   it('has the bio link label column', () => {
     expect(columnsOfFreshDatabase('bio_page_urls')).toEqual(expect.arrayContaining(['label']));
   });

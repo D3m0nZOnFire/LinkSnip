@@ -2,6 +2,8 @@ const { passwordProblem } = require('../services/passwordPolicy');
 const User = require('../models/User');
 const { startSession } = require('../services/loginSession');
 const { logAuth, ACTIONS } = require('../services/auditService');
+const accountEmail = require('../services/accountEmail');
+const mailService = require('../services/mailService');
 
 /**
  * Where to go after logging in (?next=, from a page that needed an account): only a path on this site, so it
@@ -41,11 +43,32 @@ class AuthController {
       return res.render('register', { error: 'Passwords do not match', username, email: email || '' });
     }
 
+    let address;
     try {
-      const user = await User.create(username, password, false, email || null);
+      address = accountEmail.normalizeEmail(email);
+    } catch (error) {
+      return res.render('register', { error: error.message, username, email: email || '' });
+    }
+
+    // With mail set up, the address is required and confirmed before the account can be used
+    const confirmFirst = mailService.isEnabled();
+    if (confirmFirst && !address) {
+      return res.render('register', { error: 'Enter your email address: a link to confirm it finishes creating your account', username, email: '' });
+    }
+    if (address && accountEmail.isAddressTaken(address)) {
+      return res.render('register', { error: 'This email address is already used by another account', username, email: address });
+    }
+
+    try {
+      const user = await User.create(username, password, false, address);
 
       // Log successful registration
-      logAuth(ACTIONS.REGISTER, req, username, { email: email || null }, user.id);
+      logAuth(ACTIONS.REGISTER, req, username, { email: address, waitsForConfirmation: confirmFirst }, user.id);
+
+      if (confirmFirst) {
+        accountEmail.startSignupConfirmation({ id: user.id, username: user.username, email: address });
+        return res.render('check-inbox', { title: 'Check your inbox', username: user.username, email: address, resent: false, noindex: true });
+      }
 
       // Auto-login after registration
       await startSession(req, user);
@@ -101,6 +124,14 @@ class AuthController {
         return res.render('login', { error: 'Invalid username or password', username, next });
       }
 
+      // Signed up but hasn't opened the confirmation link yet (only now that the password is known to be right)
+      if (accountEmail.isWaitingForConfirmation(user)) {
+        logAuth(ACTIONS.LOGIN_FAILED, req, username, { reason: 'Email not confirmed' }, user.id);
+        return res.status(403).render('check-inbox', {
+          title: 'Check your inbox', username: user.username, email: user.email, resent: false, noindex: true
+        });
+      }
+
       // Log successful login
       logAuth(ACTIONS.LOGIN_SUCCESS, req, user.username, undefined, user.id);
 
@@ -112,6 +143,16 @@ class AuthController {
       logAuth(ACTIONS.LOGIN_FAILED, req, username, { reason: 'System error', error: error.message });
       res.render('login', { error: 'An error occurred. Please try again.', username, next });
     }
+  }
+
+  /**
+   * POST /register/resend { username }: a new confirmation link for an account still waiting. The answer is the same
+   * for every username, so it doesn't tell whether an account exists or waits.
+   */
+  static resendSignupLink(req, res) {
+    const username = String((req.body && req.body.username) || '').slice(0, 100);
+    accountEmail.resendSignupLink(username);
+    res.render('check-inbox', { title: 'Check your inbox', username, email: null, resent: true, noindex: true });
   }
 
   /**

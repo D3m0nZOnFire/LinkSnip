@@ -9,10 +9,13 @@ const configService = require('../services/configService');
  * Mounted right after attachUser. The health check, static files, Chart.js and branding (theme, logo, favicon) are
  * served before it, so the login page keeps its look.
  */
-const OPEN_PATHS = new Set(['/login', '/register', '/setup', '/logout', '/privacy', '/terms', '/abuse']);
+const OPEN_PATHS = new Set(['/login', '/register', '/register/resend', '/forgot-password', '/setup', '/logout', '/privacy', '/terms', '/abuse']);
+// Links from mails, opened before logging in
+const OPEN_PREFIXES = ['/verify-email/', '/reset-password/'];
+const isOpen = (path) => OPEN_PATHS.has(path) || OPEN_PREFIXES.some(prefix => path.startsWith(prefix));
 
 module.exports = function requireLogin(req, res, next) {
-  if (req.user || OPEN_PATHS.has(req.path) || !configService.get('access.loginRequired')) return next();
+  if (req.user || isOpen(req.path) || !configService.get('access.loginRequired')) return next();
 
   if (req.path.startsWith('/api/')) {
     return res.status(401).json({ error: 'login_required', message: 'Log in to use this instance.' });

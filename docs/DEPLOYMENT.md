@@ -89,6 +89,32 @@ npm run dev      # restarts on file changes; or: npm start
 The app listens on `http://localhost:8081`. Without `DATA_DIR` in `.env`, data is stored in the project folder;
 `DATA_DIR=./data` keeps it apart. The setup code is printed in the terminal.
 
+## Mail (optional)
+
+With mail set up, users can confirm their email address (Settings → Email) and reset a forgotten password from the
+login page. Without it, both are hidden; an admin can still set a new password (Admin → Users, or
+`node scripts/admin.js reset`). Add to `.env` and restart:
+
+```bash
+SMTP_HOST=mail.example.com
+SMTP_PORT=465                        # 465 = TLS (default), 587 = STARTTLS
+SMTP_USER=no-reply@example.com
+SMTP_PASS=…
+MAIL_FROM="LinkSnip <no-reply@example.com>"
+MAIL_REPLY_TO=contact@example.com    # optional
+PUBLIC_URL=https://links.example.com # this site's address: links in mails start with it
+```
+
+- The startup log says which server is used (`✉️  Mail: …`). Admin → Settings → General → Mail shows the setup and
+  sends a test mail to your own confirmed address, with the server's error if it fails.
+- `PUBLIC_URL` is required: a reset link is never built from the request's `Host` header, which anyone can fake to
+  slip their own site into a real reset mail.
+- Mails go out at most 4 a minute (many hosting providers cap outgoing mail). Give the sending domain SPF, DKIM and
+  DMARC records, or mails will land in spam.
+- Only a confirmed address gets reset mails, and one address can be confirmed by one account. Addresses stored
+  before mail was set up start unconfirmed; their owners confirm them in Settings.
+- Development: `MAIL_TRANSPORT=console` prints mails in the terminal instead (refused with `NODE_ENV=production`).
+
 ## Operating
 
 | Task | Command |

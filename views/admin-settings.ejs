@@ -85,6 +85,35 @@
     </form>
     <% } %>
 
+    <% if (tab === 'general') { %>
+    <section class="settings-section" id="mail">
+      <h3>Mail</h3>
+      <% if (mail) { %>
+        <p class="file-note">Used for address confirmation and password reset. Set in the environment (<code>.env</code>):
+          changing it needs a restart.</p>
+        <dl class="mail-facts">
+          <dt>Server</dt><dd><%= mail.server %></dd>
+          <dt>Sender</dt><dd><%= mail.from %></dd>
+          <% if (mail.replyTo) { %><dt>Replies to</dt><dd><%= mail.replyTo %></dd><% } %>
+          <dt>Links point to</dt><dd><%= mail.publicUrl %></dd>
+        </dl>
+        <div class="settings-actions">
+          <% if (ownEmail) { %>
+            <button type="button" class="btn btn-secondary" id="sendTestMailBtn">Send test email to <%= ownEmail %></button>
+          <% } else { %>
+            <span class="file-note">Confirm your own email address in <a href="/settings">Settings</a> to send a test email.</span>
+          <% } %>
+          <span id="mailStatus" class="settings-saved" role="status"></span>
+        </div>
+      <% } else { %>
+        <p class="file-note">Off: this site sends no mail, so users can't confirm an address or reset a forgotten password
+          by mail (an admin can set a new password in Users). To turn it on, set <code>SMTP_HOST</code>,
+          <code>SMTP_USER</code>, <code>SMTP_PASS</code>, <code>MAIL_FROM</code> and <code>PUBLIC_URL</code> in the
+          environment and restart; see <code>docs/DEPLOYMENT.md</code>.</p>
+      <% } %>
+    </section>
+    <% } %>
+
     <% if (tab === 'roles') { %>
     <section class="settings-section" id="roles">
       <h3>Roles</h3>

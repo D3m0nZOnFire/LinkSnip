@@ -16,7 +16,8 @@ users or visitors anywhere: there is no telemetry, no analytics service and no u
 
 | Data | What | Why | How long |
 |---|---|---|---|
-| **Accounts** | Username, e-mail address (optional), password (bcrypt hash), role, sign-up date, last activity | Logging in, permissions and limits | Until the account is deleted |
+| **Accounts** | Username, e-mail address (optional) and when it was confirmed, password (bcrypt hash), role, sign-up date, last activity | Logging in, permissions and limits; with mail set up, confirming the address, password reset and notices about the account | Until the account is deleted |
+| **Mail links** | For address confirmation and password reset links: the SHA-256 hash of the link's token, the address it confirms, when it was made, used and expires | One-time links sent by mail | A day after they expire or are used (nightly cleanup) |
 | **Content** | Links, pastes, uploaded files (with their original file names), bundles, bio pages, tags, teams | What users share | Until it's deleted, or it expires (see below) |
 | **Sessions** | A session ID in a cookie (`connect.sid`, HttpOnly, SameSite=Lax); in the database: who is logged in, which password-protected items were unlocked | Staying logged in | 7 days after the last visit |
 | **Visits (analytics)** | Per visit of a link, bundle, paste or file (not the fetch a chat app makes to build a link preview): time, a keyed hash of the IP address, referrer, user agent (browser, OS and device read from it), country | Analytics for the item's owner | Forever, unless `retention.analyticsDays` is set; deleted with the item |
@@ -32,6 +33,11 @@ the backups. The audit log keeps real addresses on purpose, to investigate break
 
 **Countries** are looked up on the server in a local copy of the DB-IP Lite database. The visitor's IP isn't sent
 anywhere; only the monthly download of that file contacts db-ip.com, and it carries no visitor data.
+
+**Mail** is off unless you set it up (`SMTP_HOST`, `MAIL_FROM`, `PUBLIC_URL`; see [DEPLOYMENT.md](DEPLOYMENT.md)).
+Then LinkSnip sends only account mails (confirm an address, reset a password, a changed address or password) through
+the SMTP server you configure; that server sees the recipient's address and the mail. No newsletters, no images, no
+tracking links.
 
 ## What visitors' browsers load from elsewhere
 

@@ -1,4 +1,4 @@
-const { requireSessionSecret, requireIpHashSecret, parseTrustProxy } = require('../../../config/env');
+const { requireSessionSecret, requireIpHashSecret, parseTrustProxy, readMailConfig } = require('../../../config/env');
 
 describe('requireSessionSecret', () => {
   it('returns the secret when set', () => {
@@ -58,5 +58,97 @@ describe('parseTrustProxy', () => {
     ['10.0.0.0/8, 172.16.0.0/12', '10.0.0.0/8, 172.16.0.0/12']
   ])('%p → %p', (input, expected) => {
     expect(parseTrustProxy(input)).toEqual(expected);
+  });
+});
+
+describe('readMailConfig', () => {
+  const SMTP = {
+    SMTP_HOST: 'mail.example.com',
+    SMTP_USER: 'no-reply@example.com',
+    SMTP_PASS: 'secret',
+    MAIL_FROM: 'LinkSnip <no-reply@example.com>',
+    PUBLIC_URL: 'https://links.example.com'
+  };
+
+  it('is null (mail off) when nothing is set', () => {
+    expect(readMailConfig({})).toBeNull();
+    expect(readMailConfig({ SMTP_HOST: '  ', PUBLIC_URL: '' })).toBeNull();
+  });
+
+  it('reads a full SMTP setup, port 465 with TLS by default', () => {
+    expect(readMailConfig(SMTP)).toEqual({
+      transport: 'smtp',
+      host: 'mail.example.com',
+      port: 465,
+      secure: true,
+      user: 'no-reply@example.com',
+      pass: 'secret',
+      from: 'LinkSnip <no-reply@example.com>',
+      replyTo: null,
+      publicUrl: 'https://links.example.com'
+    });
+  });
+
+  it('uses STARTTLS (secure false) on another port, and reads Reply-To', () => {
+    const config = readMailConfig({ ...SMTP, SMTP_PORT: '587', MAIL_REPLY_TO: 'contact@example.com' });
+    expect(config).toEqual(expect.objectContaining({ port: 587, secure: false, replyTo: 'contact@example.com' }));
+  });
+
+  it('allows a server without login (no user and no password)', () => {
+    const { SMTP_USER, SMTP_PASS, ...noLogin } = SMTP;
+    expect(readMailConfig(noLogin)).toEqual(expect.objectContaining({ user: null, pass: null }));
+  });
+
+  it('keeps only the origin of PUBLIC_URL (a trailing slash is fine)', () => {
+    expect(readMailConfig({ ...SMTP, PUBLIC_URL: 'https://links.example.com/' }).publicUrl)
+      .toBe('https://links.example.com');
+    expect(readMailConfig({ ...SMTP, PUBLIC_URL: 'http://localhost:8081' }).publicUrl).toBe('http://localhost:8081');
+  });
+
+  it.each([
+    [{ SMTP_HOST: 'mail.example.com' }, /MAIL_FROM.*PUBLIC_URL|PUBLIC_URL.*MAIL_FROM/],
+    [{ ...SMTP, SMTP_HOST: '' }, /SMTP_HOST/],
+    [{ ...SMTP, MAIL_FROM: '' }, /MAIL_FROM/],
+    [{ ...SMTP, PUBLIC_URL: '' }, /PUBLIC_URL/],
+    [{ ...SMTP, SMTP_PASS: '' }, /SMTP_USER and SMTP_PASS/],
+    [{ ...SMTP, SMTP_USER: '' }, /SMTP_USER and SMTP_PASS/]
+  ])('refuses a partial setup and names what is missing (%#)', (env, message) => {
+    expect(() => readMailConfig(env)).toThrow(message);
+  });
+
+  it.each([
+    ['links.example.com', /PUBLIC_URL/],
+    ['ftp://links.example.com', /PUBLIC_URL/],
+    ['https://links.example.com/app', /PUBLIC_URL/],
+    ['https://links.example.com/?a=1', /PUBLIC_URL/]
+  ])('refuses PUBLIC_URL %p (an http(s) address without a path)', (publicUrl, message) => {
+    expect(() => readMailConfig({ ...SMTP, PUBLIC_URL: publicUrl })).toThrow(message);
+  });
+
+  it.each(['0', '70000', 'abc', '25.5'])('refuses SMTP_PORT %p', (port) => {
+    expect(() => readMailConfig({ ...SMTP, SMTP_PORT: port })).toThrow(/SMTP_PORT/);
+  });
+
+  it.each(['LinkSnip', 'nobody'])('refuses MAIL_FROM %p without an address', (from) => {
+    expect(() => readMailConfig({ ...SMTP, MAIL_FROM: from })).toThrow(/MAIL_FROM/);
+  });
+
+  describe('MAIL_TRANSPORT=console (development: mails are printed, not sent)', () => {
+    it('needs no SMTP and defaults the sender and the public URL to localhost', () => {
+      expect(readMailConfig({ MAIL_TRANSPORT: 'console', PORT: '9000' })).toEqual(expect.objectContaining({
+        transport: 'console',
+        from: 'LinkSnip <no-reply@localhost>',
+        publicUrl: 'http://localhost:9000'
+      }));
+      expect(readMailConfig({ MAIL_TRANSPORT: 'console' }).publicUrl).toBe('http://localhost:8081');
+    });
+
+    it('is refused in production', () => {
+      expect(() => readMailConfig({ MAIL_TRANSPORT: 'console', NODE_ENV: 'production' })).toThrow(/MAIL_TRANSPORT/);
+    });
+
+    it('refuses an unknown transport', () => {
+      expect(() => readMailConfig({ ...SMTP, MAIL_TRANSPORT: 'carrier-pigeon' })).toThrow(/MAIL_TRANSPORT/);
+    });
   });
 });

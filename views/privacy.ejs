@@ -26,6 +26,11 @@
       <p>Your username, your e-mail address if you gave one, your password (as a hash, never in readable form), your sign-up
         date and when you were last active, and what you create. You can delete your account in Settings; that deletes what
         you created too (items in a team stay with the team).</p>
+<% if (locals.mailEnabled) { %>
+      <p>Your e-mail address is used only to confirm it is yours, to reset your password if you forget it, and to tell
+        you about changes to your account (a new address, a changed password). These mails are sent by this site's own
+        mail server; there is no newsletter and no tracking in them.</p>
+<% } %>
     </section>
 
     <section>

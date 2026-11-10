@@ -106,6 +106,22 @@ const PAGES = {
   'scheduled': () => rendered(c('urlController').redirect, request(null, { params: { slug: 'soon' } })),
   'quarantine': () => rendered(c('urlController').redirect, request(null, { params: { slug: 'flagged' } })),
   'logout': () => rendered(c('authController').getLogout, request(s.user)),
+  'forgot-password': () => rendered(c('passwordResetController').showForgot, request(null)),
+  'reset-password': () => {
+    // A reset link from the mail: the form for choosing a new password
+    require('../../setup/testDatabase').getTestDatabase()
+      .prepare("UPDATE users SET email = 'user@example.com', emailVerifiedAt = '2026-01-01' WHERE id = ?").run(s.user.id);
+    const token = require('../../../models/UserToken').create(s.user.id, 'reset_password', { ttlMinutes: 30 });
+    return rendered(c('passwordResetController').showReset, request(null, { params: { token } }));
+  },
+  'check-inbox': () => rendered(c('authController').resendSignupLink, request(null, { body: { username: 'someone' } })),
+  'verify-email': () => {
+    // A confirmation link from the mail, opened while logged out (the page that asks before confirming)
+    require('../../setup/testDatabase').getTestDatabase()
+      .prepare("UPDATE users SET email = 'user@example.com' WHERE id = ?").run(s.user.id);
+    const token = require('../../../models/UserToken').create(s.user.id, 'verify_email', { email: 'user@example.com', ttlMinutes: 60 });
+    return rendered(c('accountEmailController').showVerify, request(null, { params: { token } }));
+  },
   'privacy': () => rendered(c('legalController').privacyPage, request(null)),
   'terms': () => rendered(c('legalController').termsPage, request(null)),
   'error': async () => ({ req: request(null), view: 'error', data: { title: 'Page Not Found', message: 'Nope.', code: 404 } }),
@@ -172,7 +188,7 @@ const pages = fs.readdirSync(VIEWS).filter(f => f.endsWith('.ejs')).map(f => f.r
 //   standalone: page and footer only (login, errors, bio pages)
 const SHELL = Object.fromEntries(pages.map(name => [name,
   ['url-info', 'paste-view', 'paste-info', 'file-download', 'bundle-launcher', 'unlock', 'privacy', 'terms'].includes(name) ? 'public'
-    : ['login', 'register', 'setup', 'logout', 'error', 'scheduled', 'quarantine', 'bio-page'].includes(name) ? 'standalone'
+    : ['login', 'register', 'setup', 'logout', 'verify-email', 'check-inbox', 'forgot-password', 'reset-password', 'error', 'scheduled', 'quarantine', 'bio-page'].includes(name) ? 'standalone'
       : name.startsWith('admin') ? 'admin'
         : 'app']));
 
