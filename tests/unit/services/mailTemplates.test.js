@@ -63,6 +63,25 @@ describe('mailTemplates', () => {
     expect(html).toMatch(/class="ls-btn"/);
   });
 
+  it('Outlook in dark mode (on the web, new Outlook) gets the dark palette instead of its own grays', () => {
+    // Outlook applies the prefers-color-scheme block, but rewrites backgrounds inline with !important, which no
+    // stylesheet beats, and drops background-image. An inset box-shadow paints over them. Checked in Outlook on the web.
+    const darkTheme = {
+      background: '#101010', card: '#1a1a1a', text: '#eeeeee', muted: '#999999', border: '#333333',
+      accent: '#34d399', accentText: '#000000'
+    };
+    const { html } = mailTemplates.verifyEmail({ siteName: SITE, username: 'ann', url: 'https://l.example/v/T', darkTheme });
+    const dark = html.match(/@media \(prefers-color-scheme: dark\)\s*\{([\s\S]*?)\}\s*<\/style>/)[1];
+    const rule = (selector) => dark.match(new RegExp(`\\${selector}\\{([^}]*)\\}`))[1];
+    expect(rule('.ls-bg')).toContain('box-shadow:inset 0 0 0 2000px #101010 !important');
+    expect(rule('.ls-card')).toContain('box-shadow:inset 0 0 0 2000px #1a1a1a !important');
+    // The button is left to Outlook: it also forces the button's text color (white) and drops
+    // -webkit-text-fill-color, so painting the palette's light green would put white text on it
+    expect(rule('.ls-btn')).not.toContain('box-shadow');
+    expect(dark).not.toContain('background-image'); // Outlook drops it
+    expect(rule('.ls-sep')).toContain('border-color:#333333 !important');
+  });
+
   it('falls back to LinkSnip Light without a theme', () => {
     const { html } = mailTemplates.verifyEmail({ siteName: SITE, username: 'ann', url: 'https://l.example/v/T' }); // has a button
     expect(html).toContain('background:#047857');
@@ -95,6 +114,15 @@ describe('notification mails', () => {
     { text: 'Your link /s/a was blocked <by an admin>.', url: 'https://l.example/info/a', unsubscribe: 'https://l.example/notifications/unsubscribe/K/blocked' },
     { text: 'Your link /s/b was deleted.', url: null, unsubscribe: 'https://l.example/notifications/unsubscribe/K/deleted_by_cleanup' }
   ];
+
+  it('marks the lines between notices, so dark mode can recolor them', () => {
+    const darkTheme = {
+      background: '#101010', card: '#1a1a1a', text: '#eeeeee', muted: '#999999', border: '#333333',
+      accent: '#34d399', accentText: '#000000'
+    };
+    const { html } = mailTemplates.notifications({ siteName: SITE, username: 'ann', items, pageUrl: 'p', settingsUrl: 's', darkTheme });
+    expect(html.match(/class="ls-sep"[^>]*border-bottom/g)).toHaveLength(items.length);
+  });
 
   it('lists every item with its link, the notifications page and how to stop each kind', () => {
     const mail = mailTemplates.notifications({

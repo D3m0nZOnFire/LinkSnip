@@ -40,7 +40,7 @@ function compose({ siteName, subject, paragraphs, replyTo = null, theme = DEFAUL
         p.link ? `<a class="ls-link" href="${escapeHtml(p.link)}" style="color:${t.accent}">Open</a>` : '',
         p.unsubscribe ? `<a class="ls-link" href="${escapeHtml(p.unsubscribe)}" style="color:${t.muted}">Stop mails like this</a>` : ''
       ].filter(Boolean).join(' &nbsp;·&nbsp; ');
-      return `<div style="margin:0 0 16px;padding:0 0 16px;border-bottom:1px solid ${t.border}">` +
+      return `<div class="ls-sep" style="margin:0 0 16px;padding:0 0 16px;border-bottom:1px solid ${t.border}">` +
         `<p style="margin:0">${escapeHtml(p.notice)}</p>` +
         (links ? `<p class="ls-muted" style="margin:6px 0 0;font-size:13px;color:${t.muted}">${links}</p>` : '') +
         '</div>';
@@ -86,12 +86,18 @@ function textBlock(p) {
 function darkStyle(d) {
   if (!d) return '';
   const hex = (value) => (/^#[0-9a-fA-F]{3,8}$/.test(String(value)) ? value : null);
+  // Outlook (on the web, the new Outlook app) applies this block, but rewrites every background inline with
+  // !important (darkened into a gray), which no stylesheet can beat, and drops background-image: an inset box-shadow
+  // paints the palette's color over it. The button is left to Outlook, which also forces its text color (white) and
+  // drops -webkit-text-fill-color, so it keeps its own dark green. Classic Outlook for Windows ignores all this.
+  const paint = (color) => `box-shadow:inset 0 0 0 2000px ${color} !important`;
   const rules = [
-    ['.ls-bg', `background:${hex(d.background)} !important`],
-    ['.ls-card', `background:${hex(d.card)} !important;border-color:${hex(d.border)} !important`],
+    ['.ls-bg', `background:${hex(d.background)} !important;${paint(hex(d.background))}`],
+    ['.ls-card', `background:${hex(d.card)} !important;${paint(hex(d.card))};border-color:${hex(d.border)} !important`],
     ['.ls-text', `color:${hex(d.text)} !important`],
     ['.ls-muted', `color:${hex(d.muted)} !important`],
     ['.ls-btn', `background:${hex(d.accent)} !important;color:${hex(d.accentText)} !important`],
+    ['.ls-sep', `border-color:${hex(d.border)} !important`],
     ['.ls-link', `color:${hex(d.accent)} !important`]
   ];
   if (rules.some(([, css]) => css.includes('null'))) return '';
