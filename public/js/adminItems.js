@@ -64,7 +64,8 @@
       unblock: `Unblock ${describeRow(row)}?`,
       delete: `Delete ${describeRow(row)}? This cannot be undone.`
     }[action];
-    if (!confirm(question)) return;
+    const labels = { block: ['Block the item', 'Block'], unblock: ['Unblock the item', 'Unblock'], delete: ['Delete the item', 'Delete'] }[action];
+    if (!(await confirmAction(question, labels[0], action !== 'unblock', labels[1]))) return;
 
     button.disabled = true;
     try {
@@ -112,7 +113,9 @@
       const rows = selected();
       const verb = { block: 'Block', unblock: 'Unblock', delete: 'Delete' }[action];
       const warning = action === 'delete' ? ' This cannot be undone.' : '';
-      if (!rows.length || !confirm(`${verb} ${rows.length} item${rows.length === 1 ? '' : 's'}?${warning}`)) return;
+      if (!rows.length) return;
+      const count = `${rows.length} item${rows.length === 1 ? '' : 's'}`;
+      if (!(await confirmAction(`${verb} ${count}?${warning}`, `${verb} ${count}`, action !== 'unblock', verb))) return;
 
       // One request per type (and per 200 items)
       const byType = {};

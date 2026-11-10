@@ -249,7 +249,7 @@
   // ─── Reset (built-in roles) ────────────────────────────────────────────────
 
   async function resetRole(role) {
-    if (!confirm(`Reset "${role.label}" to its built-in name, permissions and limits? This is saved right away.`)) return;
+    if (!(await confirmAction(`Reset "${role.label}" to its built-in name, permissions and limits? This is saved right away.`, 'Reset role', true, 'Reset'))) return;
     errorsEl.replaceChildren();
     try {
       const { status, result } = await send('POST', `/api/admin/roles/${encodeURIComponent(role.name)}/reset`);
@@ -304,7 +304,7 @@
     const role = deleting;
     const toDefault = deleteForm.querySelector('input[name="deleteRoleTarget"]:checked').value === 'default';
     const moveTo = toDefault ? null : moveToSelect.value;
-    const button = deleteForm.querySelector('button[type="submit"]');
+    const button = document.querySelector('button[type="submit"][form="deleteRoleForm"]');
     deleteErrors.replaceChildren();
     button.disabled = true;
 

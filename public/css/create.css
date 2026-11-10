@@ -379,7 +379,8 @@
   .creator-panel { animation: none; }
 }
 
-.creator-panel .form-input {
+.creator-panel .form-input,
+.creator-panel .tag-selector-input-wrapper {
   padding: 0.5rem 0.75rem;
   background: var(--card);
   font-size: var(--text-sm);

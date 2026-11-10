@@ -141,6 +141,8 @@
   results.addEventListener('click', async (event) => {
     const toggle = event.target.closest('[data-menu-toggle]');
     if (toggle) return toggleMenu(toggle);
+    // Any entry of a menu closes it, also the ones other scripts handle (teamMove.js: moving to and from teams)
+    if (event.target.closest('.row-menu .menu [role="menuitem"]')) closeMenus();
 
     const button = event.target.closest('[data-action]');
     if (!button) return;
@@ -353,7 +355,7 @@
     item.innerHTML = `
       <input type="url" class="form-input edit-bundle-url" placeholder="https://example.com" aria-label="Link">
       <input type="text" class="form-input edit-bundle-label" placeholder="Label (optional)" maxlength="100" aria-label="Label">
-      <button type="button" class="icon-btn danger" title="Remove" aria-label="Remove this link">✕</button>`;
+      <button type="button" class="icon-btn danger" title="Remove" aria-label="Remove this link"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>`;
     item.querySelector('.edit-bundle-url').value = url;
     item.querySelector('.edit-bundle-label').value = label || '';
     item.querySelector('button').addEventListener('click', () => item.remove());

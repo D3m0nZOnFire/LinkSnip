@@ -17,6 +17,7 @@ function setup(answer) {
     </div>`;
   global.fetch = jest.fn().mockResolvedValue({ json: () => Promise.resolve(answer) });
   window.alert = jest.fn();
+  global.showToast = jest.fn();
   const go = { href: null, reload: jest.fn() };
   // eslint-disable-next-line no-new-func
   new Function('window', SCRIPT)({ alert: window.alert, location: go });
@@ -42,9 +43,10 @@ it('declining posts the invite and reloads', async () => {
   expect(go.reload).toHaveBeenCalled();
 });
 
-it('an error is shown and the button can be used again', async () => {
+it('an error is shown (a toast, not a browser alert) and the button can be used again', async () => {
   setup({ success: false, error: 'Invite not found.' });
   await click('accept');
-  expect(window.alert).toHaveBeenCalledWith('Invite not found.');
+  expect(global.showToast).toHaveBeenCalledWith('Invite not found.', 'error');
+  expect(window.alert).not.toHaveBeenCalled();
   expect(document.querySelector('[data-action="accept"]').disabled).toBe(false);
 });

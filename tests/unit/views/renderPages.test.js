@@ -219,6 +219,33 @@ describe('every page renders', () => {
   });
 });
 
+describe('privacy and terms: the header knows who is logged in', () => {
+  it.each(['privacyPage', 'termsPage'])('%s shows the dashboard and user menu, not Log in / Register', async (handler) => {
+    const { req, view, data } = await rendered(c('legalController')[handler], request(s.user));
+    const res = createMockResponse();
+    brandingLocals(req, res, () => {});
+    viewLocals(req, res, () => {});
+    const html = await ejs.renderFile(path.join(VIEWS, `${view}.ejs`), { ...appLocals(), ...res.locals, ...data });
+    const header = html.match(/<header class="site-header">[\s\S]*?<\/header>/)[0];
+
+    expect(header).toContain('href="/dashboard"');
+    expect(header).not.toContain('href="/login"');
+  });
+});
+
+describe('the app\'s confirm dialog', () => {
+  // confirmAction() (public/js/main.js) falls back to the browser's own confirm() without it
+  const withDialog = pages.filter(name => ['app', 'admin'].includes(SHELL[name]));
+
+  it.each(withDialog)('%s has it once, with the modal styles', async (name) => {
+    const html = await renderPage(name);
+
+    expect(html.match(/id="confirmModal"/g)).toHaveLength(1);
+    expect(html).toContain('href="/css/modals.css"');
+    expect(html.match(/href="\/css\/modals\.css"/g)).toHaveLength(1);
+  });
+});
+
 describe('admin-appearance', () => {
   it('shows custom palettes with an edit button and a New tile per mode', async () => {
     const html = await renderPage('admin-appearance');

@@ -38,7 +38,7 @@
   max-width: 32rem;
   max-height: 90vh;
   overflow-y: auto;
-  padding: 1.5rem;
+  padding: 0; /* the header, body and footer pad themselves */
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.3s ease;
 }
@@ -55,7 +55,7 @@
 }
 
 .modal-header {
-  padding: var(--spacing-xl);
+  padding: var(--spacing-lg);
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
@@ -87,11 +87,11 @@
 }
 
 .modal-body {
-  padding: var(--spacing-xl);
+  padding: var(--spacing-lg);
 }
 
 .modal-footer {
-  padding: var(--spacing-xl);
+  padding: var(--spacing-lg);
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
@@ -100,6 +100,24 @@
 
 .modal-footer .btn {
   min-width: 6rem;
+}
+
+/* Long forms: the header and the buttons stay, the body scrolls */
+.modal-overlay .modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-overlay .modal > .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.modal-overlay .modal > .modal-header,
+.modal-overlay .modal > .modal-footer {
+  flex-shrink: 0;
 }
 
 /* Scrollbar for modal */
@@ -375,4 +393,22 @@
 /* confirmAction() messages keep their line breaks */
 .confirm-message {
   white-space: pre-line;
+}
+
+/* A line of facts above an edit form (joined, clicks, created) */
+.modal-meta {
+  margin: 0 0 var(--spacing-md);
+}
+
+/* An explanation above the first field of a dialog */
+.modal-body > p + .form-group {
+  margin-top: var(--spacing-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal,
+  .modal-content {
+    animation: none;
+  }
 }

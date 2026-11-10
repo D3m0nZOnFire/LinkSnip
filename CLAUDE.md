@@ -560,15 +560,19 @@ share links · 5:30 expired files · 5:45 country database check.
   `.table-container` rows with `.cell-sub` second lines, `.row-actions`, `.table-footer` + `.pager`), a script per page
   (`public/js/admin-*.js`, Users: `admin.js`). Admin → Settings: `admin-settings.css` / `admin-settings.js`.
 - `confirmAction(message, title, destructive, confirmLabel)` returns a Promise: always `await` it (an unawaited one is
-  always truthy). Its dialog is `partials/confirm-modal.ejs`. Buttons with `data-open-modal="id"` /
-  `data-close-modal="id"` work on every page that loads `main.js`.
+  always truthy). Its dialog is `partials/confirm-modal.ejs`, included once by `layout-end` on every app and admin page
+  (never add another). No `confirm()`, `alert()` or `prompt()` in `public/js` (`noNativeDialogs.test.js`): ask with
+  `confirmAction`, report with `showToast`, and a typed confirmation (a team's name) gets its own modal. Buttons with
+  `data-open-modal="id"` / `data-close-modal="id"` work on every page that loads `main.js`.
 - **Dropdowns**: every `<select>` has `data-select` (a test checks views and scripts): `public/js/customSelect.js` (loaded by
   `partials/head.ejs`, with `public/css/select.css`) shows a button and a styled list and keeps the hidden native select
   in sync (picking fires its `change`; `select.value = …` and rebuilt options update the button). Options may carry
   `data-color` (hex dot) and `data-hint`; the select `multiple`, `data-placeholder`, `data-select-search`,
   `data-select-match="<hidden input id>"` (Any | All). Selects added later (swapped results, modals) are enhanced too.
-- Modals: `public/css/modals.css`, `openModal(id)` / `closeModal(id)` in `public/js/main.js`; `showToast`,
-  `apiRequest`, `setButtonLoading` there too.
+- Modals: `public/css/modals.css` (loaded by `partials/head` on every page), `openModal(id)` / `closeModal(id)` in
+  `public/js/main.js`; `showToast`, `apiRequest`, `setButtonLoading` there too. Structure: `.modal` > `.modal-header`,
+  `.modal-body` (often the `<form>`), `.modal-footer` as siblings; the submit button sits in the footer with
+  `form="<form id>"`. The `.modal` has no padding of its own, the body scrolls between header and footer.
 - Password inputs with `data-toggle-password` get an eye toggle. Theme variables in `public/css/tokens.css`
   (`--primary: #34d399` dark, `#047857` light). Dark buttons need light text (`var(--foreground)`), light buttons dark text
   (`var(--primary-foreground)`).

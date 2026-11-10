@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: currentTeam ? currentTeam.name : 'Dashboard', styles: ['forms', 'modals', 'items', 'tagSelector', 'dashboard'] }) %>
+  <%- include('partials/head', { title: currentTeam ? currentTeam.name : 'Dashboard', styles: ['forms', 'items', 'tagSelector', 'dashboard'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'app', currentPage: 'dashboard' }) %>
 <%
@@ -257,21 +257,6 @@
   </div>
   <% } %>
 
-  <!-- Confirm (confirmAction in main.js) -->
-  <div id="confirmModal" class="modal-overlay">
-    <div class="modal modal-narrow" role="alertdialog" aria-modal="true" aria-labelledby="confirmModalTitle">
-      <div class="modal-header">
-        <h3 id="confirmModalTitle">Confirm</h3>
-      </div>
-      <div class="modal-body">
-        <p id="confirmModalMessage"></p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" id="confirmModalCancelBtn" class="btn btn-secondary">Cancel</button>
-        <button type="button" id="confirmModalConfirmBtn" class="btn btn-danger">Delete</button>
-      </div>
-    </div>
-  </div>
 
   <script src="/js/main.js"></script>
   <script src="/js/tagSelector.js"></script>

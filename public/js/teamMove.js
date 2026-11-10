@@ -30,10 +30,11 @@
       openModal('moveToTeamModal');
     } else if (out) {
       event.stopPropagation();
-      if (!confirm('Move this item out of the team? It goes back to the personal items of whoever created it.')) return;
+      const ok = await confirmAction('Move this item out of the team? It goes back to the personal items of whoever created it.', 'Move out of the team', false, 'Move out');
+      if (!ok) return;
       const data = await move(out.dataset.type, out.dataset.id, null);
       if (data.success) window.location.reload();
-      else alert(data.error || 'Could not move the item.');
+      else showToast(data.error || 'Could not move the item.', 'error');
     }
   });
 

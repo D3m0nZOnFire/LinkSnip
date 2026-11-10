@@ -233,7 +233,7 @@ class TagSelector {
     if (!normalized) return;
 
     if (this.options.maxTags && this.selectedTags.size >= this.options.maxTags) {
-      alert(`Maximum ${this.options.maxTags} tags allowed`);
+      if (typeof showToast === 'function') showToast(`At most ${this.options.maxTags} tags`, 'error');
       return;
     }
 

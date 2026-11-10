@@ -85,7 +85,7 @@ function confirmAction(message, title = 'Confirm Action', destructive = true, co
 function formatDate(dateString) {
   if (!dateString) return 'Never';
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-GB');
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 // Format date for datetime-local input (YYYY-MM-DDTHH:mm)

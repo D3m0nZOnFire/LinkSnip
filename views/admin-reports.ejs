@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('partials/head', { title: 'Reports · Admin', styles: ['tables', 'modals', 'admin-pages'] }) %>
+  <%- include('partials/head', { title: 'Reports · Admin', styles: ['tables', 'admin-pages'] }) %>
 </head>
 <%- include('partials/layout-start', { shell: 'admin', currentPage: 'admin-reports' }) %>
 <%
@@ -112,7 +112,7 @@
                   </td>
                   <td class="nowrap">
                     <%= reasons[report.reason] || report.reason %>
-                    <span class="cell-sub"><%= new Date(report.createdAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) %></span>
+                    <span class="cell-sub"><%= new Date(report.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></span>
                   </td>
                   <td class="clip" title="<%= report.description || '' %>"><%= report.description || '—' %></td>
                   <td><span class="badge <%= STATUS_BADGES[report.status] || 'badge-muted' %>"><%= report.status.charAt(0).toUpperCase() + report.status.slice(1) %></span></td>
@@ -126,6 +126,8 @@
                         <% } %>
                         <% if (report.ownerId && !report.creatorIsBanned && report.ownerId !== user.id) { %>
                           <button type="button" class="icon-btn danger" data-action="ban" title="Ban <%= report.creatorUsername %>" aria-label="Ban <%= report.creatorUsername %>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg></button>
+                        <% } else { %>
+                          <span class="icon-btn icon-slot" aria-hidden="true"><svg viewBox="0 0 24 24"></svg></span>
                         <% } %>
                         <button type="button" class="icon-btn" data-action="dismiss" title="Dismiss the report" aria-label="Dismiss the report"><%- include('partials/icon', { icon: 'close' }) %></button>
                       <% } %>
@@ -141,7 +143,6 @@
     <% } %>
   </main>
 
-  <%- include('partials/confirm-modal') %>
 
   <script src="/js/main.js"></script>
   <script src="/js/admin-reports.js"></script>

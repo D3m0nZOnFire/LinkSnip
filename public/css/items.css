@@ -40,6 +40,12 @@
   font-weight: 700;
 }
 
+/* Open, the dates take a row of their own below the filters, so the search field keeps its width */
+.toolbar-more[open] {
+  flex-basis: 100%;
+  order: 1;
+}
+
 .toolbar-more > summary {
   cursor: pointer;
   font-size: var(--text-sm);
@@ -341,6 +347,11 @@ body.selecting .items-footer {
     flex-wrap: wrap;
   }
 
+  /* The text takes the line next to the type icon, so the badges wrap below it instead of squeezing the slug */
+  .item-text {
+    flex: 1 1 calc(100% - 3rem);
+  }
+
   .item-badges {
     margin-left: 3rem;
   }
@@ -356,6 +367,10 @@ body.selecting .items-footer {
 
   .item-actions {
     margin-left: 2.6rem;
+  }
+
+  .item-actions .icon-slot {
+    display: none;
   }
 
   .toolbar-actions {

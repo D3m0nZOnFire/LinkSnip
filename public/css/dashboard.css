@@ -267,24 +267,6 @@
   }
 }
 
-/* Long edit forms: the header and the buttons stay, the form scrolls */
-.modal-overlay .modal {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.modal-overlay .modal > .modal-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.modal-overlay .modal > .modal-header,
-.modal-overlay .modal > .modal-footer {
-  flex-shrink: 0;
-}
-
 /* The tag filter grows with the picked names, up to a point */
 .dash-toolbar .dash-tag-select {
   max-width: 20rem;

@@ -179,6 +179,7 @@ code, kbd, pre, samp {
   border-radius: var(--radius-full);
   font-size: 0.75rem;
   font-weight: 500;
+  white-space: nowrap; /* a pill never breaks into two lines ("Limit / reached" on phones) */
 }
 
 .badge-active {
@@ -356,6 +357,12 @@ code, kbd, pre, samp {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Keeps the place of a row action this row doesn't have, so the other buttons and badges line up */
+.icon-slot {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .icon-btn:hover {
@@ -1086,7 +1093,13 @@ code, kbd, pre, samp {
   box-shadow: var(--focus-ring);
 }
 
-/* Buttons next to a page title */
+/* Buttons next to a page title (alone or in .header-actions): the compact size everywhere */
+.header-section > .btn {
+  gap: 0.35rem;
+  padding: 0.5rem 0.9rem;
+  font-size: var(--text-sm);
+}
+
 .header-actions {
   display: flex;
   flex-wrap: wrap;

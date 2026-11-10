@@ -353,7 +353,7 @@ document.getElementById('addSocialLinkBtn')?.addEventListener('click', () => {
     <input type="hidden" class="social-icon" value="link-outline">
     <input type="text" class="form-input social-platform" placeholder="Name (optional)" aria-label="Name">
     <input type="url" class="form-input social-url" placeholder="https://…" aria-label="Address">
-    <button type="button" class="icon-btn danger remove-social-link" title="Remove" aria-label="Remove this link">✕</button>`;
+    <button type="button" class="icon-btn danger remove-social-link" title="Remove" aria-label="Remove this link"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>`;
   container.appendChild(item);
   item.querySelector('.social-url').focus();
   setUnsaved(true);
